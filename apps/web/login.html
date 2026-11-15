@@ -4,21 +4,40 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f5f5f2" />
     <title>Sign in · GRU</title>
+    <script src="/theme-init.js"></script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <script type="module" src="/src/login.ts"></script>
   </head>
   <body>
-    <main>
-      <p class="brand">GRU</p>
-      <h1>Welcome back, Ani</h1>
-      <form id="login-form" novalidate>
-        <label for="username">Username</label>
-        <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required />
-        <button id="submit" type="submit">Sign in</button>
-      </form>
-      <p id="status" role="status" aria-live="polite"></p>
+    <main class="flex min-h-dvh flex-col items-center justify-center gap-7 bg-bg px-5 py-12 text-ink">
+      <div class="flex w-full max-w-[380px] flex-col gap-5">
+        <div class="flex items-center gap-2.5">
+          <span class="grid size-[34px] place-items-center rounded-[10px] bg-ink text-sm font-bold text-bg">G</span>
+          <span class="text-sm font-bold tracking-[0.1em]">GRU</span>
+        </div>
+        <div>
+          <h1 class="m-0 text-[26px] font-semibold tracking-[-0.015em]">Welcome back, Ani</h1>
+          <p class="mt-1 mb-0 text-muted">Sign in to see today’s plan.</p>
+        </div>
+        <form id="login-form" class="flex flex-col gap-3.5 rounded-2xl border border-line bg-surface p-5 sm:p-6" novalidate>
+          <label for="username" class="flex flex-col gap-1.5 text-[13px] font-semibold">
+            Username
+            <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required class="h-11 rounded-[10px] border border-line-strong bg-sunken px-3 text-[15px] font-normal text-ink" />
+          </label>
+          <label for="password" class="flex flex-col gap-1.5 text-[13px] font-semibold">
+            Password
+            <input id="password" name="password" type="password" autocomplete="current-password" required class="h-11 rounded-[10px] border border-line-strong bg-sunken px-3 text-[15px] font-normal text-ink" />
+          </label>
+          <button id="submit" type="submit" class="h-11 cursor-pointer rounded-[10px] bg-accent text-[15px] font-semibold text-accent-ink disabled:cursor-progress disabled:opacity-60">Sign in</button>
+          <p id="status" role="status" aria-live="polite" class="m-0 min-h-5 text-[13px] text-muted data-[kind=error]:font-medium data-[kind=error]:text-red-text"></p>
+          <p class="m-0 text-[12.5px] text-muted">Your password is hashed on this device. GRU never receives it.</p>
+        </form>
+        <p class="m-0 text-center text-[12.5px] text-muted">Private, single-user, encrypted. There is no sign-up.</p>
+      </div>
     </main>
   </body>
 </html>

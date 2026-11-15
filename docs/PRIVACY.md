@@ -59,3 +59,6 @@ Google may keep its own records of token grants and revocations under Google's p
 
 ## 7. Changing a Google password
 Google revokes refresh tokens with Gmail scopes when the account password changes. GRU then shows "Reconnect Gmail" and pauses syncing for that account. This is expected; see RUNBOOK §4.
+
+## 8. Voice (planned, not yet built)
+When voice ships (ROADMAP V1), speech is recognised on the device; audio is never sent to GRU or stored. GRU stores only the text transcript, encrypted, for 30 days, and it is included in export and wipe. Spoken replies use voices installed on your device. Any change GRU suggests by voice waits for your tap.

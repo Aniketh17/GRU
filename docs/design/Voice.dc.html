@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Talk to GRU</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7FD4C7}a:hover{color:#A6E4DA}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="today" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 40px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+
+      <aside aria-label="Conversation history" style="flex: 0 1 260px; min-width: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Conversations</h2>
+          <button type="button" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 12.5px; cursor: pointer;">New</button>
+        </div>
+        <sc-for list="{{history}}" as="h" hint-placeholder-count="5">
+          <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; text-decoration: none; background: {{h.bg}}; border: 1px solid {{h.border}}; color: {{t.ink}};">
+            <span style="font-size: 13.5px; font-weight: 600;">{{h.title}}</span>
+            <span style="font-size: 12px; color: {{t.muted}};">{{h.meta}}</span>
+          </a>
+        </sc-for>
+        <p style="margin: 4px 2px 0; font-size: 12px; color: {{t.muted}};">Transcripts are encrypted and kept 30 days. Audio is never stored.</p>
+      </aside>
+
+      <section aria-label="Talk to GRU" style="flex: 1 1 520px; min-width: 0; border-radius: 18px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; overflow: hidden;">
+        <header style="padding: 16px 20px; border-bottom: 1px solid {{t.line}}; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <h1 style="margin: 0; font-size: 17px; font-weight: 600;">Talk to GRU</h1>
+            <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">Evening check · 7:58 PM · speech recognised on this device</p>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: {{t.accentSoft}}; color: {{t.accentText}};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{t.accent}};"></span>On-device voice</span>
+        </header>
+
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="align-self: flex-end; max-width: 72%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: {{t.bubbleMe}}; color: {{t.ink}};">What's left for tomorrow?</div>
+          <div style="max-width: 80%; display: flex; flex-direction: column; gap: 8px;">
+            <div style="padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: {{t.sunken}}; border: 1px solid {{t.line}};">Three things. The HackerRank for Pūriri at 10:30, the Kōwhai Labs application (it closes Tuesday), and a follow-up to Ākau Robotics that's two days overdue. Want me to put the follow-up first?</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <a href="Agenda.dc.html" style="font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink2}};">Agenda · Mon 16 Nov</a>
+              <a href="Jobs.dc.html" style="font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink2}};">Kōwhai Labs · 86</a>
+            </div>
+          </div>
+          <div style="align-self: flex-end; max-width: 72%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: {{t.bubbleMe}};">Yes, and remind me to email Priya at nine.</div>
+
+          <div style="max-width: 86%; border-radius: 14px; border: 1px solid {{t.accentLine}}; background: {{t.accentWash}}; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+            <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.accentText}};">GRU wants to make 2 changes · confirm to apply</p>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; gap: 10px; align-items: baseline;"><span style="font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: {{t.neutralSoft}}; color: {{t.ink2}};">MOVE</span><span>Follow up with Ākau Robotics → Mon 8:30 AM, first</span></div>
+              <div style="display: flex; gap: 10px; align-items: baseline;"><span style="font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: {{t.neutralSoft}}; color: {{t.ink2}};">NEW TASK</span><span>Email Priya (Tidewater) · Mon 9:00 AM · reminder on</span></div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Confirm both</button>
+              <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Edit</button>
+              <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; font-size: 13px; cursor: pointer;">Cancel</button>
+            </div>
+          </div>
+
+          <div style="max-width: 80%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: {{t.sunken}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 8px;">
+            <span>Once you confirm, I'll read tomorrow's plan back at 8 AM with your brief. Anything else tonight?</span>
+            <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: {{t.accentText}};">
+              <span style="display: inline-flex; align-items: flex-end; gap: 2px; height: 14px;" aria-hidden="true"><span style="width: 3px; height: 6px; border-radius: 2px; background: {{t.accent}};"></span><span style="width: 3px; height: 12px; border-radius: 2px; background: {{t.accent}};"></span><span style="width: 3px; height: 8px; border-radius: 2px; background: {{t.accent}};"></span><span style="width: 3px; height: 14px; border-radius: 2px; background: {{t.accent}};"></span></span>
+              Speaking · tap Stop or just start talking to interrupt
+            </span>
+          </div>
+        </div>
+
+        <footer style="margin-top: auto; padding: 14px 16px; border-top: 1px solid {{t.line}}; display: flex; gap: 10px; align-items: center;">
+          <button type="button" aria-label="Stop speaking" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; display: grid; place-items: center; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg></button>
+          <label style="flex: 1; min-width: 0;"><span style="position: absolute; left: -9999px;">Type to GRU</span>
+            <input placeholder="Type instead… e.g. “what closes this week?”" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit;">
+          </label>
+          <button type="button" aria-label="Hold to talk" style="width: 52px; height: 52px; border-radius: 50%; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 0 6px {{t.accentSoft}};"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+        </footer>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', line:'#E4E4DE', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', accentWash:'#F3F8F7', accentLine:'#C6DED9', neutralSoft:'#EFEFEA', bubbleMe:'#E8E8E2', selected:'#F3F8F7' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', line:'#262A2F', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', accentWash:'#14201E', accentLine:'#24433E', neutralSoft:'#23272C', bubbleMe:'#23272C', selected:'#1B2422' }
+    };
+    const theme = this.props.theme === 'light' ? 'light' : 'dark';
+    const t = T[theme];
+    const h = (title, meta, on) => ({ title, meta, bg: on ? t.selected : 'transparent', border: on ? t.accentLine : 'transparent' });
+    return {
+      theme, t,
+      history: [
+        h('Tomorrow’s plan', 'Today 7:58 PM · 2 changes made', true),
+        h('Morning briefing', 'Today 8:01 AM · listened 1 min 40 s'),
+        h('Harbourline prep questions', 'Today 11:20 AM · note saved'),
+        h('Which jobs close this week?', 'Fri 13 Nov'),
+        h('Morning briefing', 'Fri 13 Nov · read as text')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

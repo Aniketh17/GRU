@@ -1,11 +1,14 @@
 import { resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const root = resolve(import.meta.dirname, "../apps/web");
+const root = resolve(import.meta.dirname, "apps/web");
 
 export default defineConfig({
   root,
   base: "/",
+  plugins: [react(), tailwindcss()],
   build: {
     outDir: resolve(root, "dist"),
     emptyOutDir: true,
@@ -16,7 +19,6 @@ export default defineConfig({
       input: {
         index: resolve(root, "index.html"),
         login: resolve(root, "login.html"),
-        locked: resolve(root, "locked.html"),
       },
     },
   },

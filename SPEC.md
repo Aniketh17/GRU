@@ -425,3 +425,6 @@ These override the sections they name. Details: docs/ARCHITECTURE.md and docs/DE
 4. **Gmail recovery (§8):** revoked or expired authorisation → `needs_reauth`, that account's sync pauses, a clear Reconnect status appears, and RUNBOOK documents that a Google password change requires reconnecting.
 5. **Notifications (§14):** unchanged and reaffirmed, generic fixed strings only. Phase 6 adds the fixed kind `task_due`.
 6. **Cost guard:** Workers Logs disabled; a config test fails the build on paid-only settings or bindings.
+
+## 22. Amendment: voice (approved by Ani, 2026-11-15)
+"Voice" is removed from the §19 non-goals. GRU gains a voice interface, as an **additional interface to the existing backend** (no separate assistant, database or memory): talk to GRU with spoken replies, a daily voice briefing, voice commands (tasks, job search, application updates, notes), conversation history, interrupt-and-respond, a concise proactive personality, and full text fallback without microphone permission. Privacy constraints and phasing: docs/ROADMAP.md and DECISIONS D-042.

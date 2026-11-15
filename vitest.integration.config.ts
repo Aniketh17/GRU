@@ -2,13 +2,13 @@
 import { webcrypto } from "node:crypto";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
-import { deriveProof } from "../apps/web/src/derive.ts";
+import { deriveProof } from "./apps/web/src/derive.ts";
 
 const b64url = (b: Uint8Array) => Buffer.from(b).toString("base64url");
 const rand = (n: number) => webcrypto.getRandomValues(new Uint8Array(n));
 
 export default defineConfig(async () => {
-  const migrations = await readD1Migrations("../migrations");
+  const migrations = await readD1Migrations("./migrations");
 
   // Synthetic credentials, generated fresh per run with the real browser KDF, so the
   // server-relief protocol is tested end to end (D-018). OWASP-minimum params keep it fast.
@@ -22,7 +22,7 @@ export default defineConfig(async () => {
   return {
     plugins: [
       cloudflareTest({
-        wrangler: { configPath: "../wrangler.jsonc" },
+        wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {
           bindings: {
             APP_ORIGIN: "http://localhost:8787",
@@ -38,8 +38,8 @@ export default defineConfig(async () => {
       }),
     ],
     test: {
-      include: ["test/**/*.test.ts"],
-      setupFiles: ["./test/setup.ts"],
+      include: ["test/integration/**/*.test.ts"],
+      setupFiles: ["./test/integration/setup.ts"],
     },
   };
 });

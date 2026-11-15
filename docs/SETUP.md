@@ -6,9 +6,7 @@ Console menu names were current as of 2026-11-15; if Google or Cloudflare rename
 > **$0 rule:** never add a payment method to Cloudflare, never attach a billing account to the Google Cloud project, and never start the Google Cloud free trial. GRU never needs any of them.
 
 ## 1. Local machine
-- [ ] Node 20.16+ (already installed) is enough for the Node 20 lane: `cd C:devGRU`, then `npm ci`, then `npm run check`.
-- [ ] **For steps 3–8 (Wrangler):** add Node 22 **side by side** with fnm, without replacing the system Node that Antigravity uses. See docs/DEVELOPMENT.md. Then, in that terminal: `cd C:devGRU	oolchain`, `npm ci`, `npm run check`.
-- [ ] Wrangler commands below are run from `toolchain/` with `--config ../wrangler.jsonc`, or use the npm scripts there (`npm run dev`, `npm run db:migrate:remote`, `npm run deploy`).
+- [ ] Node 24 via fnm (already set up, see docs/DEVELOPMENT.md). In a terminal: activate fnm, `cd C:devGRU`, `npm ci`, `npm run check`.
 
 ## 2. Cloudflare account (free, no card)
 - [ ] Sign up at https://dash.cloudflare.com/sign-up. If it asks for a card, stop and tell Claude.
@@ -27,7 +25,7 @@ Console menu names were current as of 2026-11-15; if Google or Cloudflare rename
 - [ ] `node build/unit/scripts/gen-keys.js` (Node 20, after `npm run build:unit`) or `node scripts/gen-keys.ts` (Node ≥ 22.18) prints `DATA_KEY_V1`, `INDEX_KEY`, `SESSION_SECRET` and `NTFY_TOPIC`. **Save all four in your password manager first.** If `DATA_KEY_V1` is lost, your data is unrecoverable by design.
 - [ ] `node build/unit/scripts/set-password.js` (or `node scripts/set-password.ts` on Node ≥ 22.18) asks for a username and a password (16+ characters; a 5-word passphrase is ideal), then prints `AUTH_USERNAME` and `AUTH_VERIFIER`. Save the password in your password manager. The verifier is not secret-critical but is stored as a secret anyway.
 - [ ] For each value, run `npx wrangler secret put <NAME>` and paste it: `DATA_KEY_V1`, `INDEX_KEY`, `SESSION_SECRET`, `AUTH_USERNAME`, `AUTH_VERIFIER`.
-- [ ] `cd toolchain && npm run deploy`, then open `https://gru.<subdomain>.workers.dev/login` on your phone and sign in.
+- [ ] `npm run deploy`, then open `https://gru.<subdomain>.workers.dev/login` on your phone and sign in.
 - [ ] **Local dev only:** copy `.dev.vars.example` to `.dev.vars` (git-ignored) and fill it with **separate** throwaway values made with the same scripts. Never put production keys in `.dev.vars`.
 
 ## 5. Google Cloud project (before Phase 2)

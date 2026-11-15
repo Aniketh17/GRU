@@ -68,26 +68,25 @@ describe("wrangler.jsonc stays on the free tier", () => {
 });
 
 describe("dependencies", () => {
-  const read = (f: string) => JSON.parse(readFileSync(f, "utf8")) as Record<string, Record<string, string> | undefined>;
-  const root = read("package.json");
-  const toolchain = read("toolchain/package.json");
+  const pkg = JSON.parse(readFileSync("package.json", "utf8")) as Record<string, Record<string, string> | undefined>;
 
-  it("pins every dependency to an exact version (both lanes)", () => {
-    for (const deps of [root.dependencies, root.devDependencies, toolchain.dependencies, toolchain.devDependencies]) {
+  it("pins every dependency to an exact version", () => {
+    for (const deps of [pkg.dependencies, pkg.devDependencies]) {
       for (const [name, v] of Object.entries(deps ?? {})) assert.match(v, /^\d+\.\d+\.\d+(-[\w.]+)?$/, name);
     }
   });
 
-  it("has only the three justified runtime dependencies", () => {
-    assert.deepEqual(Object.keys(root.dependencies ?? {}).sort(), ["hash-wasm", "hono", "zod"]);
+  it("ships only justified runtime dependencies (D-036)", () => {
+    assert.deepEqual(Object.keys(pkg.dependencies ?? {}).sort(), [
+      "@fontsource-variable/inter", "@tanstack/react-query", "hash-wasm", "hono", "react", "react-dom", "react-router", "zod",
+    ]);
   });
 
-  it("keeps Node 22-only tools out of the Node 20 lane (D-028)", () => {
-    const rootDev = Object.keys(root.devDependencies ?? {});
-    for (const tool of ["wrangler", "vite", "vitest", "@cloudflare/vitest-plugin", "miniflare", "eslint", "typescript-eslint"]) {
-      assert.ok(!rootDev.includes(tool), `${tool} must live in toolchain/`);
-    }
-    assert.equal((root.engines as unknown as Record<string, string>).node, ">=20.16.0");
-    assert.equal((toolchain.engines as unknown as Record<string, string>).node, ">=22.12.0");
+  it("allows install scripts only for esbuild and workerd (D-031)", () => {
+    assert.deepEqual(Object.keys((pkg.allowScripts ?? {}) as Record<string, unknown>).map((k) => k.replace(/@[^@]+$/, "")).sort(), ["esbuild", "workerd"]);
+  });
+
+  it("requires Node >= 22.12 (D-035)", () => {
+    assert.equal((pkg.engines as unknown as Record<string, string>).node, ">=22.12.0");
   });
 });

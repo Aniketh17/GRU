@@ -1,4 +1,5 @@
 import { deriveProof, type KdfParams } from "./derive.ts";
+import "@fontsource-variable/inter";
 import "./styles.css";
 
 const form = document.getElementById("login-form") as HTMLFormElement;
@@ -23,7 +24,7 @@ form.addEventListener("submit", async (ev) => {
     say("Checking…");
     const pr = await fetch(`/auth/params?u=${encodeURIComponent(u)}`, { headers: { "X-App": "gru" } });
     if (pr.status === 423) return location.replace("/locked");
-    if (!pr.ok) return say("GRU isn't set up yet. Run the setup steps first.", "error");
+    if (!pr.ok) return say("GRU isn’t set up yet. Run the setup steps first.", "error");
     const params = (await pr.json()) as KdfParams;
 
     say("Securing your password on this device…");
@@ -44,9 +45,9 @@ form.addEventListener("submit", async (ev) => {
       return say(`Too many attempts. Try again in ${Math.max(1, Math.ceil(secs / 60))} min.`, "error");
     }
     if (res.status === 423) return location.replace("/locked");
-    say("That username or password isn't right.", "error");
+    say("That username or password isn’t right.", "error");
   } catch {
-    say("Couldn't reach GRU. Check your connection and try again.", "error");
+    say("Couldn’t reach GRU. Check your connection and try again.", "error");
   } finally {
     button.disabled = false;
   }

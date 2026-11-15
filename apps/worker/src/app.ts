@@ -9,7 +9,9 @@ import { hygiene } from "./http/hygiene.ts";
 import { killGuard, lockedGuard } from "./kill/guard.ts";
 import { errorCode, log } from "./log/index.ts";
 import { adminRoutes } from "./routes/admin.ts";
+import { applicationRoutes } from "./routes/applications.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { eventRoutes } from "./routes/events.ts";
 import { healthRoutes } from "./routes/health.ts";
 
 export type AppEnv = { Bindings: Env; Variables: { db: Db } };
@@ -28,6 +30,8 @@ app.use("*", hygiene);
 app.route("/auth", authRoutes);
 app.route("/api", healthRoutes);
 app.route("/api/admin", adminRoutes);
+app.route("/api/applications", applicationRoutes);
+app.route("/api/events", eventRoutes);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));

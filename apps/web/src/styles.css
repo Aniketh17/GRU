@@ -1,90 +1,181 @@
-:root {
-  color-scheme: light dark;
-  --bg: #f7f7f5;
+@import "tailwindcss";
+
+/* GRU design tokens: "quiet instrument" (docs/design). Two designed themes, not an inversion.
+   data-theme is set before first paint by /theme-init.js (no flash of the wrong theme). */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f5f2;
+  --side: #efefeb;
   --surface: #ffffff;
-  --text: #1b1c1e;
-  --muted: #5d6066;
-  --accent: #2f5bd3;
-  --accent-text: #ffffff;
-  --danger: #b3261e;
-  --border: #d9dade;
-  --radius: 14px;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sunken: #f7f7f4;
+  --sunken-strong: #eaeae4;
+  --line: #e4e4de;
+  --line-strong: #d3d3cb;
+  --track: #ecece6;
+  --ink: #16181b;
+  --ink-2: #3b3f46;
+  --muted: #5f646d;
+  --accent: #1f6f68;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efec;
+  --accent-text: #17605a;
+  --accent-wash: #f3f8f7;
+  --amber: #b45309;
+  --amber-soft: #fbeedc;
+  --amber-text: #8f4207;
+  --red: #b42318;
+  --red-soft: #fbe8e6;
+  --red-text: #9a1c12;
+  --blue: #2f5bb7;
+  --blue-soft: #e7eefa;
+  --blue-text: #24489a;
+  --neutral-soft: #efefea;
+  --toast: #1d2024;
+  --toast-ink: #ecedee;
+  --toast-accent: #7fd4c7;
+  --scrim: rgba(22, 24, 27, 0.32);
+  --day-bar: #f1e7c9;
+  --night-bar: #2a3038;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111214;
-    --surface: #1b1d20;
-    --text: #ececee;
-    --muted: #a3a6ad;
-    --accent: #8fb0ff;
-    --accent-text: #0d1430;
-    --danger: #ffb4ab;
-    --border: #33363b;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1113;
+  --side: #131518;
+  --surface: #171a1d;
+  --sunken: #131518;
+  --sunken-strong: #1d2024;
+  --line: #262a2f;
+  --line-strong: #353a41;
+  --track: #24282d;
+  --ink: #ecedee;
+  --ink-2: #c9ccd1;
+  --muted: #9ca1a9;
+  --accent: #5dbfb1;
+  --accent-ink: #05211e;
+  --accent-soft: #16302c;
+  --accent-text: #7fd4c7;
+  --accent-wash: #14201e;
+  --amber: #e8a24f;
+  --amber-soft: #33261a;
+  --amber-text: #f0b872;
+  --red: #f08a7e;
+  --red-soft: #3a1f1c;
+  --red-text: #f4a79d;
+  --blue: #8db0f5;
+  --blue-soft: #1c2740;
+  --blue-text: #a9c3f7;
+  --neutral-soft: #23272c;
+  --toast: #ecedee;
+  --toast-ink: #16181b;
+  --toast-accent: #17605a;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --day-bar: #5a5136;
+  --night-bar: #0b0d10;
 }
 
-* { box-sizing: border-box; }
+@theme inline {
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-sunken-strong: var(--sunken-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-track: var(--track);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-accent-wash: var(--accent-wash);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-text: var(--amber-text);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-red-text: var(--red-text);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-blue-text: var(--blue-text);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-toast: var(--toast);
+  --color-toast-ink: var(--toast-ink);
+  --color-toast-accent: var(--toast-accent);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
 
 body {
   margin: 0;
-  min-height: 100dvh;
-  background: var(--bg);
-  color: var(--text);
-  display: grid;
-  place-items: center;
-  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "cv11" 1;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
-main {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px 20px;
+/* Theme change cross-fade (240 ms), off for reduced motion. */
+html.theme-fade body,
+html.theme-fade body * {
+  transition: background-color 240ms ease-out, border-color 240ms ease-out, color 240ms ease-out;
 }
 
-h1 { font-size: 1.5rem; margin: 0 0 4px; }
-.brand { font-weight: 700; letter-spacing: 0.08em; color: var(--accent); margin: 0 0 16px; }
-p { line-height: 1.5; color: var(--muted); }
-
-label { display: block; font-weight: 600; margin: 16px 0 6px; }
-
-input {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-button {
-  margin-top: 20px;
-  width: 100%;
-  min-height: 44px;
-  font-size: 1rem;
-  font-weight: 600;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
   border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--accent-text);
-  cursor: pointer;
 }
 
-button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
-button:disabled { opacity: 0.6; cursor: progress; }
+.pb-safe {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
 
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.pt-safe {
+  padding-top: max(16px, env(safe-area-inset-top));
+}
 
-#status { min-height: 1.5em; margin-top: 16px; }
-#status[data-kind="error"] { color: var(--danger); }
+@keyframes gru-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-in {
+  animation: gru-fade-in 160ms ease-out both;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

@@ -22,12 +22,12 @@ GRU is a single-user, phone-first PWA that addresses its user as **Ani**. One Cl
 | Component | Tech | Plan / cost |
 |---|---|---|
 | API + scheduler | Cloudflare Worker, TypeScript strict, Hono, Zod | Workers Free |
-| Web app | Static HTML in Phase 0; Vite + React + Tailwind + TanStack Query + React Router from Phase 1 | Static assets: free, unlimited |
+| Web app | Vite + React 19 + Tailwind 4 + TanStack Query + React Router, self-hosted Inter; PWA (manifest, asset-only service worker) | Static assets: free, unlimited |
 | Database | D1, numbered SQL migrations, no ORM | D1 Free |
 | Scheduling | 1 Cron Trigger `*/15 * * * *` | Free (1 of 5) |
 | Notifications | ntfy.sh behind a `Notifier` interface (fixed enum → constant strings) | Free, no account |
 | Mail source | Gmail API, `gmail.readonly`, OAuth web client (Phase 2) | Google Cloud project with **no billing account** |
-| Local tooling | Node 20 lane (root): TypeScript, `node:test`. Node 22 lane (`toolchain/`): Wrangler, Vitest + workerd, Vite, ESLint (D-028, DEVELOPMENT.md) | Free |
+| Local tooling | Node 24 LTS via fnm; one package: TypeScript, node:test, Vitest + workerd, Playwright, Vite, ESLint (DEVELOPMENT.md) | Free |
 
 ## 2. Authentication (D-001, D-006, D-018, D-019)
 There is one account, provisioned from the terminal. No registration route exists anywhere.
@@ -125,3 +125,6 @@ GRU uses **no paid service and no payment method**, and has **no billing path**.
 | `observability.enabled = false`; no Workers Caching, R2, AI, Queues, Durable Objects or custom domains | `test/unit/config.test.ts` parses `wrangler.jsonc` and fails on any of these |
 | ntfy without an account | n/a |
 | All dependencies are open-source libraries, pinned exact | `package.json`, lockfile review in Phase 7 |
+
+## 10. Voice (roadmap V1/V2, D-042)
+Voice is a client-side layer over the existing API: the browser turns speech into text (on-device), the text becomes the same API calls a tap would make (any mutation shows a confirm card), and replies are spoken with on-device voices. Transcripts are stored encrypted in D1 like notes; audio is never stored. No new datastore, no separate memory.

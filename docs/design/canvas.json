@@ -23,13 +23,18 @@
     "MobileJobDetail.dc.html": { "x": 1410, "y": 10040, "w": 390, "h": 844, "title": "Mobile — match detail (dark)", "radius": 28 },
     "MobileCheckin.dc.html": { "x": 1880, "y": 10040, "w": 390, "h": 844, "title": "Mobile — morning check-in", "radius": 28 },
     "MobileAgenda.dc.html": { "x": 2350, "y": 10040, "w": 390, "h": 844, "title": "Mobile — agenda & tasks", "radius": 28 },
-    "MobileSettings.dc.html": { "x": 2820, "y": 10040, "w": 390, "h": 844, "title": "Mobile — appearance & theme schedule", "radius": 28 }
+    "MobileSettings.dc.html": { "x": 2820, "y": 10040, "w": 390, "h": 844, "title": "Mobile — appearance & theme schedule", "radius": 28 },
+    "Voice.dc.html": { "x": 0, "y": 11304, "w": 1440, "h": 1080, "expand": "fill", "title": "Talk to GRU — desktop (dark)" },
+    "MobileVoice.dc.html": { "x": 1520, "y": 11304, "w": 390, "h": 844, "title": "Mobile — talking, interruptible", "radius": 28 },
+    "MobileBriefing.dc.html": { "x": 1990, "y": 11304, "w": 390, "h": 844, "title": "Mobile — daily voice briefing", "radius": 28 },
+    "MobileVoiceText.dc.html": { "x": 2460, "y": 11304, "w": 390, "h": 844, "title": "Mobile — text fallback (no microphone)", "radius": 28 }
   },
   "order": [
     "DesignSystem.dc.html", "Sidebar.dc.html", "Main.dc.html", "TodayDark.dc.html", "Jobs.dc.html",
     "Applications.dc.html", "Agenda.dc.html", "Interviews.dc.html", "Notes.dc.html", "Settings.dc.html",
     "Login.dc.html", "States.dc.html", "MobileToday.dc.html", "MobileTodayDark.dc.html", "MobileJobs.dc.html",
-    "MobileJobDetail.dc.html", "MobileCheckin.dc.html", "MobileAgenda.dc.html", "MobileSettings.dc.html"
+    "MobileJobDetail.dc.html", "MobileCheckin.dc.html", "MobileAgenda.dc.html", "MobileSettings.dc.html",
+    "Voice.dc.html", "MobileVoice.dc.html", "MobileBriefing.dc.html", "MobileVoiceText.dc.html"
   ],
   "notes": {
     "t_found": { "x": 0, "y": -300, "text": "Foundations — GRU design system", "kind": "title1", "maxW": 1768 },
@@ -37,7 +42,8 @@
     "t_jobs": { "x": 0, "y": 3880, "text": "Jobs & applications", "kind": "title1", "maxW": 2960 },
     "t_day": { "x": 0, "y": 5740, "text": "Day & mind — agenda, interviews, notes", "kind": "title1", "maxW": 4480 },
     "t_sys": { "x": 0, "y": 7420, "text": "System — settings, sign-in, states", "kind": "title1", "maxW": 4480 },
-    "t_mobile": { "x": 0, "y": 9740, "text": "Mobile — 390 × 844", "kind": "title1", "maxW": 3210 }
+    "t_mobile": { "x": 0, "y": 9740, "text": "Mobile — 390 × 844", "kind": "title1", "maxW": 3210 },
+    "t_voice": { "x": 0, "y": 11004, "text": "Voice — talk to GRU (same backend, same data)", "kind": "title1", "maxW": 2850 }
   },
   "designSystems": []
 }

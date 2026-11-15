@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU mobile — Voice briefing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F5F5F2; color: #16181B; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; overflow: hidden;">
+  <div style="flex: none; padding: 48px 8px 4px; display: flex; align-items: center; justify-content: space-between;">
+    <a href="MobileToday.dc.html" aria-label="Close briefing" style="width: 44px; height: 44px; display: grid; place-items: center; color: #3B3F46;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a>
+    <span style="font-size: 13px; font-weight: 600;">Morning briefing · Mon 16 Nov</span>
+    <span style="width: 44px;"></span>
+  </div>
+
+  <div style="flex: none; padding: 4px 16px 10px; display: flex; gap: 6px; overflow-x: auto;">
+    <sc-for list="{{chapters}}" as="c" hint-placeholder-count="5">
+      <button type="button" aria-current="{{c.current}}" style="flex: none; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font: inherit; font-size: 12.5px; font-weight: {{c.fw}}; cursor: pointer;">{{c.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; padding: 6px 20px; display: flex; flex-direction: column; gap: 14px;">
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #8E9299;">Good morning, Ani. Overnight, Harbourline moved to interview, and there are two emails I'd like you to confirm.</p>
+    <p style="margin: 0; font-size: 19px; line-height: 1.55; font-weight: 500; color: #16181B;">Today you have the Pūriri HackerRank at 10:30, then a call with Harbourline at 4. Your Ākau Robotics follow-up is two days overdue. I've put it first.</p>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C2C5CA;">Three new jobs fit well. The best is a Graduate ML Engineer role at Kōwhai Labs, scoring 86…</p>
+  </div>
+
+  <div style="flex: none; padding: 14px 20px 30px; border-top: 1px solid #E4E4DE; background: #FFFFFF; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #5F646D;">
+      <span>0:41</span>
+      <span style="flex: 1; height: 4px; border-radius: 2px; background: #ECECE6; overflow: hidden;"><span style="display: block; width: 42%; height: 4px; background: #1F6F68;"></span></span>
+      <span>1:38</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 26px;">
+      <button type="button" aria-label="Previous section" style="width: 48px; height: 48px; border-radius: 50%; border: 0; background: transparent; color: #3B3F46; display: grid; place-items: center; cursor: pointer;"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 6h2v12H7zM20 6v12l-9-6z"></path></svg></button>
+      <button type="button" aria-label="Pause briefing" style="width: 68px; height: 68px; border-radius: 50%; border: 0; background: #1F6F68; color: #FFFFFF; display: grid; place-items: center; cursor: pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg></button>
+      <button type="button" aria-label="Next section" style="width: 48px; height: 48px; border-radius: 50%; border: 0; background: transparent; color: #3B3F46; display: grid; place-items: center; cursor: pointer;"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 6h2v12h-2zM4 6v12l9-6z"></path></svg></button>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: transparent; color: #17605A; font: inherit; font-weight: 600; cursor: pointer;">Ask a question</button>
+      <span style="color: #5F646D;">Speed 1.1× · device voice</span>
+      <button type="button" style="height: 36px; padding: 0 10px; border: 0; background: transparent; color: #17605A; font: inherit; font-weight: 600; cursor: pointer;">Read instead</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (label, on, done) => ({ label, current: on ? 'step' : 'false', bg: on ? '#16181B' : (done ? '#EFEFEA' : '#FFFFFF'), fg: on ? '#F5F5F2' : (done ? '#5F646D' : '#16181B'), border: on ? '#16181B' : '#E4E4DE', fw: on ? '600' : '500' });
+    return { chapters: [c('Overnight', false, true), c('Today', true), c('Jobs · 3'), c('Interviews'), c('Follow-ups')] };
+  }
+}
+</script>
+</body>
+</html>

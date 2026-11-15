@@ -19,6 +19,10 @@ apps/web/dist/
 client_secret*.json
 credentials*.json
 
+.e2e/
+test-results/
+playwright-report/
+
 # Real data: never commit (spec rule 5)
 eval/private/
 *.local

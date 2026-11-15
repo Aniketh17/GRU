@@ -22,6 +22,14 @@ export default tseslint.config(
   {
     // Plain-JS Node helpers (no TypeScript types to declare globals for them).
     files: ["scripts/**/*.mjs"],
-    languageOptions: { globals: { console: "readonly", process: "readonly", URL: "readonly" } },
+    languageOptions: { globals: { console: "readonly", process: "readonly", URL: "readonly", Buffer: "readonly" } },
+  },
+  {
+    // Plain browser scripts served as-is (theme bootstrap, service worker).
+    files: ["apps/web/public/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: { self: "readonly", caches: "readonly", fetch: "readonly", URL: "readonly", localStorage: "readonly", document: "readonly", Intl: "readonly" },
+    },
   },
 );
