@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Modal } from "../components/Dialog.tsx";
+import { MailViewer } from "../components/MailViewer.tsx";
 import { PlusIcon } from "../components/Icons.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Banner, Button, Card, EmptyState, ErrorState, Field, PageHeader, Pill, Select, SkeletonRows, TextArea } from "../components/ui.tsx";
@@ -19,6 +20,7 @@ export function JobsPage() {
   const [band, setBand] = useState("");
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [alertMail, setAlertMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const [ambiguous, setAmbiguous] = useState<{ job: Job; candidates: { id: number; company: string; role: string | null }[] } | null>(null);
   const nav = useNavigate();
 
@@ -92,6 +94,7 @@ export function JobsPage() {
                 </div>
                 <p className="m-0 text-[12px] text-muted">Found {formatShort(j.first_seen_at)}{j.closing_at ? ` · closes ${formatShort(j.closing_at)}` : ""} · {j.source}{j.status !== "new" ? ` · ${j.status}` : ""}</p>
                 <div className="flex flex-wrap gap-2">
+                  {j.alert && <Button size="sm" onClick={() => setAlertMail({ accountId: j.alert!.account_id, gmailId: j.alert!.gmail_id })}>From alert email</Button>}
                   {j.url && <a href={j.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken">Open link ↗</a>}
                   {j.status !== "applied" && <>
                     <Button size="sm" onClick={() => decide.mutate({ id: j.id, d: "shortlist" })}>Mark for tomorrow</Button>
@@ -105,6 +108,7 @@ export function JobsPage() {
         </ul>
       )}
 
+      {alertMail && <MailViewer accountId={alertMail.accountId} gmailId={alertMail.gmailId} onClose={() => setAlertMail(null)} />}
       {adding && <AddJob onClose={() => setAdding(false)} onDone={refresh} />}
       {openId !== null && <JobDetailModal id={openId} onClose={() => setOpenId(null)} />}
       {ambiguous && (

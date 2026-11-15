@@ -2,13 +2,17 @@
 import { b64urlDecode } from "../crypto/b64.ts";
 import type { GmailMessage, GmailPart } from "./types.ts";
 
-const MAX_CHARS = 40_000;
+// Caps keep CPU well inside the Workers Free 10 ms limit: job lists and interview details are at the top of an email.
+const MAX_TEXT = 20_000;
+const MAX_HTML = 50_000;
+const MAX_ENCODED = 90_000; // base64 chars per part
 const decoder = new TextDecoder("utf-8", { fatal: false, ignoreBOM: false });
 
 function decodePart(data: string | undefined): string {
   if (!data) return "";
   try {
-    return decoder.decode(b64urlDecode(data));
+    // Never decode more than needed (multiple of 4 keeps the base64 valid).
+    return decoder.decode(b64urlDecode((data.length > MAX_ENCODED ? data.slice(0, MAX_ENCODED & ~3) : data)));
   } catch {
     return "";
   }
@@ -23,10 +27,11 @@ export function decodeEntities(s: string): string {
     .replace(/&([a-z]+);/gi, (m, name: string) => ENTITIES[name.toLowerCase()] ?? m);
 }
 
-export function htmlToText(html: string): string {
+export function htmlToText(html: string, opts: { cells?: boolean } = {}): string {
   return decodeEntities(
     html
       .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, " ")
+      .replace(opts.cells ? /<\s*\/t[dh]\b[^>]*>/gi : /(?!)/g, "\n")
       .replace(/<\s*(br|\/p|\/div|\/tr|\/li|\/h[1-6]|\/table)\b[^>]*>/gi, "\n")
       .replace(/<[^>]+>/g, " "),
   )
@@ -47,6 +52,7 @@ function walk(part: GmailPart | undefined, out: { text: string; html: string }):
 export function messageBody(msg: GmailMessage): { text: string; html: string } {
   const out = { text: "", html: "" };
   walk(msg.payload, out);
-  const text = (out.text.trim() ? out.text : htmlToText(out.html)).slice(0, MAX_CHARS);
-  return { text, html: out.html.slice(0, MAX_CHARS * 2) };
+  const html = out.html.slice(0, MAX_HTML); // cap BEFORE converting: cost is linear in size
+  const text = (out.text.trim() ? out.text : htmlToText(html)).slice(0, MAX_TEXT);
+  return { text, html };
 }

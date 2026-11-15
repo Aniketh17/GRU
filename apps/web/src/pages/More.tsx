@@ -1,7 +1,7 @@
 // Mobile "More" tab: sections that don't fit in the bottom bar.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { InboxIcon, NoteIcon, SettingsIcon } from "../components/Icons.tsx";
+import { InboxIcon, NoteIcon, PeopleIcon, SettingsIcon } from "../components/Icons.tsx";
 import { Card, PageHeader } from "../components/ui.tsx";
 import { api } from "../lib/api.ts";
 
@@ -10,6 +10,7 @@ export function MorePage() {
   const items = [
     { to: "/review", label: "Review", note: brief.data?.review_count ? `${brief.data.review_count} waiting` : "Emails GRU wasn’t sure about", icon: InboxIcon },
     { to: "/notes", label: "Notes", note: "Quick capture and search", icon: NoteIcon },
+    { to: "/people", label: "People", note: "Recruiters and hiring contacts", icon: PeopleIcon },
     { to: "/settings", label: "Settings", note: "Gmail, resume, daily loop, export, pause", icon: SettingsIcon },
   ];
   return (

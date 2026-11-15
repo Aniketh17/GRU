@@ -158,6 +158,7 @@ export interface Settings {
   stale_days: number;
   interview_stale_days: number;
   shortlist_threshold: number;
+  auto_status_from_text: boolean;
   ntfy_configured?: boolean;
 }
 
@@ -169,6 +170,7 @@ export interface Interview {
 export interface Job {
   id: number; title: string; company: string | null; location: string | null; work_arrangement: string | null; employment_type: string | null;
   source: string; url: string | null; closing_at: number | null; status: string; first_seen_at: number;
+  alert: { account_id: number; gmail_id: string } | null;
   score: number | null; band: "strong" | "good" | "possible" | "low" | null; confidence: string | null;
 }
 export interface JobDetail extends Job {
@@ -192,6 +194,11 @@ export interface Weekly {
 }
 export interface DebriefInput {
   rating: number; questions: string; went_well: string; improve: string; followup_sent: boolean; next_step: string; next_date: string | null;
+}
+
+export interface Contact {
+  id: number; name: string | null; email: string | null; notes: string | null; company: string | null;
+  app_id: number | null; first_seen_at: number; last_contact_at: number; msg_count: number;
 }
 
 export interface ListParams {
@@ -270,5 +277,8 @@ export const api = {
   clearVoiceHistory: () => request<{ deleted: true }>("/api/voice/history", "DELETE"),
   mailView: (accountId: number, gmailId: string) => request<MailView>(`/api/mail/view?account=${accountId}&gmail=${encodeURIComponent(gmailId)}`),
   stt: (audio: string) => request<{ text: string }>("/api/voice/stt", "POST", { audio }),
+  contacts: () => request<{ items: Contact[] }>("/api/contacts"),
+  saveContactNotes: (id: number, notes: string) => request<{ ok: true }>(`/api/contacts/${id}`, "PATCH", { notes }),
+  deleteContact: (id: number) => request<{ deleted: true }>(`/api/contacts/${id}`, "DELETE"),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

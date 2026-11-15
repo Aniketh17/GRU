@@ -25,7 +25,7 @@ export function SettingsPage() {
   const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
 
   const settingsQ = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number; shortlist_threshold: number } | null>(null);
+  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number; shortlist_threshold: number; auto_status_from_text: boolean } | null>(null);
   const loop = draft ?? settingsQ.data;
   const saveLoop = useMutation({
     mutationFn: api.saveSettings,
@@ -152,11 +152,17 @@ export function SettingsPage() {
         </div>
         {loop && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold })} />
-            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold })} />
-            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value), shortlist_threshold: loop.shortlist_threshold })} />
-            <Field label="Job shortlist score (min)" type="number" min={30} max={95} value={loop.shortlist_threshold} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: Number(e.target.value) })} />
+            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
+            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
+            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value), shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
+            <Field label="Job shortlist score (min)" type="number" min={30} max={95} value={loop.shortlist_threshold} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: Number(e.target.value), auto_status_from_text: loop.auto_status_from_text })} />
           </div>
+        )}
+        {loop && (
+          <label className="flex items-start gap-2 text-[13px]">
+            <input type="checkbox" className="mt-1" checked={loop.auto_status_from_text} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: e.target.checked })} />
+            <span>Update application status automatically when the email clearly says so (rejection, offer, interview). Always shown on Today with Undo for 24 hours. If off, GRU asks you first.</span>
+          </label>
         )}
         <div><Button variant="primary" disabled={!draft || saveLoop.isPending} onClick={() => draft && saveLoop.mutate(draft)}>Save</Button></div>
       </Card>

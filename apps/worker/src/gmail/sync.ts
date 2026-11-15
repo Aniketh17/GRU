@@ -4,7 +4,9 @@
 // and isolated account failure handling.
 
 import { BACKFILL_DAYS } from "./constants.ts";
-import { classify } from "../classify/classify.ts";
+import { classify, isJobSender } from "../classify/classify.ts";
+import { personFromSender } from "../classify/people.ts";
+import { upsertContact } from "../lib/contacts.ts";
 import { extractCompanies } from "../classify/company.ts";
 import { decide } from "../classify/decide.ts";
 import { processBodies } from "./bodies.ts";
@@ -283,10 +285,11 @@ async function syncSingleAccount(
 
     const emailAt = meta.internalDate || now; // dates come from the email, not from when GRU saw it
     const c = classify(meta, [account.email]);
-    if (c.cls === "other") {
-      // Per spec: other non-job mail is classified in memory and not stored in emails_seen
-      continue;
-    }
+    // Mail that is not job-related is classified in memory and never stored or opened. The exception is mail whose SENDER is a
+    // known job service (board, ATS, assessment, scheduler) or that continues a thread already linked to an application:
+    // it is stored as a 'candidate' so its text can be read to see whether it matters (D-058, D-059).
+    const candidate = c.cls === "other" && c.ruleId !== "self" && (isJobSender(c.sender.domain) || threadMap.has(meta.threadId));
+    if (c.cls === "other" && !candidate) continue;
 
     const threadAppId = threadMap.get(meta.threadId) ?? null;
     const guesses = extractCompanies(c.sender, meta.subject);
@@ -301,6 +304,19 @@ async function syncSingleAccount(
     if (processedCount >= MAX_NEW_EMAILS_PER_TICK) {
       break;
     }
+
+    if (candidate) {
+      await db.run(
+        "INSERT INTO emails_seen (account_id, gmail_id, thread_id, internal_date, from_domain, class, confidence, rule_id, app_id, disposition) VALUES (?, ?, ?, ?, ?, 'other', ?, ?, ?, 'candidate')",
+        account.id, meta.id, meta.threadId, meta.internalDate, c.sender.domain, c.confidence, c.ruleId, link.appId,
+      );
+      processedCount++;
+      continue;
+    }
+
+    // Recruiters and hiring contacts: a real person writing about a job (never a no-reply or system sender).
+    const person = personFromSender(c.sender);
+    if (person) await upsertContact(env, db, person, link.company?.name ?? null, link.appId, emailAt);
 
     // Apply decision
     if (decision.action === "auto_status") {

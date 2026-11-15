@@ -57,3 +57,5 @@ export const InboxIcon = (p: IconProps) => (
 
 export const NoteIcon = (p: IconProps) => <Icon {...p}><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5" /></Icon>;
 export const MicIcon = (p: IconProps) => <Icon {...p}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" /></Icon>;
+
+export const PeopleIcon = (p: IconProps) => <Icon {...p}><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.2A6.5 6.5 0 0 1 21.5 20" /></Icon>;

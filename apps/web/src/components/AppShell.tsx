@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
-import { BriefcaseIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { BriefcaseIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
 import { VoiceAssistant } from "./VoiceAssistant.tsx";
 import { Banner, cx } from "./ui.tsx";
 
@@ -14,10 +14,11 @@ const NAV = [
   { to: "/jobs", label: "Jobs", icon: BriefcaseIcon, end: false },
   { to: "/agenda", label: "Agenda", icon: CheckIcon, end: false },
   { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
+  { to: "/people", label: "People", icon: PeopleIcon, end: false },
   { to: "/review", label: "Review", icon: InboxIcon, end: false },
 ] as const;
 
-const TABS = [NAV[0], NAV[2], NAV[1], NAV[3]] as const;
+const TABS = [NAV[0], NAV[2], NAV[1], NAV[3]] as const; // Today, Jobs, Applications, Agenda
 
 function SideLink({ to, end, icon: Icon, children }: { to: string; end: boolean; icon: typeof SunIcon; children: ReactNode }) {
   return (

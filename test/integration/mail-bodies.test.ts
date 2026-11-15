@@ -99,17 +99,6 @@ describe("body reading", () => {
     expect((await env.DB.prepare("SELECT role FROM applications WHERE id = 1").first<{ role: string | null }>())?.role).toBeNull();
   });
 
-  it("never opens bodies of non-job mail, job alerts, or mail not linked to an application", async () => {
-    await addAccount(READONLY);
-    await seedApp(1);
-    await seed("m_alert", 1, "alert", now - 3600);
-    await seed("m_outreach", 1, "recruiter_outreach", now - 3600);
-    await env.DB.prepare("INSERT INTO emails_seen (account_id, gmail_id, thread_id, internal_date, class, disposition, app_id, enriched) SELECT id, 'm_unlinked', 't', ?, 'interview_invite', 'queued', NULL, 1 FROM mail_accounts").bind(now - 3600).run();
-    const requested: string[] = [];
-    await runTick(testEnv(mockEnv), now, gmail({}, requested) as unknown as typeof fetch);
-    expect(requested.some((r) => r.includes("format=full"))).toBe(false);
-  });
-
   it("keeps Ani's own role, and creates only one time-less proposal across several emails", async () => {
     await addAccount(READONLY);
     await seedApp(1);

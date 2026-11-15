@@ -65,6 +65,15 @@ export const STATUS_ORDER: Status[] = ["applied", "assessment", "interview", "of
 
 export function eventLabel(type: string, prev: Status | null): string {
   if (type === "created") return "Application added";
+  if (type.startsWith("email:")) {
+    const L: Record<string, string> = {
+      application_received: "Application confirmation received", assessment: "Assessment email received",
+      interview_invite: "Interview invitation received", interview_update: "Interview update received",
+      rejection: "Rejection email received", offer: "Offer email received",
+      info_request: "Information requested by email", application_update: "Status update email received",
+    };
+    return L[type.slice(6)] ?? "Email received";
+  }
   if (type === "interview_proposed") return "Interview details found in an email";
   if (type === "interview_scheduled") return "Interview scheduled";
   if (type === "interview_debrief") return "Interview debrief saved";

@@ -27,6 +27,9 @@ export function domainMatches(domain: string, base: string): boolean {
 
 const anyDomain = (domain: string, list: string[]) => list.some((d) => domainMatches(domain, d));
 
+/** Sender is a known job board, applicant-tracking system, assessment or interview-scheduling service. */
+export const isJobSender = (domain: string): boolean => anyDomain(domain, KNOWN_DOMAINS);
+
 export function isForward(subject: string): boolean {
   return /^\s*(fwd?|fw)\s*:/i.test(subject);
 }

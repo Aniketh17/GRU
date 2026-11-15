@@ -69,7 +69,23 @@ export interface TimeCandidates {
   foreign: boolean;
 }
 
+export interface ScanOptions {
+  /** Interview times need a clock time; deadlines usually don't ("by 20 November"). */
+  requireTime?: boolean;
+  /** Hour (Auckland) used when a date has no time. */
+  defaultHour?: number;
+  /** How far ahead a date may be, in days. */
+  horizonDays?: number;
+}
+
 export function extractInterviewTimes(text: string, refSec: number): TimeCandidates {
+  return scanDates(text, refSec, {});
+}
+
+export function scanDates(text: string, refSec: number, opts: ScanOptions = {}): TimeCandidates {
+  const requireTime = opts.requireTime ?? true;
+  const defaultHour = opts.defaultHour ?? 9;
+  const horizon = (opts.horizonDays ?? 120) * 86400;
   const flat = text.replace(/\s+/g, " ");
   const ref = new Date(refSec * 1000);
   const refYear = ref.getUTCFullYear();
@@ -89,12 +105,14 @@ export function extractInterviewTimes(text: string, refSec: number): TimeCandida
       const t24 = TIME24.exec(window);
       if (t24) { h = Number(t24[1]); min = Number(t24[2]); }
     }
-    if (h === null || Number(t12?.[1] ?? 1) > 12) return;
+    if (h === null && requireTime) return;
+    if (Number(t12?.[1] ?? 1) > 12) return;
+    const hour = h ?? defaultHour;
     if (FOREIGN_TZ.test(window) && !NZ_TZ.test(window)) { foreign = true; return; }
     let year = yearIn ?? refYear;
-    let epoch = aucklandToEpoch(year, m, d, h, min);
-    if (yearIn === null && epoch < refSec - 86400) { year += 1; epoch = aucklandToEpoch(year, m, d, h, min); }
-    if (epoch >= refSec - 6 * 3600 && epoch <= refSec + 120 * 86400) found.add(epoch);
+    let epoch = aucklandToEpoch(year, m, d, hour, min);
+    if (yearIn === null && epoch < refSec - 86400) { year += 1; epoch = aucklandToEpoch(year, m, d, hour, min); }
+    if (epoch >= refSec - 6 * 3600 && epoch <= refSec + horizon) found.add(epoch);
   };
 
   for (const m of flat.matchAll(DATE_DM)) consider(m.index ?? 0, m[0].length, Number(m[1]), MONTHS.indexOf((m[2] as string).slice(0, 3).toLowerCase()) + 1, m[3] ? Number(m[3]) : null);

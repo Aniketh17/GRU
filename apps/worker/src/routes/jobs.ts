@@ -101,9 +101,9 @@ async function activeResume(env: Env, db: Db): Promise<ActiveResume | null> {
 interface JobRow {
   id: number; source: string; title: string; company: string | null; location: string | null; work_arrangement: string | null;
   employment_type: string | null; canonical_url: string | null; closing_at: number | null; description_enc: string | null;
-  status: string; first_seen_at: number;
+  status: string; first_seen_at: number; source_account_id: number | null; source_gmail_id: string | null;
 }
-const JOB_COLS = "id, source, title, company, location, work_arrangement, employment_type, canonical_url, closing_at, description_enc, status, first_seen_at";
+const JOB_COLS = "id, source, title, company, location, work_arrangement, employment_type, canonical_url, closing_at, description_enc, status, first_seen_at, source_account_id, source_gmail_id";
 
 async function scoreAndSave(env: Env, db: Db, resume: ActiveResume, j: JobRow, now: number): Promise<MatchResult> {
   const description = await decText(env, "jobs", "description_enc", j.id, j.description_enc);
@@ -140,6 +140,7 @@ const present = (r: ListRow) => ({
   id: r.id, title: r.title, company: r.company, location: r.location, work_arrangement: r.work_arrangement, employment_type: r.employment_type,
   source: r.source, url: r.canonical_url, closing_at: r.closing_at, status: r.status, first_seen_at: r.first_seen_at,
   score: r.score, band: r.band, confidence: r.confidence,
+  alert: r.source_account_id && r.source_gmail_id ? { account_id: r.source_account_id, gmail_id: r.source_gmail_id } : null,
 });
 
 const LIST_SQL = `SELECT ${JOB_COLS.split(", ").map((c) => `j.${c}`).join(", ")}, m.score, m.band, m.confidence, m.decision

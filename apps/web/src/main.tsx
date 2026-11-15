@@ -14,6 +14,7 @@ import { AgendaPage } from "./pages/Agenda.tsx";
 import { JobsPage } from "./pages/Jobs.tsx";
 import { MorePage } from "./pages/More.tsx";
 import { NotesPage } from "./pages/Notes.tsx";
+import { PeoplePage } from "./pages/People.tsx";
 import { ReviewPage } from "./pages/Review.tsx";
 import { SettingsPage } from "./pages/Settings.tsx";
 import { TodayPage } from "./pages/Today.tsx";
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: "jobs", element: <JobsPage /> },
       { path: "agenda", element: <AgendaPage /> },
       { path: "notes", element: <NotesPage /> },
+      { path: "people", element: <PeoplePage /> },
       { path: "more", element: <MorePage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "*", element: <NotFoundPage /> },

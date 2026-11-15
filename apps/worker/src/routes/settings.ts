@@ -9,6 +9,7 @@ export interface UserSettings {
   stale_days: number; // days before application is marked stale (default 14)
   interview_stale_days: number; // days after interview before follow-up prompt (default 7)
   shortlist_threshold: number; // minimum job match score for Apply Tomorrow (default 65)
+  auto_status_from_text: boolean; // update application status automatically when the email text is clear (undo for 24 h)
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   stale_days: 14,
   interview_stale_days: 7,
   shortlist_threshold: 65,
+  auto_status_from_text: true,
 };
 
 const settingsSchema = z.strictObject({
@@ -23,6 +25,7 @@ const settingsSchema = z.strictObject({
   stale_days: z.number().int().min(1).max(90),
   interview_stale_days: z.number().int().min(1).max(90),
   shortlist_threshold: z.number().int().min(30).max(95).default(65),
+  auto_status_from_text: z.boolean().default(true),
 });
 
 export async function getSettings(db: Db): Promise<UserSettings> {

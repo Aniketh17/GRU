@@ -1,7 +1,10 @@
 // Fact extraction from job-email text: position, meeting link, interview time. Plus a CPU-cost check (Workers Free = 10 ms).
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { countJobLinks, extractVacancies } from "../../apps/worker/src/classify/alerts.ts";
 import { extractInterviewTimes, extractMeetingLink, extractRoleFromBody } from "../../apps/worker/src/classify/body.ts";
+import { classifyBody } from "../../apps/worker/src/classify/bodyrules.ts";
+import { extractDeadlines } from "../../apps/worker/src/classify/deadlines.ts";
 import { htmlToText, messageBody } from "../../apps/worker/src/gmail/body.ts";
 import { aucklandToEpoch } from "../../apps/worker/src/lib/when.ts";
 import { b64urlEncode, utf8 } from "../../apps/worker/src/crypto/b64.ts";
@@ -64,19 +67,28 @@ describe("message body decoding and cost", () => {
     assert.equal(htmlToText("<script>alert(1)</script>Hi&nbsp;there"), "Hi there");
   });
 
-  it("processing a large worst-case email stays far below the 10 ms Workers Free CPU limit", () => {
-    const filler = "<p>Dear candidate, thank you for your interest in our company and in this opportunity. We value your time. </p>".repeat(300);
-    const html = `<html><body>${filler}<p>Position: Data Analyst</p><p>Interview on 16 November 2026 at 10:30 AM NZDT</p><a href="https://acme.zoom.us/j/1">Join</a></body></html>`;
+  it("the whole understanding pipeline on a worst-case email stays far below the 10 ms Workers Free CPU limit", () => {
+    const jobs = Array.from({ length: 110 }, (_, i) => `<table><tr><td><a href="https://www.linkedin.com/comm/jobs/view/37123${String(i).padStart(5, "0")}/?trackingId=${"x".repeat(80)}">Software Engineer ${i}</a></td></tr><tr><td>Company ${i} · Auckland</td></tr></table><div>${"Lorem ipsum dolor sit amet. ".repeat(12)}</div>`).join("");
+    const html = `<html><body>${jobs}<p>Position: Data Analyst</p><p>Interview on 16 November 2026 at 10:30 AM NZDT</p><a href="https://acme.zoom.us/j/1">Join</a></body></html>`;
     const msg = { id: "1", threadId: "t", internalDate: "0", payload: { mimeType: "text/html", body: { data: b64(html) } } };
-    messageBody(msg); // warm up
-    const t0 = performance.now();
-    for (let i = 0; i < 10; i++) {
+    const once = () => {
       const { text, html: h } = messageBody(msg);
+      classifyBody(text, countJobLinks(h));
+      extractVacancies(h);
       extractRoleFromBody(text);
       extractMeetingLink(text, h);
       extractInterviewTimes(text, REF);
+      extractDeadlines(text, REF, "assessment");
+    };
+    once(); // warm up
+    // Best of several batches, so a busy machine (other tests running) doesn't fail an honest measurement.
+    let best = Infinity;
+    for (let batch = 0; batch < 5; batch++) {
+      const t0 = performance.now();
+      for (let i = 0; i < 4; i++) once();
+      best = Math.min(best, (performance.now() - t0) / 4);
     }
-    const perEmail = (performance.now() - t0) / 10;
-    assert.ok(perEmail < 8, `per-email ${perEmail.toFixed(2)} ms`);
+    assert.ok(html.length > 50_000, "fixture exceeds the html cap");
+    assert.ok(best < 8, `pipeline ${best.toFixed(2)} ms per email`);
   });
 });

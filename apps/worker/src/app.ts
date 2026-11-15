@@ -13,6 +13,7 @@ import { applicationRoutes } from "./routes/applications.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { briefRoutes } from "./routes/brief.ts";
 import { checkinRoutes } from "./routes/checkin.ts";
+import { contactRoutes } from "./routes/contacts.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { exportRoutes } from "./routes/export.ts";
 import { interviewRoutes } from "./routes/interviews.ts";
@@ -55,6 +56,7 @@ app.route("/api/tasks", taskRoutes);
 app.route("/api/agenda", agendaRoutes);
 app.route("/api/export", exportRoutes);
 app.route("/api/voice", voiceRoutes);
+app.route("/api/contacts", contactRoutes);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));
