@@ -16,7 +16,7 @@ Last updated 2026-11-15. This file describes what GRU stores, where it lives, wh
 | Email metadata: Gmail id, thread id, date, sender **domain**, class, confidence | Plaintext | No subject, no sender address, no body |
 | Email snippet (first 300 chars) | Encrypted | Set to NULL after 90 days (backfill itself only reads the last 5 days) |
 | Email bodies of job-application mail | **Read in memory only, never stored** | Only for emails already identified from their headers as job-application mail AND linked to one of your applications (D-058). Only the extracted position, interview time and meeting link are kept; the link is encrypted |
-| All other email bodies (personal mail, newsletters, job-alert digests, recruiter outreach) | **Never fetched, never stored** | Enforced in code and by tests |
+| All other email bodies (personal mail, newsletters, mail from unknown senders) | **Never fetched, never stored** | Enforced in code and by tests. Job-alert digests and mail from known job services are read to find vacancies (D-059) |
 | Job-alert email bodies | **Processed in memory only, never stored** | Only the extracted vacancy fields are kept; descriptions and requirements are encrypted |
 | Resume text and structured profile | Encrypted | |
 | Match evidence and gaps | Encrypted | |
@@ -70,3 +70,14 @@ When voice ships (ROADMAP V1), speech is recognised on the device; audio is neve
 - GRU can never send, modify, label or delete mail: those scopes are forbidden in code and any grant containing them is revoked immediately.
 - Detected interview times are only ever *proposed*. They become reminders after you confirm them.
 - You can switch this off at any time: Settings → Disconnect, or revoke GRU at https://myaccount.google.com/permissions.
+
+## 10. What leaves GRU, and where it goes (added 2026-11-16, D-060/D-061)
+| What | Where | Kept? |
+|---|---|---|
+| Sentences GRU speaks aloud (natural voice) | Cloudflare Workers AI (Aura-1) | Not retained, not used for training |
+| A short recording after you tap the mic (iPhone) | Cloudflare Workers AI (Whisper) | Not retained; GRU never stores audio |
+| A compact summary of your applications, jobs, calendar and review emails, plus your question, when you chat | Cloudflare Workers AI (language model) | Not retained, not used for training. Marked as untrusted data; the model can only suggest steps, never act |
+| Event titles, times and meeting links, if you subscribe your phone or Google Calendar to the private feed | Apple / Google fetch the secret link | Whatever your calendar provider keeps. You can create a new link to cut off the old one |
+| Everything else | Stays in your Cloudflare Worker and D1 database, encrypted as listed above | |
+
+Switch the natural voice to the on-device voice in the assistant's settings to keep spoken text on the phone. Chat and cloud transcription need the AI, but the assistant still works for commands without them.

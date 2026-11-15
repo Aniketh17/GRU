@@ -20,6 +20,11 @@ export type Intent =
   | { kind: "create_application"; company: string; role: string | null }
   | { kind: "set_status"; company: string; status: VoiceStatus }
   | { kind: "create_interview"; company: string; at: number | null }
+  | { kind: "yes" }
+  | { kind: "no" }
+  | { kind: "review_list" }
+  | { kind: "weekly" }
+  | { kind: "calendar"; at: number | null; week: boolean }
   | { kind: "unknown"; heard: string };
 
 // ---------------------------------------------------------------- Auckland calendar helpers
@@ -170,9 +175,19 @@ export function parseIntent(raw: string, nowSec: number): Intent {
     return { kind: "create_interview", company: clean(w.rest), at: w.epoch };
   }
 
+  // Short answers to something GRU just offered ("want me to open it?").
+  if (/^(?:yes|yeah|yep|yup|sure|ok|okay|please do|go ahead|do it|sounds good|open it|open that|show me|show it|yes please|yes open it)$/.test(s)) return { kind: "yes" };
+  if (/^(?:no|nope|nah|not now|skip(?: it)?|next(?: one)?|not interested|no thanks|not for me|maybe later)$/.test(s)) return { kind: "no" };
+
   // Reads.
+  if (/\b(?:review|unread|new|waiting|pending)\b[^.]{0,20}\b(?:e-?mails?|mails?)\b/.test(s) || /\b(?:e-?mails?|mails?)\b[^.]{0,30}\b(?:to review|need(?:s)? (?:me|my|a)|waiting|i should)\b/.test(s) || /^what (?:are|were) (?:they|those|these)$/.test(s)) return { kind: "review_list" };
+  if (/\b(?:weekly|week'?s) (?:summary|review|recap)\b|how did i do this week|how'?s my week/.test(s)) return { kind: "weekly" };
+  if (/\bcalendar\b/.test(s) || /\bwhat'?s (?:on|happening|coming up) (?:tomorrow|this week|next week|on \w+day)\b/.test(s)) {
+    const w = parseWhen(s, nowSec);
+    return { kind: "calendar", at: w.epoch, week: /\bweek\b/.test(s) || w.epoch === null };
+  }
   if ((m = /^(?:search|find|look up|look for)(?: my)? notes?(?: for| about| on)? (.+)$/.exec(s))) return { kind: "search_notes", q: m[1] as string };
-  if (/\b(agenda|schedule|calendar)\b/.test(s)) return { kind: "agenda" };
+  if (/\b(agenda|schedule)\b/.test(s)) return { kind: "agenda" };
   if (/\b(brief|briefing|catch me up|morning update|what'?s (on|happening)( today)?|what is (on|happening)( today)?|my day|start my day)\b/.test(s)) return { kind: "brief" };
   if (/\b(tasks?|to-?dos?|reminders?)\b/.test(s) && /\b(what|show|list|read|any|my|do i have)\b/.test(s)) return { kind: "tasks" };
   if (/\binterviews?\b/.test(s) && /\b(what|when|any|upcoming|next|do i have|show|list)\b/.test(s)) return { kind: "interviews" };
@@ -191,34 +206,85 @@ export interface BriefLike {
   jobs: { queue_count: number; new_count: number; top: { title: string; company: string | null; score: number | null }[]; closing_soon: number };
   tasks_due: number;
   health: { summary: string; needs_reauth: boolean };
+  interviews_proposed?: { company: string }[];
+  deadlines_soon?: { kind: string; company: string | null; due_at: number }[];
+  found?: {
+    alert_jobs: { id: number; title: string; company: string | null; location: string | null; source: string; score: number | null; confidence: string | null }[];
+    alert_job_count: number;
+    email_events: { app_id: number; company: string; what: string; moved_automatically: boolean }[];
+  };
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-const sayTime = (epoch: number) =>
-  new Intl.DateTimeFormat("en-NZ", { timeZone: TZ, weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(epoch * 1000)).replace(",", " at");
+/** A next step GRU offers after talking about something ("want me to open it?"). A plain "yes" takes the first one. */
+export interface Offer { kind: "job" | "application"; id: number; label: string }
 
-/** The brief as short spoken chapters. Concise, warm, no filler. */
-export function composeBriefScript(b: BriefLike, greeting: string, focus?: string | null): string[] {
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const sayTime = (epoch: number) => {
+  const d = new Date(epoch * 1000);
+  const day = new Intl.DateTimeFormat("en-NZ", { timeZone: TZ, weekday: "long" }).format(d);
+  const time = new Intl.DateTimeFormat("en-NZ", { timeZone: TZ, hour: "numeric", minute: "2-digit" }).format(d);
+  return `${day} at ${time}`;
+};
+const SOURCE_NAME: Record<string, string> = { seek: "Seek", linkedin: "LinkedIn", indeed: "Indeed", trademe: "Trade Me", jora: "Jora" };
+const DEADLINE_SAY: Record<string, string> = { assessment: "The assessment", offer_reply: "Your reply to the offer", interview_reply: "Confirming the interview", other: "An action" };
+
+/** The brief as short spoken chapters plus the next steps it offers. Warm and specific: it says what it found, and where. */
+export function composeBrief(b: BriefLike, greeting: string, focus?: string | null): { sentences: string[]; offers: Offer[] } {
   const out: string[] = [`${greeting}, Ani.`];
+  const offers: Offer[] = [];
   if (b.health.needs_reauth) out.push("Heads up: a Gmail account needs reconnecting, so new mail isn't syncing.");
+
+  const events = b.found?.email_events ?? [];
+  if (events.length) {
+    out.push("While you were away I read your job mail.");
+    for (const e of events.slice(0, 3)) {
+      if (e.what === "rejection") out.push(`${e.company} sent a rejection.${e.moved_automatically ? " I've moved it to rejected, and you can undo that from Today." : " It's waiting in Review for you to confirm."}`);
+      else if (e.what === "offer") out.push(`Good news: ${e.company} sent an offer. It's worth a careful read.`);
+      else if (e.what === "interview_invite") out.push(`${e.company} invited you to an interview.`);
+      else if (e.what === "interview_update") out.push(`${e.company} changed something about your interview.`);
+      else if (e.what === "assessment") out.push(`${e.company} sent an assessment for you to complete.`);
+      else continue;
+      if (offers.length < 2) offers.push({ kind: "application", id: e.app_id, label: e.company });
+    }
+  }
+
   const needs: string[] = [];
   if (b.review_count > 0) needs.push(`${plural(b.review_count, "email")} waiting for your review`);
   if (b.tasks_due > 0) needs.push(`${plural(b.tasks_due, "task")} due`);
-  out.push(needs.length ? `You have ${needs.join(" and ")}.` : "Nothing is waiting on you right now.");
+  const somethingElse = events.length > 0 || (b.interviews_proposed?.length ?? 0) > 0 || (b.deadlines_soon?.length ?? 0) > 0 || b.interviews_upcoming.length > 0 || b.follow_ups.length > 0 || (b.found?.alert_jobs.length ?? 0) > 0;
+  if (needs.length) out.push(`You have ${needs.join(" and ")}.`);
+  else if (!somethingElse) out.push("Nothing is waiting on you right now.");
   for (const i of b.interviews_upcoming.slice(0, 3)) out.push(`Interview with ${i.company}, ${sayTime(i.at)}.`);
+  for (const i of (b.interviews_proposed ?? []).slice(0, 2)) out.push(`${i.company} sent interview details that need your confirmation.`);
+  for (const d of (b.deadlines_soon ?? []).slice(0, 2)) out.push(`${DEADLINE_SAY[d.kind] ?? "A deadline"}${d.company ? ` for ${d.company}` : ""} is due ${sayTime(d.due_at)}.`);
   if (b.missing_debriefs.length) out.push(`You haven't debriefed ${b.missing_debriefs.slice(0, 2).map((d) => d.company).join(" or ")} yet.`);
   if (b.follow_ups.length) {
     const f = b.follow_ups[0]!;
     out.push(`${plural(b.follow_ups.length, "follow-up")} due. The longest wait is ${f.company}, at ${f.days_stale} days.`);
   }
-  if (b.jobs.queue_count > 0) {
-    const top = b.jobs.top[0];
-    out.push(`${plural(b.jobs.queue_count, "job")} in your apply list${b.jobs.new_count ? `, ${b.jobs.new_count} new` : ""}.${top ? ` Top match: ${top.title}${top.company ? ` at ${top.company}` : ""}${top.score ? `, ${top.score} out of 100` : ""}.` : ""}${b.jobs.closing_soon ? ` ${plural(b.jobs.closing_soon, "job")} closing soon.` : ""}`);
+
+  const alerts = b.found?.alert_jobs ?? [];
+  const top = alerts[0];
+  if (top) {
+    const count = b.found?.alert_job_count ?? alerts.length;
+    const src = SOURCE_NAME[top.source] ?? "job";
+    out.push(`${plural(count, "new job")} came in on your ${src} alert${count === 1 ? "" : "s"}.`);
+    const fit = top.score ? `, scoring ${top.score} out of 100${top.score >= 65 ? ", so it could suit you" : ""}` : ", and I haven't scored it yet";
+    out.push(`The standout is ${top.title}${top.company ? ` at ${top.company}` : ""}${top.location ? `, in ${top.location}` : ""}${fit}. Want me to open it?`);
+    for (const j of alerts.slice(0, 3)) offers.push({ kind: "job", id: j.id, label: `${j.title}${j.company ? ` at ${j.company}` : ""}` });
+  } else if (b.jobs.queue_count > 0) {
+    const t = b.jobs.top[0];
+    out.push(`${plural(b.jobs.queue_count, "job")} in your apply list${b.jobs.new_count ? `, ${b.jobs.new_count} new` : ""}.${t ? ` Top match: ${t.title}${t.company ? ` at ${t.company}` : ""}${t.score ? `, ${t.score} out of 100` : ""}.` : ""}${b.jobs.closing_soon ? ` ${plural(b.jobs.closing_soon, "job")} closing soon.` : ""}`);
   }
   out.push(focus ? `Your focus today: ${focus}` : "What's the one thing that has to happen today?");
-  return out;
+  return { sentences: out, offers };
+}
+
+/** The brief as short spoken chapters (sentences only). */
+export function composeBriefScript(b: BriefLike, greeting: string, focus?: string | null): string[] {
+  return composeBrief(b, greeting, focus).sentences;
 }
 
 export interface Reply { text: string }
 export const HELP_TEXT =
-  "You can say: read my brief. Add a task to call the recruiter tomorrow at 2pm. Note that Priya prefers email. I applied to Acme as a graduate engineer. Move Acme to interview. Interview with Acme on Friday at 10am. What are my tasks? Any interviews coming up? Top jobs. Search notes for Wellington.";
+  "You can say: read my brief. What are my emails to review? What's on my calendar tomorrow? How was my week? Add a task to call the recruiter tomorrow at 2pm. Note that Priya prefers email. I applied to Acme as a graduate engineer. Move Acme to interview. Interview with Acme on Friday at 10am. What are my tasks? Any interviews coming up? Top jobs. Search notes for Wellington.";

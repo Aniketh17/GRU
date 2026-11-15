@@ -134,6 +134,12 @@ async function scorePending(env: Env, db: Db, resume: ActiveResume, now: number,
   return rows.length;
 }
 
+/** Scores any not-yet-scored vacancies (bounded) so a brief or a chat answer can quote real scores. */
+export async function ensureScored(env: Env, db: Db, now: number, limit = 8): Promise<void> {
+  const resume = await activeResume(env, db);
+  if (resume) await scorePending(env, db, resume, now, limit);
+}
+
 interface ListRow extends JobRow { score: number | null; band: string | null; confidence: string | null; decision: string | null }
 
 const present = (r: ListRow) => ({

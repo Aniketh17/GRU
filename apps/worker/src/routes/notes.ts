@@ -181,6 +181,19 @@ agendaRoutes.get("/weekly", async (c) => {
   const now = nowSec();
   const since = now - 7 * 86400;
   const n = async (sql: string, ...p: number[]) => (await db.first<{ n: number }>(sql, ...p))?.n ?? 0;
+  const month = now - 28 * 86400;
+  const recent = await n("SELECT COUNT(*) AS n FROM applications WHERE COALESCE(applied_at, created_at) >= ?", month);
+  const replied = await n("SELECT COUNT(*) AS n FROM applications WHERE COALESCE(applied_at, created_at) >= ? AND status != 'applied'", month);
+  const stale = await db.first<{ company: string; days: number }>(
+    `SELECT company, CAST((? - COALESCE(last_event_at, applied_at, created_at)) / 86400 AS INTEGER) AS days FROM applications
+     WHERE status IN ('applied','assessment') ORDER BY COALESCE(last_event_at, applied_at, created_at) ASC LIMIT 1`, now,
+  );
+  const queue = await n("SELECT COUNT(*) AS n FROM jobs WHERE status IN ('new','shortlisted','saved')");
+  const upcoming = await n("SELECT COUNT(*) AS n FROM interviews WHERE state = 'scheduled' AND start_utc BETWEEN ? AND ?", now, now + 7 * 86400);
+  let focus = "Keep your momentum: check Today each morning.";
+  if (upcoming > 0) focus = `You have ${upcoming} interview${upcoming === 1 ? "" : "s"} this coming week: block time to prepare.`;
+  else if (stale && stale.days >= 10) focus = `Follow up with ${stale.company}: it has been quiet for ${stale.days} days.`;
+  else if (queue > 0) focus = `${queue} job${queue === 1 ? " is" : "s are"} waiting in your apply list: aim to apply to a few this week.`;
   return c.json({
     date: aucklandDate(now),
     is_sunday: new Intl.DateTimeFormat("en-NZ", { timeZone: "Pacific/Auckland", weekday: "short" }).format(new Date(now * 1000)) === "Sun",
@@ -192,5 +205,12 @@ agendaRoutes.get("/weekly", async (c) => {
     notes_added: await n("SELECT COUNT(*) AS n FROM notes WHERE created_at >= ?", since),
     checkins_done: await n("SELECT COUNT(*) AS n FROM checkins WHERE status = 'completed' AND completed_at >= ?", since),
     jobs_found: await n("SELECT COUNT(*) AS n FROM jobs WHERE first_seen_at >= ?", since),
+    jobs_from_alerts: await n("SELECT COUNT(*) AS n FROM jobs WHERE source_gmail_id IS NOT NULL AND first_seen_at >= ?", since),
+    rejections: await n("SELECT COUNT(*) AS n FROM events WHERE type = 'status:rejected' AND undone = 0 AND created_at >= ?", since),
+    offers: await n("SELECT COUNT(*) AS n FROM events WHERE type = 'status:offer' AND undone = 0 AND created_at >= ?", since),
+    interviews_booked: await n("SELECT COUNT(*) AS n FROM interviews WHERE state IN ('scheduled','done') AND created_at >= ?", since),
+    response_rate: recent > 0 ? Math.round((replied / recent) * 100) : null,
+    recent_applications: recent,
+    focus,
   });
 });

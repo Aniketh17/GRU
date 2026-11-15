@@ -181,3 +181,40 @@ test("calendar shows the day's items, offers the private feed, and a new feed li
   await expect(feedLink).not.toHaveAttribute("href", first!);
   expect((await page.request.get(path)).status()).toBe(404);
 });
+
+test("assistant: lists emails to review, opens one inside GRU, and chats about anything else", async ({ page }) => {
+  await page.route("**/api/review", (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: { items: [{ id: 1, kind: "classify", accountId: 1, gmailId: "abc12345", appId: null, company: "Fonterra", appStatus: null, proposal: { class: "rejection", suggested: "rejected" }, context: { subject: "Update on your application", from: "Fonterra Careers" }, createdAt: 1, receivedAt: 1 }] } })
+      : route.continue(),
+  );
+  await page.route("**/api/mail/view**", (route) =>
+    route.fulfill({ json: { subject: "Update on your application", from: "Fonterra Careers <hr@fonterra.com>", date: 1794600000, class: "rejection", text: "We regret to inform you that we will not be moving forward.", meeting_link: null, body_access: true, gmail_url: "https://mail.google.com/mail/u/ani/#all/t1" } }),
+  );
+  let chatBody: { message: string; history: unknown[] } | null = null;
+  await page.route("**/api/chat", async (route) => {
+    chatBody = route.request().postDataJSON() as typeof chatBody;
+    await route.fulfill({ json: { reply: "There is an Acme job that looks promising. Want me to open the calendar?", action: { type: "open_calendar" } } });
+  });
+  await login(page);
+  await page.evaluate(() => localStorage.setItem("gru.voice.speak", "0"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Talk to GRU" }).click();
+  const sheet = page.getByRole("dialog", { name: "Talk to GRU" });
+  await sheet.getByLabel("Type to GRU").fill("what are my emails to review");
+  await sheet.getByLabel("Type to GRU").press("Enter");
+  await expect(sheet).toContainText("You have 1 email to review.");
+  await expect(sheet).toContainText("Update on your application, from Fonterra Careers");
+  await sheet.getByRole("button", { name: "Open email" }).click();
+  const mail = page.getByRole("dialog", { name: "Email" });
+  await expect(mail).toContainText("We regret to inform you");
+  await expect(mail.getByRole("link", { name: /Open in Gmail/ })).toHaveAttribute("href", /mail\.google\.com/);
+  await page.keyboard.press("Escape");
+
+  await sheet.getByLabel("Type to GRU").fill("tell me something interesting");
+  await sheet.getByLabel("Type to GRU").press("Enter");
+  await expect(sheet).toContainText("There is an Acme job that looks promising.");
+  expect(chatBody?.message).toBe("tell me something interesting");
+  await sheet.getByRole("button", { name: "Open calendar" }).click();
+  await expect(page).toHaveURL(/\/calendar$/);
+});

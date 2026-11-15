@@ -44,3 +44,14 @@ export async function aiUsage(db: Db, now: number): Promise<Record<AiKind | "tot
   }
   return out;
 }
+
+/** Workers AI language-model prices (Neurons per million tokens), verified 2026-11-15. */
+export const LLM_RATES: Record<string, { in: number; out: number }> = {
+  "@cf/meta/llama-3.2-3b-instruct": { in: 4625, out: 30475 },
+  "@cf/google/gemma-4-26b-a4b-it": { in: 9091, out: 27273 },
+  "@cf/qwen/qwen3-30b-a3b-fp8": { in: 4625, out: 30475 },
+};
+export const llmNeurons = (model: string, inputTokens: number, outputTokens: number): number => {
+  const r = LLM_RATES[model] ?? { in: 31818, out: 68182 }; // unknown model: assume the dearest, so the cap stays safe
+  return (inputTokens * r.in + outputTokens * r.out) / 1_000_000;
+};

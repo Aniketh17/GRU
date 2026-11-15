@@ -1,10 +1,11 @@
 // Accessible modal built on <dialog> (focus trap, Esc to close come from the platform).
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button, cx } from "./ui.tsx";
 import { CloseIcon } from "./Icons.tsx";
 
 export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -14,7 +15,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   return (
     <dialog
       ref={ref}
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cx(
@@ -25,7 +26,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       {open && (
         <div className="flex flex-col gap-4 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <h2 id="modal-title" className="m-0 text-lg font-semibold">{title}</h2>
+            <h2 id={titleId} className="m-0 text-lg font-semibold">{title}</h2>
             <button type="button" aria-label="Close" onClick={onClose} className="-mt-1 -mr-1 grid size-9 cursor-pointer place-items-center rounded-lg text-muted hover:bg-sunken">
               <CloseIcon size={18} />
             </button>

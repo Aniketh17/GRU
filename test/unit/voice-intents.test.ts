@@ -1,7 +1,7 @@
 // Voice V1 command grammar: deterministic parsing, Auckland dates, DST-safe, casing preserved.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { aucklandToEpoch, composeBriefScript, parseIntent, parseWhen } from "../../apps/web/src/lib/voice-intents.ts";
+import { aucklandToEpoch, composeBrief, composeBriefScript, parseIntent, parseWhen } from "../../apps/web/src/lib/voice-intents.ts";
 
 // Tuesday 15 Dec 2026, 10:00 NZDT.
 const NOW = Math.floor(Date.parse("2026-12-14T21:00:00Z") / 1000);
@@ -90,5 +90,59 @@ describe("composeBriefScript", () => {
     assert.match(text, /1 follow-up due\. The longest wait is Acme, at 15 days/);
     assert.match(text, /Top match: Graduate Engineer at Acme, 82 out of 100/);
     assert.match(text, /Your focus today: Send the CV/);
+  });
+});
+
+describe("parseIntent: replies to an offer, and the new questions", () => {
+  it("yes and no", () => {
+    for (const t of ["yes", "Yeah", "sure", "open it", "go ahead", "yes please"]) assert.equal(parseIntent(t, NOW).kind, "yes", t);
+    for (const t of ["no", "not now", "skip", "next", "not interested", "no thanks"]) assert.equal(parseIntent(t, NOW).kind, "no", t);
+  });
+  it("asks about emails to review", () => {
+    for (const t of ["what are my emails to review", "what are the unread emails", "which emails need me", "what are they", "how many new emails are waiting"]) assert.equal(parseIntent(t, NOW).kind, "review_list", t);
+  });
+  it("weekly summary", () => {
+    for (const t of ["give me my weekly summary", "how did I do this week", "weekly review"]) assert.equal(parseIntent(t, NOW).kind, "weekly", t);
+  });
+  it("calendar questions pick the day", () => {
+    assert.deepEqual(parseIntent("what's on my calendar tomorrow", NOW), { kind: "calendar", at: at(2026, 12, 16, 9), week: false });
+    assert.deepEqual(parseIntent("what's on my calendar", NOW), { kind: "calendar", at: null, week: true });
+    assert.equal(parseIntent("what's on today", NOW).kind, "brief"); // unchanged
+  });
+  it("commands that merely contain those words still win", () => {
+    assert.equal(parseIntent("add a task to review the emails tomorrow", NOW).kind, "create_task");
+  });
+});
+
+describe("composeBrief: conversational, says what it found and offers next steps", () => {
+  const base = { review_count: 0, interviews_upcoming: [], missing_debriefs: [], follow_ups: [], tasks_due: 0, health: { summary: "", needs_reauth: false }, jobs: { queue_count: 0, new_count: 0, top: [], closing_soon: 0 } };
+  it("reports mail events and alert vacancies, and offers to open them", () => {
+    const { sentences, offers } = composeBrief({
+      ...base,
+      found: {
+        email_events: [{ app_id: 5, company: "Fonterra", what: "rejection", moved_automatically: true }, { app_id: 7, company: "Chubb", what: "interview_invite", moved_automatically: false }],
+        alert_job_count: 4,
+        alert_jobs: [{ id: 11, title: "Graduate Data Analyst", company: "Acme Robotics", location: "Auckland", source: "seek", score: 78, confidence: "low" }, { id: 12, title: "Junior Developer", company: "Beta", location: null, source: "seek", score: 60, confidence: "low" }],
+      },
+    }, "Good morning");
+    const text = sentences.join(" ");
+    assert.match(text, /While you were away I read your job mail\./);
+    assert.match(text, /Fonterra sent a rejection\. I've moved it to rejected, and you can undo that from Today\./);
+    assert.match(text, /Chubb invited you to an interview\./);
+    assert.match(text, /4 new jobs came in on your Seek alerts\./);
+    assert.match(text, /The standout is Graduate Data Analyst at Acme Robotics, in Auckland, scoring 78 out of 100, so it could suit you\. Want me to open it\?/);
+    assert.deepEqual(offers.map((o) => [o.kind, o.id]), [["application", 5], ["application", 7], ["job", 11], ["job", 12]]);
+  });
+  it("mentions deadlines and times that need confirming; a rejection awaiting review says so", () => {
+    const { sentences } = composeBrief({
+      ...base,
+      interviews_proposed: [{ company: "Abano" }],
+      deadlines_soon: [{ kind: "assessment", company: "Acme", due_at: at(2026, 12, 18, 17) }],
+      found: { alert_jobs: [], alert_job_count: 0, email_events: [{ app_id: 1, company: "HelloFresh", what: "rejection", moved_automatically: false }] },
+    }, "Good evening");
+    const text = sentences.join(" ");
+    assert.match(text, /HelloFresh sent a rejection\. It's waiting in Review for you to confirm\./);
+    assert.match(text, /Abano sent interview details that need your confirmation\./);
+    assert.match(text, /The assessment for Acme is due Friday at 5:00 pm\./);
   });
 });

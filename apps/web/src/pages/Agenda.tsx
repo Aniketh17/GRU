@@ -78,9 +78,14 @@ export function AgendaPage() {
 
       {w && (
         <Card className="p-5">
-          <h2 className="m-0 mb-2 text-[15px] font-semibold">{w.is_sunday ? "Weekly review (it’s Sunday)" : "Last 7 days"}</h2>
+          <h2 className="m-0 mb-1 text-[15px] font-semibold">{w.is_sunday ? "Weekly summary (it’s Sunday)" : "Last 7 days"}</h2>
+          <p className="m-0 mb-3 text-[13.5px] text-ink-2">{w.focus}</p>
           <dl className="m-0 grid grid-cols-2 gap-3 tabular-nums sm:grid-cols-4">
-            {([["Applications", w.applications_added], ["Status changes", w.status_changes], ["Interviews done", w.interviews_done], ["Jobs found", w.jobs_found], ["Tasks done", w.tasks_done], ["Tasks open", w.tasks_open], ["Notes", w.notes_added], ["Check-ins", w.checkins_done]] as const).map(([l, n]) => (
+            {([
+              ["Applications", w.applications_added], ["Replies (28 days)", w.response_rate === null ? "—" : `${w.response_rate}%`], ["Interviews booked", w.interviews_booked], ["Interviews done", w.interviews_done],
+              ["Jobs from alerts", w.jobs_from_alerts], ["Rejections", w.rejections], ["Offers", w.offers], ["Status changes", w.status_changes],
+              ["Tasks done", w.tasks_done], ["Tasks open", w.tasks_open], ["Notes", w.notes_added], ["Check-ins", w.checkins_done],
+            ] as const).map(([l, n]) => (
               <div key={l}><dt className="text-[12px] text-muted">{l}</dt><dd className="m-0 text-[20px] font-semibold">{n}</dd></div>
             ))}
           </dl>

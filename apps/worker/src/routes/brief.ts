@@ -2,18 +2,20 @@
 // Computed on read: overnight changes, review queue count, follow-ups due, upcoming interviews, pipeline counts, sync health.
 import { Hono } from "hono";
 import type { AppEnv } from "../app.ts";
+import type { Env } from "../env.ts";
 import type { Db } from "../db/client.ts";
 import { nowSec } from "../env.ts";
 import { aucklandDate } from "../lib/timezone.ts";
-import { applyTomorrow } from "./jobs.ts";
+import { applyTomorrow, ensureScored } from "./jobs.ts";
 import { getSettings } from "./settings.ts";
 
 export const briefRoutes = new Hono<AppEnv>();
 
-briefRoutes.get("/", async (c) => c.json(await computeBrief(c.get("db"), nowSec())));
+briefRoutes.get("/", async (c) => c.json(await computeBrief(c.get("db"), nowSec(), c.env)));
 
-export async function computeBrief(db: Db, now: number) {
+export async function computeBrief(db: Db, now: number, env?: Env) {
   const today = aucklandDate(now);
+  if (env) await ensureScored(env, db, now);
   const settings = await getSettings(db);
 
   // 1. Changes since yesterday (last 24 hours, auto-applied, not undone)
@@ -147,6 +149,22 @@ export async function computeBrief(db: Db, now: number) {
     now - 3600, now + 7 * 86400,
   );
 
+  // 4c. What GRU found in the mail: vacancies from job alerts, and what recent emails said
+  const alertJobs = await db.all<{ id: number; title: string; company: string | null; location: string | null; source: string; first_seen_at: number; score: number | null; confidence: string | null }>(
+    `SELECT j.id, j.title, j.company, j.location, j.source, j.first_seen_at, m.score, m.confidence
+     FROM jobs j LEFT JOIN job_matches m ON m.job_id = j.id AND m.resume_profile_id = (SELECT id FROM resume_profiles WHERE active = 1 LIMIT 1)
+     WHERE j.source_gmail_id IS NOT NULL AND j.status = 'new' AND j.first_seen_at >= ?
+     ORDER BY COALESCE(m.score, -1) DESC, j.first_seen_at DESC LIMIT 3`,
+    now - 3 * 86400,
+  );
+  const alertCount = (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM jobs WHERE source_gmail_id IS NOT NULL AND status = 'new' AND first_seen_at >= ?", now - 3 * 86400))?.n ?? 0;
+  const emailEvents = await db.all<{ app_id: number; company: string; type: string; at: number }>(
+    `SELECT e.app_id, a.company, e.type, e.at FROM events e JOIN applications a ON a.id = e.app_id
+     WHERE e.type IN ('email:rejection','email:offer','email:interview_invite','email:assessment','email:interview_update') AND e.undone = 0 AND e.created_at >= ?
+     ORDER BY e.at DESC LIMIT 5`,
+    now - 36 * 3600,
+  );
+
   // 5. Pipeline status counts
   const countRows = await db.all<{ status: string; cnt: number }>(
     "SELECT status, COUNT(*) as cnt FROM applications GROUP BY status",
@@ -193,6 +211,10 @@ export async function computeBrief(db: Db, now: number) {
     interviews_upcoming: interviewsUpcoming,
     missing_debriefs: missingDebriefs,
     interviews_proposed: proposedInterviews,
+    found: {
+      alert_jobs: alertJobs, alert_job_count: alertCount,
+      email_events: emailEvents.map((e) => ({ app_id: e.app_id, company: e.company, what: e.type.slice(6), at: e.at, moved_automatically: changes.some((ch) => ch.app_id === e.app_id) })),
+    },
     deadlines_soon: deadlinesSoon,
     jobs,
     tasks_due: tasksDue,

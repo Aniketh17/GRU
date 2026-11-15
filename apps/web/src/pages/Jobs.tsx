@@ -1,7 +1,7 @@
 // Phase 5: vacancies, 100-point resume match with evidence and gaps, Apply Tomorrow queue.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Modal } from "../components/Dialog.tsx";
 import { MailViewer } from "../components/MailViewer.tsx";
 import { PlusIcon } from "../components/Icons.tsx";
@@ -20,6 +20,11 @@ export function JobsPage() {
   const [band, setBand] = useState("");
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const o = Number(params.get("open"));
+    if (o > 0) { setOpenId(o); setParams({}, { replace: true }); }
+  }, [params, setParams]);
   const [alertMail, setAlertMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const [ambiguous, setAmbiguous] = useState<{ job: Job; candidates: { id: number; company: string; role: string | null }[] } | null>(null);
   const nav = useNavigate();

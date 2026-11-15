@@ -140,6 +140,11 @@ export interface Brief {
   interviews_upcoming: { id: number; app_id: number; company: string; at: number; format: string | null; prep_ready: boolean }[];
   missing_debriefs: { id: number; app_id: number; company: string; at: number }[];
   interviews_proposed: { id: number; app_id: number; company: string; start_utc: number | null }[];
+  found: {
+    alert_jobs: { id: number; title: string; company: string | null; location: string | null; source: string; first_seen_at: number; score: number | null; confidence: string | null }[];
+    alert_job_count: number;
+    email_events: { app_id: number; company: string; what: string; at: number; moved_automatically: boolean }[];
+  };
   deadlines_soon: { id: number; app_id: number | null; kind: string; due_at: number; company: string | null }[];
   follow_ups: { id: number; company: string; role: string | null; status: string; days_stale: number }[];
   health: { summary: string; needs_reauth: boolean };
@@ -189,7 +194,14 @@ export interface Agenda {
   date: string; overdue: Task[]; today: Task[]; upcoming: Task[]; someday: Task[];
   interviews: { id: number; app_id: number; company: string; start_utc: number; format: string | null }[];
 }
+export type ChatAction =
+  | { type: "open_job" | "save_job" | "dismiss_job" | "mark_applied" | "open_application" | "open_mail"; id: number }
+  | { type: "open_calendar" }
+  | { type: "create_task"; title: string; due?: string };
+
 export interface Weekly {
+  jobs_from_alerts: number; rejections: number; offers: number; interviews_booked: number;
+  response_rate: number | null; recent_applications: number; focus: string;
   is_sunday: boolean; applications_added: number; status_changes: number; interviews_done: number; tasks_done: number;
   tasks_open: number; notes_added: number; checkins_done: number; jobs_found: number;
 }
@@ -299,5 +311,6 @@ export const api = {
   calendarFeed: () => request<{ url: string }>("/api/calendar/feed"),
   resetCalendarFeed: () => request<{ url: string }>("/api/calendar/feed/reset", "POST"),
   setDeadlineDone: (id: number, done: boolean) => request<{ ok: true }>(`/api/calendar/deadlines/${id}`, "PATCH", { done }),
+  chat: (message: string, history: { role: "user" | "assistant"; text: string }[]) => request<{ reply: string; action: ChatAction | null }>("/api/chat", "POST", { message, history }),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

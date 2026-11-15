@@ -2,18 +2,22 @@
 // Deterministic grammar, no AI. Changes need a tap on a confirm card. Audio is never stored; transcripts are encrypted.
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type Application } from "../lib/api.ts";
-import { formatDateTime, greeting, localDay } from "../lib/format.ts";
+import { useNavigate } from "react-router";
+import { api, type Application, type ChatAction } from "../lib/api.ts";
+import { dateInputToEpoch, formatDateTime, formatTime, greeting, localDateTimeToEpoch, localDay } from "../lib/format.ts";
 import { NATURAL_SPEAKERS, installStt, getPrefs, listen, localVoices, setPrefs, speak, speakable, sttMaybe, sttStatus, stopSpeaking, unlockAudio, voicesReady, type Listener, type SttStatus } from "../lib/speech.ts";
-import { HELP_TEXT, composeBriefScript, parseIntent, type Intent } from "../lib/voice-intents.ts";
+import { HELP_TEXT, composeBrief, parseIntent, type Intent, type Offer } from "../lib/voice-intents.ts";
 import { MicError, micSupported, startRecording, type Recording } from "../lib/recorder.ts";
 import { ApiError } from "../lib/api.ts";
 import { Modal } from "./Dialog.tsx";
+import { MailViewer } from "./MailViewer.tsx";
 import { MicIcon } from "./Icons.tsx";
 import { useToast } from "./Toast.tsx";
 import { Button, Select, cx } from "./ui.tsx";
 
 interface Msg { id: number; role: "user" | "gru"; text: string }
+/** A next step GRU has offered: open a job, an application, or an email. A plain "yes" takes the first one. */
+type ClientOffer = Offer | { kind: "mail"; id: number; label: string; accountId: number; gmailId: string };
 interface Pending { title: string; lines: string[]; actions: { label: string; run: () => Promise<string> }[] }
 
 const CHIPS = ["Read my brief", "What are my tasks?", "Any interviews coming up?", "Top jobs", "Help"];
@@ -30,6 +34,10 @@ export function VoiceAssistant() {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const recorder = useRef<Recording | null>(null);
+  const navigate = useNavigate();
+  const offers = useRef<ClientOffer[]>([]);
+  const msgsRef = useRef<Msg[]>([]);
+  const [viewMail, setViewMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [stt, setStt] = useState<SttStatus>("unsupported");
@@ -55,6 +63,7 @@ export function VoiceAssistant() {
     }
   }, [toast]);
 
+  msgsRef.current = msgs;
   const refreshAll = () => qc.invalidateQueries();
 
   // First open: load history and detect on-device capabilities.
@@ -68,11 +77,39 @@ export function VoiceAssistant() {
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }); }, [msgs, pending, interim]);
   useEffect(() => () => stopSpeaking(), []);
 
-  const loadBriefScript = useCallback(async () => {
+  const loadBrief = useCallback(async () => {
     const [b, c] = await Promise.all([api.brief(), api.checkin().catch(() => null)]);
-    return composeBriefScript(b, greeting(), c?.answers?.today_focus ?? null);
+    return composeBrief(b, greeting(), c?.answers?.today_focus ?? null);
   }, []);
-  const readBrief = useCallback(async () => say(await loadBriefScript()), [say, loadBriefScript]);
+
+  /** Shows the next offered step as a one-tap card (the user can also just say yes / next). */
+  const showOffer = useCallback(() => {
+    const o = offers.current[0];
+    if (!o) return;
+    const open = async () => { offers.current = offers.current.slice(1); go(o); return ""; };
+    const next = async () => {
+      offers.current = offers.current.slice(1);
+      const n = offers.current[0];
+      if (n) { await say(`Okay. Next, ${n.label}. Want me to open it?`); showOffer(); }
+      else await say("Okay, that's everything I found. Anything else?");
+      return "";
+    };
+    setPending({ title: o.kind === "job" ? "A job that came in" : o.kind === "mail" ? "An email to look at" : "Worth a look", lines: [o.label], actions: [{ label: o.kind === "job" ? "Open job" : o.kind === "mail" ? "Open email" : "Open application", run: open }, { label: "Next", run: next }] });
+  }, [say]);
+
+  function go(o: ClientOffer) {
+    if (o.kind === "mail") return void setViewMail({ accountId: o.accountId, gmailId: o.gmailId });
+    setOpen(false);
+    stopSpeaking();
+    navigate(o.kind === "job" ? `/jobs?open=${o.id}` : `/applications/${o.id}?status=all`);
+  }
+
+  const readBrief = useCallback(async () => {
+    const { sentences, offers: found } = await loadBrief();
+    offers.current = found;
+    await say(sentences);
+    showOffer();
+  }, [say, loadBrief, showOffer]);
 
   // Once per Auckland day, on the first visit, the sheet opens with today's brief as TEXT and a Play button.
   // Nothing is spoken and the microphone stays off until Ani taps (browsers also forbid audio without a tap).
@@ -82,14 +119,15 @@ export function VoiceAssistant() {
     let seen: string | null = null;
     try { seen = localStorage.getItem("gru.voice.brief.day"); } catch { /* ignore */ }
     if (seen === today) return;
-    void loadBriefScript().then((script) => {
+    void loadBrief().then(({ sentences, offers: found }) => {
       try { localStorage.setItem("gru.voice.brief.day", today); } catch { /* ignore */ }
       loaded.current = true;
-      setMsgs([{ id: nextId++, role: "gru", text: script.join(" ") }]);
-      setPending({ title: "Today’s brief is ready", lines: ["Tap to hear it."], actions: [{ label: "Play my brief", run: async () => { unlockAudio(); setSpeaking(true); try { await speak(script.map(speakable)); } finally { setSpeaking(false); } return ""; } }] });
+      offers.current = found;
+      setMsgs([{ id: nextId++, role: "gru", text: sentences.join(" ") }]);
+      setPending({ title: "Today’s brief is ready", lines: ["Tap to hear it."], actions: [{ label: "Play my brief", run: async () => { unlockAudio(); setSpeaking(true); try { await speak(sentences.map(speakable)); } finally { setSpeaking(false); } showOffer(); return ""; } }] });
       setOpen(true);
     }).catch(() => undefined);
-  }, [loadBriefScript]);
+  }, [loadBrief, showOffer]);
 
   // Other parts of the app can ask for the voice briefing.
   useEffect(() => {
@@ -124,8 +162,93 @@ export function VoiceAssistant() {
     });
   }
 
-  async function act(intent: Intent): Promise<void> {
+  /** Free-form conversation: the model answers from a read-only snapshot of Ani's data and may suggest one step. */
+  async function converse(text: string, fallback: string): Promise<void> {
+    const history = msgsRef.current.slice(-8).map((m) => ({ role: m.role === "user" ? ("user" as const) : ("assistant" as const), text: m.text.slice(0, 500) }));
+    // The current question was just added to the list; the model receives it separately.
+    if (history.at(-1)?.role === "user" && history.at(-1)?.text === text.slice(0, 500)) history.pop();
+    try {
+      const r = await api.chat(text, history);
+      await say(r.reply);
+      if (r.action) await suggest(r.action);
+    } catch {
+      await say(fallback);
+    }
+  }
+
+  /** Turns a step the model suggested into a one-tap card. Navigation is one tap; changes need Confirm. */
+  async function suggest(a: ChatAction): Promise<void> {
+    switch (a.type) {
+      case "open_job": case "mark_applied": {
+        const j = await api.job(a.id).catch(() => null);
+        offers.current = [{ kind: "job", id: a.id, label: j ? `${j.title}${j.company ? ` at ${j.company}` : ""}` : "that job" }];
+        return showOffer();
+      }
+      case "open_application": {
+        const ap = await api.getApplication(a.id).catch(() => null);
+        offers.current = [{ kind: "application", id: a.id, label: ap ? ap.company : "that application" }];
+        return showOffer();
+      }
+      case "open_mail": {
+        const r = await api.listReview();
+        const it = r.items.find((x) => x.id === a.id);
+        if (it?.accountId && it.gmailId) { offers.current = [{ kind: "mail", id: it.id, label: it.context?.subject ?? "that email", accountId: it.accountId, gmailId: it.gmailId }]; showOffer(); }
+        return;
+      }
+      case "open_calendar":
+        return setPending({ title: "Calendar", lines: ["See everything coming up"], actions: [{ label: "Open calendar", run: async () => { setOpen(false); stopSpeaking(); navigate("/calendar"); return ""; } }] });
+      case "save_job": case "dismiss_job": {
+        const j = await api.job(a.id).catch(() => null);
+        const save = a.type === "save_job";
+        return setPending({ title: save ? "Save this job?" : "Not interested?", lines: [j ? `${j.title}${j.company ? ` at ${j.company}` : ""}` : "That job"], actions: [{ label: save ? "Save job" : "Dismiss job", run: async () => { await api.jobDecision(a.id, save ? "save" : "dismiss"); return save ? "Saved it for later." : "Dismissed. I won't show it again."; } }] });
+      }
+      case "create_task":
+        return setPending({ title: "New task", lines: [a.title, a.due ? `Due ${a.due}` : "No due date"], actions: [{ label: "Add task", run: async () => { await api.createTask({ title: a.title, due_at: a.due ? dateInputToEpoch(a.due) : null }); return "Done. Task added."; } }] });
+    }
+  }
+
+  async function act(intent: Intent, text: string): Promise<void> {
     switch (intent.kind) {
+      case "yes": {
+        const o = offers.current[0];
+        if (!o) return converse(text, "Sure. What would you like me to do? Say help to hear what I can do.");
+        offers.current = offers.current.slice(1);
+        setPending(null);
+        go(o);
+        return;
+      }
+      case "no": {
+        if (!offers.current.length) return converse(text, "No problem.");
+        offers.current = offers.current.slice(1);
+        const n = offers.current[0];
+        if (n) { await say(`Okay. Next, ${n.label}. Want me to open it?`); return showOffer(); }
+        setPending(null);
+        return say("Okay, that's everything I found. Anything else?");
+      }
+      case "review_list": {
+        const r = await api.listReview();
+        if (!r.items.length) return say("Nothing needs your review right now. You're all caught up.");
+        const label = (it: (typeof r.items)[number]) => `${it.context?.subject ?? "An email"}${it.context?.from ? `, from ${it.context.from}` : ""}`;
+        const first = r.items.slice(0, 3);
+        offers.current = first.filter((it) => it.accountId && it.gmailId).map((it) => ({ kind: "mail" as const, id: it.id, label: label(it), accountId: it.accountId as number, gmailId: it.gmailId as string }));
+        await say([`You have ${r.items.length} email${r.items.length === 1 ? "" : "s"} to review.`, ...first.map((it, i) => `${i === 0 ? "First" : i === 1 ? "Then" : "And"}: ${label(it)}${it.company ? `, which I think is about ${it.company}` : ""}${it.proposal?.suggested ? `, looks like it could mean ${it.proposal.suggested}` : ""}.`), "Want me to open the first one?"]);
+        return showOffer();
+      }
+      case "weekly": {
+        const w = await api.weekly();
+        const bits = [`This week you added ${w.applications_added} application${w.applications_added === 1 ? "" : "s"}`, `${w.interviews_booked} interview${w.interviews_booked === 1 ? " is" : "s are"} booked or done`, `and ${w.jobs_from_alerts} job${w.jobs_from_alerts === 1 ? "" : "s"} came in from alerts`];
+        return say([`${bits.join(", ")}.`, w.rejections || w.offers ? `${w.rejections} rejection${w.rejections === 1 ? "" : "s"} and ${w.offers} offer${w.offers === 1 ? "" : "s"}.` : "No rejections or offers this week.", w.response_rate !== null ? `${w.response_rate} percent of your recent applications have had a reply.` : "", w.focus].filter(Boolean));
+      }
+      case "calendar": {
+        const startDay = intent.at ? localDay(intent.at) : localDay(Math.floor(Date.now() / 1000));
+        const from = localDateTimeToEpoch(`${startDay}T00:00`) ?? 0;
+        const to = intent.week ? from + 7 * 86400 : (localDateTimeToEpoch(`${startDay}T23:59`) ?? from + 86399);
+        const { items } = await api.calendar(from, to);
+        const live = items.filter((i) => i.state !== "done");
+        const when = intent.week ? "in the next 7 days" : intent.at && startDay !== localDay(Math.floor(Date.now() / 1000)) ? "that day" : "today";
+        if (!live.length) return say(`Nothing on your calendar ${when}.`);
+        return say([`You have ${live.length} thing${live.length === 1 ? "" : "s"} ${when}.`, ...live.slice(0, 5).map((i) => `${i.title}${i.all_day ? "" : `, ${intent.week ? formatDateTime(i.start) : formatTime(i.start)}`}${i.link ? `, and the ${i.link.kind} link is saved on it` : ""}.`)]);
+      }
       case "stop": stopSpeaking(); setPending(null); return;
       case "greet": return say(`${greeting()}, Ani. Ask for your brief, or tell me what to add.`);
       case "help": return say(HELP_TEXT);
@@ -189,7 +312,7 @@ export function VoiceAssistant() {
         })).then(() => undefined);
       }
       default:
-        return say(`I didn’t catch a command in “${intent.heard}”. Say help to hear what I can do.`);
+        return converse(text, `I didn’t catch a command in “${intent.heard}”. Say help to hear what I can do.`);
     }
   }
 
@@ -202,7 +325,7 @@ export function VoiceAssistant() {
     setMsgs((m) => [...m, { id: nextId++, role: "user", text }]);
     persist("user", text);
     try {
-      await act(parseIntent(text, Math.floor(Date.now() / 1000)));
+      await act(parseIntent(text, Math.floor(Date.now() / 1000)), text);
     } catch {
       await say("Sorry, that didn’t work. Please try again.");
     }
@@ -366,6 +489,7 @@ export function VoiceAssistant() {
           </details>
         </Modal>
       )}
+      {viewMail && <MailViewer accountId={viewMail.accountId} gmailId={viewMail.gmailId} onClose={() => setViewMail(null)} />}
     </>
   );
 }

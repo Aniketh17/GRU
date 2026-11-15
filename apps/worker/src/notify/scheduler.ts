@@ -49,7 +49,7 @@ export async function runDailyLoopScheduler(
     }
   }
 
-  const send = (kind: "interview" | "debrief" | "task_due" | "jobs", key: string) =>
+  const send = (kind: "interview" | "debrief" | "task_due" | "jobs" | "weekly", key: string) =>
     sendNotification(db, env.NTFY_TOPIC, env.APP_ORIGIN, kind, key, now, fetchFn);
 
   // 2b. Interview reminders: 24 h and 2 h before (generic text), debrief nudge the morning after
@@ -65,6 +65,9 @@ export async function runDailyLoopScheduler(
       "SELECT id, start_utc FROM interviews WHERE state IN ('scheduled','done') AND debrief_enc IS NULL AND start_utc < ? AND start_utc > ?", now, now - 3 * 86400,
     );
     for (const i of past) if (aucklandDate(i.start_utc) < today) await send("debrief", `debrief:${i.id}`);
+
+    // Sunday: the weekly summary (once)
+    if (new Intl.DateTimeFormat("en-NZ", { timeZone: "Pacific/Auckland", weekday: "short" }).format(new Date(now * 1000)) === "Sun") await send("weekly", `weekly:${today}`);
 
     // 2c. Tasks due, and new job matches, at most once per day after the brief time
     const due = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE done_at IS NULL AND due_at IS NOT NULL AND due_at <= ?", now);
