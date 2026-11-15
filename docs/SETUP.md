@@ -35,10 +35,10 @@ Console menu names were current as of 2026-11-15; if Google or Cloudflare rename
 - [ ] Enable the Gmail API: **☰ → APIs & Services → Library**, search "Gmail API", then **Enable**.
 - [ ] **☰ → Google Auth Platform** (formerly "OAuth consent screen") → **Get started**:
   - App name `GRU`, support email = your address; Audience **External**; contact email; agree; **Create**.
-  - **Data Access → Add or remove scopes:** `.../auth/gmail.readonly`, `openid`, `.../auth/userinfo.email`. Save.
+  - **Data Access → Add or remove scopes:** `.../auth/gmail.metadata`, `openid`, `.../auth/userinfo.email`. Save.
   - **Audience → Publish app** (status becomes **In production**). Google shows warnings about verification. GRU qualifies for the personal-use exception (you are the only user), so do not submit for verification.
 - [ ] **Clients → Create client** → Application type **Web application** → name `gru-web`:
-  - Authorized redirect URIs: `https://gru.<subdomain>.workers.dev/api/mail/callback` and `http://localhost:8787/api/mail/callback`
+  - Authorized redirect URIs: `https://gru.aniketh123ani.workers.dev/auth/google/callback` and `http://localhost:8787/auth/google/callback`
   - **Create**, then copy the Client ID and Client secret into your password manager.
 - [ ] `npx wrangler secret put GOOGLE_CLIENT_ID`, then `npx wrangler secret put GOOGLE_CLIENT_SECRET`
 - [ ] `npx wrangler secret put ALLOWED_EMAILS` → both Gmail addresses, comma-separated, no spaces.
