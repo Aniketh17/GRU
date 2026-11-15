@@ -6,7 +6,7 @@ Last updated 2026-11-15. Every phase starts with a plan and ends with a walkthro
 |---|---|---|
 | 0 Foundations | Auth, crypto, kill switch, security baseline, docs | ✅ done (gate met; toolchain lint warning documented, D-034) |
 | 1 Dashboard | Applications CRUD, timeline, filters, search, manual status, undo, PWA shell, theme schedule | ✅ built (see plans/PHASE-1.md) |
-| 2 Gmail | Read-only sync, rules classifier, linking, review queue, reconnect handling | next |
+| 2 Gmail | Read-only sync, rules classifier, linking, review queue, reconnect handling | plan ready, awaiting approval (plans/PHASE-2.md) |
 | 3 Daily loop | Morning brief, check-in, ntfy, follow-up rules | |
 | 4 Interviews | Interview records, prep, reminders, debriefs | |
 | 5 Job discovery | Job-alert parsing, resume profile, 100-point scoring, Apply Tomorrow | |
@@ -14,7 +14,7 @@ Last updated 2026-11-15. Every phase starts with a plan and ends with a walkthro
 | **V1 Voice: commands & briefing** | See below | after Phase 6 |
 | 7 Hardening | Failure drills, wipe drill, export, audits | |
 | 8 Optional AI | Workers AI classifier / semantic matcher | |
-| **V2 Voice: conversation** | See below | with Phase 8 |
+| **V2 Voice: conversation** | See below | in Phase 8 (not brought forward; Ani, 2026-11-15) |
 
 ## Voice: Talk to GRU (added by Ani, 2026-11-15)
 
@@ -34,7 +34,7 @@ Last updated 2026-11-15. Every phase starts with a plan and ends with a walkthro
 
 **Privacy design (DECISIONS D-042):**
 - Speech-to-text runs **on-device** via the browser's `processLocally` mode. Never Chrome's default server recognition, which sends audio to a third-party service.
-- Where on-device recognition isn't available: Cloudflare Workers AI Whisper (zero data retention, ~200 free minutes/day), or text-only. ⛔ Ani to choose.
+- Where on-device recognition isn't available: **Cloudflare Workers AI Whisper** (Ani, 2026-11-15). Mic only after a tap; audio processed in memory, never stored or logged; text input always available. Allowance and retention to be re-verified at V1 start.
 - Text-to-speech uses **only voices installed on the device** (`SpeechSynthesisVoice.localService === true`); otherwise GRU shows the text.
 - Audio is never stored. Transcripts are encrypted like notes.
 - Any change GRU proposes from voice needs an explicit tap to confirm (SPEC §19: nothing acts on Ani's behalf without a tap).
