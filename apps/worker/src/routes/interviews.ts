@@ -45,18 +45,21 @@ interface Row {
   format: string | null;
   prep_enc: string | null;
   debrief_enc: string | null;
+  link_enc: string | null;
   rating: number | null;
   followup_sent: number;
   company: string;
   role: string | null;
 }
-const SELECT = `SELECT i.id, i.app_id, i.state, i.start_utc, i.tz, i.format, i.prep_enc, i.debrief_enc, i.rating, i.followup_sent, a.company, a.role
+const SELECT = `SELECT i.id, i.app_id, i.state, i.start_utc, i.tz, i.format, i.prep_enc, i.debrief_enc, i.link_enc, i.rating, i.followup_sent, a.company, a.role
   FROM interviews i JOIN applications a ON a.id = i.app_id`;
 
 async function present(env: AppEnv["Bindings"], r: Row) {
   const prep = await decJson<{ text: string }>(env, "interviews", "prep_enc", r.id, r.prep_enc);
   const debrief = await decJson<Record<string, unknown>>(env, "interviews", "debrief_enc", r.id, r.debrief_enc);
+  const link = await decJson<{ url: string; kind: string }>(env, "interviews", "link_enc", r.id, r.link_enc);
   return {
+    link: link && /^https:\/\//.test(link.url) ? link : null,
     id: r.id, app_id: r.app_id, company: r.company, role: r.role, state: r.state, start_utc: r.start_utc, tz: r.tz,
     format: r.format, rating: r.rating, followup_sent: r.followup_sent === 1,
     prep: prep?.text ?? null, debrief,

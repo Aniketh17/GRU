@@ -18,12 +18,19 @@ import {
 import { b64urlEncode, utf8 } from "../../apps/worker/src/crypto/b64.ts";
 
 describe("Gmail scope enforcement (Phase 2 rev 2 §2)", () => {
-  it("requests strictly openid, email, and gmail.metadata", () => {
+  it("requests strictly openid, email, and read-only Gmail access (D-058)", () => {
     assert.deepEqual([...GMAIL_SCOPES], [
       "openid",
       "email",
-      "https://www.googleapis.com/auth/gmail.metadata",
+      "https://www.googleapis.com/auth/gmail.readonly",
     ]);
+  });
+
+  it("never allows any scope that can modify, send, label or delete mail", () => {
+    for (const w of ["modify", "compose", "insert", "labels", "send", "settings.basic", "settings.sharing"]) {
+      assert.ok(FORBIDDEN_GMAIL_SCOPES.some((f) => f.endsWith(`/gmail.${w}`)), w);
+    }
+    assert.ok(FORBIDDEN_GMAIL_SCOPES.includes("https://mail.google.com/" as never));
   });
 
   it("ensures no code requests any forbidden scopes", () => {
@@ -33,23 +40,22 @@ describe("Gmail scope enforcement (Phase 2 rev 2 §2)", () => {
     }
   });
 
-  it("validateGrantedScopes accepts valid metadata scope", () => {
-    assert.doesNotThrow(() => {
-      validateGrantedScopes("openid email https://www.googleapis.com/auth/gmail.metadata");
-    });
+  it("validateGrantedScopes accepts read-only (and the older metadata-only grant)", () => {
+    assert.doesNotThrow(() => validateGrantedScopes("openid email https://www.googleapis.com/auth/gmail.readonly"));
+    assert.doesNotThrow(() => validateGrantedScopes("openid email https://www.googleapis.com/auth/gmail.metadata"));
   });
 
-  it("validateGrantedScopes rejects missing gmail.metadata scope", () => {
+  it("validateGrantedScopes rejects a grant with no Gmail read scope", () => {
     assert.throws(
       () => validateGrantedScopes("openid email"),
-      (err) => err instanceof ScopeError && err.message === "missing_gmail_metadata_scope",
+      (err) => err instanceof ScopeError && err.message === "missing_gmail_read_scope",
     );
   });
 
   it("validateGrantedScopes rejects any forbidden scope", () => {
     for (const forbidden of FORBIDDEN_GMAIL_SCOPES) {
       assert.throws(
-        () => validateGrantedScopes(`openid email https://www.googleapis.com/auth/gmail.metadata ${forbidden}`),
+        () => validateGrantedScopes(`openid email https://www.googleapis.com/auth/gmail.readonly ${forbidden}`),
         (err) => err instanceof ScopeError && err.message.startsWith("forbidden_scope_detected:"),
       );
     }

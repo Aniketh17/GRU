@@ -14,6 +14,8 @@ const PATTERNS: RegExp[] = [
   new RegExp(String.raw`\b(?:applying|application|applied)\s+for\s+${CORE}${TAIL}`, "i"),
   // "Application received: X - Auckland"
   new RegExp(String.raw`\bapplication\s+(?:received|submitted|confirmation)\s*[:–—-]\s*(.{3,90})$`, "i"),
+  // "the position of X", "the role of X"
+  new RegExp(String.raw`\b(?:position|role)\s+of\s+(?:an?\s+|the\s+)?(.{3,90}?)(?:\s+(?:at|with)\s+|\s[-–—|:]\s|[,.!?(\[]|\s*$)`, "i"),
   // "for the X position/role"
   new RegExp(String.raw`\bfor\s+the\s+(.{3,90}?)\s+(?:position|role|vacancy|opportunity)\b`, "i"),
   // "X position at Acme" / "X role with Acme"
@@ -24,13 +26,14 @@ const PATTERNS: RegExp[] = [
 
 const NOT_A_ROLE = /^(the|your|our|this|a|an|you|us|it|jobs?|work|roles?|positions?|more|update|status)$/i;
 
-function clean(raw: string): string | null {
+export function cleanRole(raw: string): string | null {
   let r = raw
     .replace(/[“”"‘’]/g, "")
     .replace(/\s*\((?:ref|req|id|job|#)[^)]*\)\s*$/i, "")
     .replace(/\s*[-–—|]\s*(?:ref|req|job id)\b.*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
+  r = r.replace(/^(?:the\s+)?(?:position|role|post)\s+of\s+(?:an?\s+|the\s+)?/i, "");
   r = r.replace(/\s+(?:at|with|@)\s+[^,]{2,60}$/i, "").trim(); // never keep the company in the title
   r = (r.split(/\s[-–—|]\s/)[0] ?? r).replace(/^(?:the|our)\s+/i, "").trim();
   if (r.length < 3 || r.length > 90 || !/\p{L}/u.test(r) || NOT_A_ROLE.test(r)) return null;
@@ -42,7 +45,7 @@ export function extractRole(subject: string): string | null {
   const s = subject.replace(/^\s*(?:re|fw|fwd):\s*/i, "").trim();
   for (const re of PATTERNS) {
     const m = re.exec(s);
-    const role = m?.[1] ? clean(m[1]) : null;
+    const role = m?.[1] ? cleanRole(m[1]) : null;
     if (role) return role;
   }
   return null;

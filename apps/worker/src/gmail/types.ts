@@ -10,9 +10,13 @@ export interface GmailMessage {
   threadId: string;
   labelIds?: string[];
   internalDate: string;
-  payload?: {
-    headers?: GmailHeader[];
-  };
+  payload?: GmailPart & { headers?: GmailHeader[] };
+}
+
+export interface GmailPart {
+  mimeType?: string;
+  body?: { data?: string };
+  parts?: GmailPart[];
 }
 
 export interface GmailListResponse {

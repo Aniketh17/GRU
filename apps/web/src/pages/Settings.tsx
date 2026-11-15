@@ -205,6 +205,15 @@ export function SettingsPage() {
                     )}
                   </div>
                 </div>
+                {acc.status === "active" && (acc.body_access ? (
+                  <p className="m-0 text-[12px] text-muted">
+                    Email details on: GRU opens only job-application emails already linked to your applications, to find the position, interview time and meeting link. It never stores email text and never writes to Gmail.
+                  </p>
+                ) : (
+                  <Banner tone="accent" title="Turn on email details" action={<Button variant="primary" size="sm" onClick={() => connectMail.mutate(acc.email)} disabled={connectMail.isPending}>Reconnect</Button>}>
+                    Reconnect to let GRU read job-application emails (only those) so it can fill in the position and find interview times and meeting links.
+                  </Banner>
+                ))}
                 {acc.testing_mode_detected && (
                   <Banner tone="amber" title="Testing mode">
                     Google OAuth is currently in Testing mode; refresh tokens expire after 7 days. Publish app to Production in Google Cloud Console.

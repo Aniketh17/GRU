@@ -34,6 +34,11 @@ export function InterviewPanel({ appId, onChanged }: { appId: number; onChanged:
     mutationFn: (id: number) => api.patchInterview(id, { state: "cancelled" }),
     onSuccess: () => { refresh(); toast({ text: "Interview cancelled" }); },
   });
+  const [confirming, setConfirming] = useState<Interview | null>(null);
+  const dismiss = useMutation({
+    mutationFn: (id: number) => api.patchInterview(id, { state: "cancelled" }),
+    onSuccess: () => { refresh(); toast({ text: "Dismissed" }); },
+  });
   const items = (q.data?.items ?? []).filter((i) => i.state !== "cancelled");
 
   return (
@@ -55,7 +60,17 @@ export function InterviewPanel({ appId, onChanged }: { appId: number; onChanged:
                   {i.debrief ? <Pill tone="accent">Debriefed · {i.rating}/5</Pill> : past ? <Pill tone="amber">Debrief missing</Pill> : null}
                 </span>
               </div>
+              {i.state === "proposed" && (
+                <p className="m-0 rounded-lg bg-accent-soft px-2.5 py-1.5 text-[12.5px] text-accent-text">
+                  Found in an email{i.start_utc ? ` · ${formatDateTime(i.start_utc)}` : ", but I couldn’t tell when"}. Check it, then confirm.
+                </p>
+              )}
+              {i.link && (
+                <a href={i.link.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 w-fit items-center rounded-[10px] border border-accent px-3 text-[12.5px] font-semibold text-accent-text no-underline hover:bg-accent-soft">Join {i.link.kind} ↗</a>
+              )}
               <div className="flex flex-wrap gap-2">
+                {i.state === "proposed" && <Button size="sm" variant="primary" onClick={() => setConfirming(i)}>{i.start_utc ? "Confirm" : "Set time"}</Button>}
+                {i.state === "proposed" && <Button size="sm" variant="quiet" onClick={() => dismiss.mutate(i.id)}>Dismiss</Button>}
                 <Button size="sm" onClick={() => setPrepFor(i)}>{i.prep ? "Prep notes" : "Prep"}</Button>
                 <Button size="sm" variant={past && !i.debrief ? "primary" : "secondary"} onClick={() => setDebriefFor(i)}>{i.debrief ? "View debrief" : "Debrief"}</Button>
                 {!past && <Button size="sm" variant="quiet" onClick={() => cancel.mutate(i.id)}>Cancel</Button>}
@@ -64,6 +79,7 @@ export function InterviewPanel({ appId, onChanged }: { appId: number; onChanged:
           );
         })}
       </ul>
+      {confirming && <ConfirmModal i={confirming} onClose={() => setConfirming(null)} onDone={refresh} />}
       {scheduling && <ScheduleModal appId={appId} onClose={() => setScheduling(false)} onDone={refresh} />}
       {prepFor && <PrepModal i={prepFor} onClose={() => setPrepFor(null)} onDone={refresh} />}
       {debriefFor && <DebriefModal i={debriefFor} onClose={() => setDebriefFor(null)} onDone={refresh} />}
@@ -87,6 +103,23 @@ function ScheduleModal({ appId, onClose, onDone }: { appId: number; onClose: () 
         {FORMATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </Select>
       <Button variant="primary" disabled={!localDateTimeToEpoch(when) || save.isPending} onClick={() => save.mutate()}>Save interview</Button>
+    </Modal>
+  );
+}
+
+function ConfirmModal({ i, onClose, onDone }: { i: Interview; onClose: () => void; onDone: () => void }) {
+  const toast = useToast();
+  const [when, setWhen] = useState(epochToDateTimeInput(i.start_utc ?? Math.floor(Date.now() / 1000) + 86400));
+  const save = useMutation({
+    mutationFn: () => api.patchInterview(i.id, { start_utc: localDateTimeToEpoch(when) ?? 0, state: "scheduled" }),
+    onSuccess: () => { toast({ text: "Interview confirmed. I’ll remind you 24 hours and 2 hours before." }); onDone(); onClose(); },
+    onError: () => toast({ text: "Couldn’t confirm interview" }),
+  });
+  return (
+    <Modal open onClose={onClose} title={`Confirm interview · ${i.company}`}>
+      <Field label="Date and time (Auckland)" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+      <p className="m-0 text-[12.5px] text-muted">GRU read this from the email and assumes Auckland time. Please check it against the email.</p>
+      <Button variant="primary" disabled={!localDateTimeToEpoch(when) || save.isPending} onClick={() => save.mutate()}>Confirm interview</Button>
     </Modal>
   );
 }

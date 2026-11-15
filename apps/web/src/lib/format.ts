@@ -65,6 +65,9 @@ export const STATUS_ORDER: Status[] = ["applied", "assessment", "interview", "of
 
 export function eventLabel(type: string, prev: Status | null): string {
   if (type === "created") return "Application added";
+  if (type === "interview_proposed") return "Interview details found in an email";
+  if (type === "interview_scheduled") return "Interview scheduled";
+  if (type === "interview_debrief") return "Interview debrief saved";
   if (type === "undo") return `Change undone${prev ? ` (was ${STATUS_LABEL[prev] ?? prev})` : ""}`;
   if (type.startsWith("status:")) {
     const to = type.slice(7) as Status;

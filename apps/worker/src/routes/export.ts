@@ -9,7 +9,7 @@ export const exportRoutes = new Hono<AppEnv>();
 // table -> encrypted columns (AAD rowid is the row's primary key; job_matches/checkins handled separately).
 const TABLES: Record<string, { key: string; enc: string[]; cols: string }> = {
   applications: { key: "id", enc: ["notes_enc"], cols: "id, company, role, source, status, applied_at, last_event_at, next_action, notes_enc" },
-  interviews: { key: "id", enc: ["prep_enc", "debrief_enc"], cols: "id, app_id, state, start_utc, tz, format, rating, followup_sent, prep_enc, debrief_enc" },
+  interviews: { key: "id", enc: ["prep_enc", "debrief_enc", "link_enc"], cols: "id, app_id, state, start_utc, tz, format, rating, followup_sent, prep_enc, debrief_enc, link_enc" },
   notes: { key: "id", enc: ["body_enc"], cols: "id, tags, created_at, body_enc" },
   tasks: { key: "id", enc: ["title_enc"], cols: "id, due_at, priority, kind, done_at, app_id, title_enc" },
   jobs: { key: "id", enc: ["description_enc"], cols: "id, source, title, company, location, canonical_url, status, closing_at, first_seen_at, description_enc" },

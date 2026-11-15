@@ -428,3 +428,6 @@ These override the sections they name. Details: docs/ARCHITECTURE.md and docs/DE
 
 ## 22. Amendment: voice (approved by Ani, 2026-11-15)
 "Voice" is removed from the §19 non-goals. GRU gains a voice interface, as an **additional interface to the existing backend** (no separate assistant, database or memory): talk to GRU with spoken replies, a daily voice briefing, voice commands (tasks, job search, application updates, notes), conversation history, interrupt-and-respond, a concise proactive personality, and full text fallback without microphone permission. Privacy constraints and phasing: docs/ROADMAP.md and DECISIONS D-042.
+
+## 23. Amendment: read job-application email bodies (approved by Ani, 2026-11-15)
+Overrides the Phase 2 metadata-only restriction (§8, D-046) and the "no raw email bodies" rule for **job-application mail only**. GRU requests `gmail.readonly` (as originally written in §3) and may open the body of an email only if its headers were classified as job-application mail and it is linked to one of Ani's applications. Bodies are processed in memory and never stored or logged; only the position, a proposed interview time and a meeting link (encrypted) are kept. Write scopes stay forbidden. Details: D-058, PRIVACY.md section 9.

@@ -7,7 +7,7 @@ import { b64urlEncode } from "../crypto/b64.ts";
 import { aadFor, encryptField, keyringFromEnv } from "../crypto/envelope.ts";
 import { sha256 } from "../crypto/hmac.ts";
 import { nowSec } from "../env.ts";
-import { buildGoogleAuthUrl } from "../gmail/client.ts";
+import { buildGoogleAuthUrl, hasBodyAccess } from "../gmail/client.ts";
 import { safeJson } from "../http/hygiene.ts";
 import { log } from "../log/index.ts";
 
@@ -52,7 +52,8 @@ mailRoutes.get("/accounts", async (c) => {
     reauth_since: number | null;
     messages_scanned: number;
     testing_mode_detected: number;
-  }>("SELECT id, email, label, status, last_sync_at, last_error_code, reauth_since, messages_scanned, testing_mode_detected FROM mail_accounts ORDER BY id ASC");
+    granted_scope: string | null;
+  }>("SELECT id, email, label, status, last_sync_at, last_error_code, reauth_since, messages_scanned, testing_mode_detected, granted_scope FROM mail_accounts ORDER BY id ASC");
 
   return c.json({
     accounts: rows.map((r) => ({
@@ -65,6 +66,7 @@ mailRoutes.get("/accounts", async (c) => {
       reauth_since: r.reauth_since,
       messages_scanned: r.messages_scanned,
       testing_mode_detected: Boolean(r.testing_mode_detected),
+      body_access: hasBodyAccess(r.granted_scope),
     })),
   });
 });

@@ -52,6 +52,7 @@ export interface MailAccount {
   reauth_since: number | null;
   messages_scanned: number;
   testing_mode_detected: boolean;
+  body_access: boolean;
 }
 
 export interface ReviewItem {
@@ -125,6 +126,7 @@ export interface Brief {
   review_count: number;
   interviews_upcoming: { id: number; app_id: number; company: string; at: number; format: string | null; prep_ready: boolean }[];
   missing_debriefs: { id: number; app_id: number; company: string; at: number }[];
+  interviews_proposed: { id: number; app_id: number; company: string; start_utc: number | null }[];
   follow_ups: { id: number; company: string; role: string | null; status: string; days_stale: number }[];
   health: { summary: string; needs_reauth: boolean };
   jobs: { new_count: number; top: { id: number; title: string; company: string | null; score: number | null }[]; closing_soon: number; queue_count: number };
@@ -149,6 +151,7 @@ export interface Settings {
 export interface Interview {
   id: number; app_id: number; company: string; role: string | null; state: string; start_utc: number | null; tz: string | null;
   format: string | null; rating: number | null; followup_sent: boolean; prep: string | null; debrief: Record<string, string | null> | null;
+  link: { url: string; kind: string } | null;
 }
 export interface Job {
   id: number; title: string; company: string | null; location: string | null; work_arrangement: string | null; employment_type: string | null;

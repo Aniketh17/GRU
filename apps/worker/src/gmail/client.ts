@@ -8,7 +8,10 @@ import {
   FORBIDDEN_GMAIL_SCOPES,
   GMAIL_API_BASE,
   GMAIL_BATCH_ENDPOINT,
+  GMAIL_FULL_FIELDS,
+  GMAIL_LEGACY_METADATA_SCOPE,
   GMAIL_METADATA_FIELDS,
+  GMAIL_READONLY_SCOPE,
   GMAIL_SCOPES,
   GOOGLE_AUTH_ENDPOINT,
   GOOGLE_REVOKE_ENDPOINT,
@@ -70,13 +73,13 @@ export function buildGoogleAuthUrl(params: {
 
 /**
  * Validates granted scopes strictly:
- * - Must contain https://www.googleapis.com/auth/gmail.metadata
- * - Must NOT contain any broader or unexpected Gmail scopes
+ * - Must contain gmail.readonly (current) or gmail.metadata (older connections, header-only)
+ * - Must NOT contain any scope that can modify, send, label or delete mail
  */
 export function validateGrantedScopes(grantedScopeString: string): void {
   const granted = new Set(grantedScopeString.split(/\s+/).filter(Boolean));
-  if (!granted.has("https://www.googleapis.com/auth/gmail.metadata")) {
-    throw new ScopeError("missing_gmail_metadata_scope");
+  if (!granted.has(GMAIL_READONLY_SCOPE) && !granted.has(GMAIL_LEGACY_METADATA_SCOPE)) {
+    throw new ScopeError("missing_gmail_read_scope");
   }
   for (const forbidden of FORBIDDEN_GMAIL_SCOPES) {
     if (granted.has(forbidden)) {
@@ -84,6 +87,10 @@ export function validateGrantedScopes(grantedScopeString: string): void {
     }
   }
 }
+
+/** True when this connection was granted read access to message bodies. */
+export const hasBodyAccess = (grantedScope: string | null | undefined): boolean =>
+  Boolean(grantedScope?.split(/\s+/).includes(GMAIL_READONLY_SCOPE));
 
 /**
  * Decodes and validates Google id_token claims received directly over TLS from Google token endpoint.
@@ -268,14 +275,15 @@ export async function listGmailHistory(
   return (await res.json()) as GmailHistoryResponse;
 }
 
-export function buildBatchGetRequestBody(messageIds: string[], boundary: string): string {
+export function buildBatchGetRequestBody(messageIds: string[], boundary: string, format: "metadata" | "full" = "metadata"): string {
+  const query = format === "full" ? `format=full&fields=${GMAIL_FULL_FIELDS}` : `format=metadata&fields=${GMAIL_METADATA_FIELDS}`;
   const parts: string[] = [];
   for (const id of messageIds) {
     parts.push(
       `--${boundary}\r\n` +
       `Content-Type: application/http\r\n` +
       `Content-ID: <item-${id}>\r\n\r\n` +
-      `GET /gmail/v1/users/me/messages/${id}?format=metadata&fields=${GMAIL_METADATA_FIELDS}\r\n`,
+      `GET /gmail/v1/users/me/messages/${id}?${query}\r\n`,
     );
   }
   parts.push(`--${boundary}--\r\n`);
@@ -320,10 +328,11 @@ export async function batchGetGmailMessages(
   accessToken: string,
   messageIds: string[],
   fetchFn: typeof fetch = fetch,
+  format: "metadata" | "full" = "metadata",
 ): Promise<GmailMessage[]> {
   if (messageIds.length === 0) return [];
   const boundary = `gru_batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const body = buildBatchGetRequestBody(messageIds, boundary);
+  const body = buildBatchGetRequestBody(messageIds, boundary, format);
 
   const res = await fetchFn(GMAIL_BATCH_ENDPOINT, {
     method: "POST",

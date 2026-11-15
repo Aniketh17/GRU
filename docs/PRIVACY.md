@@ -15,7 +15,8 @@ Last updated 2026-11-15. This file describes what GRU stores, where it lives, wh
 | Gmail refresh/access tokens | Encrypted | Read-only scope |
 | Email metadata: Gmail id, thread id, date, sender **domain**, class, confidence | Plaintext | No subject, no sender address, no body |
 | Email snippet (first 300 chars) | Encrypted | Set to NULL after 90 days (backfill itself only reads the last 5 days) |
-| Ordinary email bodies | **Never fetched, never stored** | |
+| Email bodies of job-application mail | **Read in memory only, never stored** | Only for emails already identified from their headers as job-application mail AND linked to one of your applications (D-058). Only the extracted position, interview time and meeting link are kept; the link is encrypted |
+| All other email bodies (personal mail, newsletters, job-alert digests, recruiter outreach) | **Never fetched, never stored** | Enforced in code and by tests |
 | Job-alert email bodies | **Processed in memory only, never stored** | Only the extracted vacancy fields are kept; descriptions and requirements are encrypted |
 | Resume text and structured profile | Encrypted | |
 | Match evidence and gaps | Encrypted | |
@@ -62,3 +63,10 @@ Google revokes refresh tokens with Gmail scopes when the account password change
 
 ## 8. Voice (planned, not yet built)
 When voice ships (ROADMAP V1), speech is recognised on the device; audio is never sent to GRU or stored. GRU stores only the text transcript, encrypted, for 30 days, and it is included in export and wipe. Spoken replies use voices installed on your device. Any change GRU suggests by voice waits for your tap.
+
+## 9. Reading job-application emails (added 2026-11-15, D-058)
+- GRU asks Google for **read-only** Gmail access (`gmail.readonly`). Google cannot limit that permission to certain senders, so the limit is enforced by GRU: it opens the body only of an email whose headers were already classified as job-application mail and linked to one of your applications. Every other email stays header-only. Tests prove it never fetches a body for other mail, for unlinked mail, or on a connection without read access.
+- The body is held in memory while GRU looks for the **position, the interview date/time and a video-meeting link** (Zoom, Teams, Google Meet, Webex, Whereby, GoTo, HireVue-style hosts only), then it is discarded. No body, snippet or subject is stored or logged.
+- GRU can never send, modify, label or delete mail: those scopes are forbidden in code and any grant containing them is revoked immediately.
+- Detected interview times are only ever *proposed*. They become reminders after you confirm them.
+- You can switch this off at any time: Settings → Disconnect, or revoke GRU at https://myaccount.google.com/permissions.

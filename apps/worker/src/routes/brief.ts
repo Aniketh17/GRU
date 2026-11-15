@@ -136,6 +136,11 @@ export async function computeBrief(db: Db, now: number) {
   };
   const tasksDue = (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE done_at IS NULL AND due_at IS NOT NULL AND due_at <= ?", now + 86400))?.n ?? 0;
 
+  const proposedInterviews = await db.all<{ id: number; app_id: number; company: string; start_utc: number | null }>(
+    `SELECT i.id, i.app_id, a.company, i.start_utc FROM interviews i JOIN applications a ON a.id = i.app_id
+     WHERE i.state = 'proposed' ORDER BY i.created_at DESC LIMIT 5`,
+  );
+
   // 5. Pipeline status counts
   const countRows = await db.all<{ status: string; cnt: number }>(
     "SELECT status, COUNT(*) as cnt FROM applications GROUP BY status",
@@ -181,6 +186,7 @@ export async function computeBrief(db: Db, now: number) {
     follow_ups: [...followUps, ...interviewFollowUps],
     interviews_upcoming: interviewsUpcoming,
     missing_debriefs: missingDebriefs,
+    interviews_proposed: proposedInterviews,
     jobs,
     tasks_due: tasksDue,
     pipeline,

@@ -7,6 +7,7 @@ import { BACKFILL_DAYS } from "./constants.ts";
 import { classify } from "../classify/classify.ts";
 import { extractCompanies } from "../classify/company.ts";
 import { decide } from "../classify/decide.ts";
+import { processBodies } from "./bodies.ts";
 import { extractRole, sourceForDomain } from "../classify/role.ts";
 import { resolveLink, type AppRef } from "../classify/link.ts";
 import { aadFor, decryptField, encryptField, keyringFromEnv } from "../crypto/envelope.ts";
@@ -38,6 +39,7 @@ interface MailAccountRow {
   backfill_floor: number | null;
   backfill_done: number;
   messages_scanned: number;
+  granted_scope: string | null;
 }
 
 export async function syncMailAccounts(
@@ -48,7 +50,7 @@ export async function syncMailAccounts(
 ): Promise<{ processed: number; accountsSynced: number }> {
   const ring = keyringFromEnv(env);
   const accounts = await db.all<MailAccountRow>(
-    "SELECT id, email, status, refresh_token_enc, access_token_enc, access_expires_at, history_id, backfill_page_token, backfill_floor, backfill_done, messages_scanned FROM mail_accounts WHERE status = 'active'",
+    "SELECT id, email, status, refresh_token_enc, access_token_enc, access_expires_at, history_id, backfill_page_token, backfill_floor, backfill_done, messages_scanned, granted_scope FROM mail_accounts WHERE status = 'active'",
   );
 
   let totalProcessed = 0;
@@ -155,6 +157,7 @@ async function syncSingleAccount(
 ): Promise<{ processed: number }> {
   const accessToken = await getOrRefreshAccessToken(env, db, ring, account, now, fetchFn);
   await enrichSeen(db, accessToken, account.id, fetchFn);
+  await processBodies(env, db, account, accessToken, now, fetchFn);
 
   // Load active applications for linking
   const appRows = await db.all<{ id: number; company_norm: string; status: Status }>(

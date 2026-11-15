@@ -170,7 +170,7 @@ authRoutes.get("/google/callback", async (c) => {
     return fail("token_exchange_failed");
   }
 
-  // Granted scopes check: must have gmail.metadata and no other Gmail scope!
+  // Granted scopes check: read access only, and nothing that can modify or send mail!
   try {
     validateGrantedScopes(tokens.scope);
   } catch {
@@ -236,19 +236,20 @@ authRoutes.get("/google/callback", async (c) => {
   if (existingAccount) {
     const finalRefreshTokenEnc = refreshTokenEnc || existingAccount.refresh_token_enc;
     await db.run(
-      "UPDATE mail_accounts SET refresh_token_enc = ?, access_token_enc = ?, access_expires_at = ?, status = 'active', history_id = ?, last_success_at = ?, reauth_since = NULL, last_error_code = NULL, testing_mode_detected = ? WHERE id = ?",
+      "UPDATE mail_accounts SET refresh_token_enc = ?, access_token_enc = ?, access_expires_at = ?, status = 'active', history_id = ?, last_success_at = ?, reauth_since = NULL, last_error_code = NULL, testing_mode_detected = ?, granted_scope = ? WHERE id = ?",
       finalRefreshTokenEnc,
       accessTokenEnc,
       accessExpiresAt,
       profile.historyId,
       now,
       isTestingMode ? 1 : 0,
+      tokens.scope,
       existingAccount.id,
     );
   } else {
     const backfillFloor = now - BACKFILL_DAYS * 86400;
     await db.run(
-      "INSERT INTO mail_accounts (email, label, refresh_token_enc, access_token_enc, access_expires_at, status, history_id, backfill_floor, backfill_done, testing_mode_detected, created_at, last_success_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)",
+      "INSERT INTO mail_accounts (email, label, refresh_token_enc, access_token_enc, access_expires_at, status, history_id, backfill_floor, backfill_done, testing_mode_detected, granted_scope, created_at, last_success_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?)",
       email,
       email,
       refreshTokenEnc,
@@ -257,6 +258,7 @@ authRoutes.get("/google/callback", async (c) => {
       profile.historyId,
       backfillFloor,
       isTestingMode ? 1 : 0,
+      tokens.scope,
       now,
       now,
     );

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../lib/api.ts";
-import { formatRelative, formatTime } from "../lib/format.ts";
+import { formatDateTime, formatRelative, formatTime } from "../lib/format.ts";
 import { Modal } from "./Dialog.tsx";
 import { useToast } from "./Toast.tsx";
 import { Button, Card, Pill, SectionTitle, TextArea } from "./ui.tsx";
@@ -17,7 +17,8 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
   const skipped = checkin.data?.status === "skipped";
   const focus = checkin.data?.answers?.today_focus;
   if (!b) return null;
-  const quiet = b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0 && b.tasks_due === 0 && b.jobs.queue_count === 0;
+  const proposed = b.interviews_proposed ?? [];
+  const quiet = proposed.length === 0 && b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0 && b.tasks_due === 0 && b.jobs.queue_count === 0;
 
   return (
     <Card className="overflow-hidden border-accent/40">
@@ -26,6 +27,12 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
         {b.review_count > 0 && (
           <li><Link to="/review" className="font-medium text-accent-text">{b.review_count} email{b.review_count === 1 ? "" : "s"} to review →</Link></li>
         )}
+        {proposed.map((i) => (
+          <li key={`p${i.id}`}>
+            <Link to={`/applications/${i.app_id}`} className="font-medium text-accent-text">Confirm interview · {i.company}</Link>
+            <span className="text-muted"> · found in an email{i.start_utc ? `: ${formatDateTime(i.start_utc)}` : ", time not found"}</span>
+          </li>
+        ))}
         {b.interviews_upcoming.map((i) => (
           <li key={i.id}>
             <Link to={`/applications/${i.app_id}`} className="font-medium text-ink">Interview · {i.company}</Link>

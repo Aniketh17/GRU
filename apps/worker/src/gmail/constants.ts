@@ -1,14 +1,18 @@
-// Google OAuth and Gmail API constants (spec §8, Phase 2 rev 2 §2).
-// GRU requests only metadata: headers, labels, and thread/internal IDs. Never bodies or snippets.
+// Google OAuth and Gmail API constants (spec §8, Phase 2 rev 2 §2; amended by Ani 2026-11-15, DECISIONS D-058).
+// Read-only access. The code only ever opens the BODY of an email that its headers already identified as job-application mail
+// linked to one of Ani's applications (gmail/bodies.ts). All other mail stays header-only. Nothing is written to Gmail, ever.
+
+export const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+export const GMAIL_LEGACY_METADATA_SCOPE = "https://www.googleapis.com/auth/gmail.metadata";
 
 export const GMAIL_SCOPES = [
   "openid",
   "email",
-  "https://www.googleapis.com/auth/gmail.metadata",
+  GMAIL_READONLY_SCOPE,
 ] as const;
 
+/** Any scope that can change, send, label or delete mail. Never requested; revoked immediately if ever granted. */
 export const FORBIDDEN_GMAIL_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.compose",
   "https://www.googleapis.com/auth/gmail.insert",
@@ -25,7 +29,11 @@ export const GOOGLE_REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
 export const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 export const GMAIL_BATCH_ENDPOINT = "https://gmail.googleapis.com/batch/gmail/v1";
 
-/** Fields mask for messages.get: strictly metadata headers, id, threadId, labelIds, internalDate. No snippet! */
+/** Message body fields (depth-limited MIME tree; attachments have no inline data and are never fetched). */
+export const GMAIL_FULL_FIELDS =
+  "id,threadId,labelIds,internalDate,payload(headers,mimeType,body(data),parts(mimeType,body(data),parts(mimeType,body(data),parts(mimeType,body(data)))))";
+
+/** Fields mask for header-only messages.get: id, threadId, labelIds, internalDate, headers. No snippet. */
 export const GMAIL_METADATA_FIELDS = "id,threadId,labelIds,internalDate,payload/headers";
 
 /** Backfill window on first connect. Kept short (5 days) so the first sync is fast (Ani, 2026-11-15). */

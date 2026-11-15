@@ -201,8 +201,8 @@ describe("OAuth callback security flow (/auth/google/callback)", () => {
             access_token: "mock_access_token_bad_scope",
             refresh_token: "mock_refresh_token_bad_scope",
             expires_in: 3600,
-            // Forbidden scope gmail.readonly included!
-            scope: "openid email https://www.googleapis.com/auth/gmail.metadata https://www.googleapis.com/auth/gmail.readonly",
+            // Forbidden scope gmail.modify included!
+            scope: "openid email https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
             token_type: "Bearer",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
