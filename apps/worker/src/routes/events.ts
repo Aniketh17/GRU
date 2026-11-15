@@ -7,6 +7,32 @@ import { log } from "../log/index.ts";
 
 export const eventRoutes = new Hono<AppEnv>();
 
+eventRoutes.get("/recent", async (c) => {
+  const db = c.get("db");
+  const since = nowSec() - 86400 * 2; // last 48 hours
+  const rows = await db.all<{
+    id: number;
+    app_id: number;
+    type: string;
+    at: number;
+    prev_status: string | null;
+    auto_applied: number;
+    undone: number;
+    company: string;
+    current_status: string;
+  }>(
+    `SELECT e.id, e.app_id, e.type, e.at, e.prev_status, e.auto_applied, e.undone,
+            a.company, a.status as current_status
+     FROM events e
+     JOIN applications a ON e.app_id = a.id
+     WHERE e.at >= ? AND e.type LIKE 'status:%'
+     ORDER BY e.at DESC
+     LIMIT 20`,
+    since,
+  );
+  return c.json({ items: rows });
+});
+
 eventRoutes.post("/:id/undo", async (c) => {
   const raw = c.req.param("id");
   if (!/^\d{1,12}$/.test(raw)) return c.json({ error: "not_found" }, 404);

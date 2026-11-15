@@ -25,6 +25,7 @@ playwright-report/
 
 # Real data: never commit (spec rule 5)
 eval/private/
+eval/generated/
 *.local
 *.local.*
 

@@ -9,6 +9,9 @@ export interface Env {
   SESSION_SECRET?: string | undefined;
   AUTH_USERNAME?: string | undefined;
   AUTH_VERIFIER?: string | undefined;
+  GOOGLE_CLIENT_ID?: string | undefined;
+  GOOGLE_CLIENT_SECRET?: string | undefined;
+  ALLOWED_EMAILS?: string | undefined;
 }
 
 export const nowSec = (): number => Math.floor(Date.now() / 1000);

@@ -10,6 +10,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { ApiError } from "./lib/api.ts";
 import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
+import { ReviewPage } from "./pages/Review.tsx";
 import { SettingsPage } from "./pages/Settings.tsx";
 import { TodayPage } from "./pages/Today.tsx";
 
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
       { index: true, element: <TodayPage /> },
       { path: "applications", element: <ApplicationsPage /> },
       { path: "applications/:id", element: <ApplicationsPage /> },
+      { path: "review", element: <ReviewPage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

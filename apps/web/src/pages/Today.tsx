@@ -1,14 +1,14 @@
-// Today (Phase 1): pipeline, follow-ups due and recent activity from real data.
-// The morning brief, check-in, jobs and agenda join as their phases ship. No placeholder content.
-import { useQuery } from "@tanstack/react-query";
+// Today (Phase 1 & Phase 2): pipeline, follow-ups due, since yesterday updates with Undo, and Gmail sync health.
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { ApplicationForm } from "../components/ApplicationForm.tsx";
 import { ListIcon, PlusIcon } from "../components/Icons.tsx";
 import { ThemeToggle } from "../components/ThemeContext.tsx";
+import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, ErrorState, SectionTitle, SkeletonRows, StatusChip } from "../components/ui.tsx";
-import { api, type Status } from "../lib/api.ts";
-import { daysSince, formatLong, formatRelative, greeting } from "../lib/format.ts";
+import { api, type RecentEvent, type Status } from "../lib/api.ts";
+import { daysSince, formatLong, formatRelative, formatTime, greeting } from "../lib/format.ts";
 
 const PIPELINE: { label: string; statuses: Status[]; tone: string }[] = [
   { label: "Applied", statuses: ["applied"], tone: "bg-line-strong" },
@@ -20,13 +20,39 @@ const PIPELINE: { label: string; statuses: Status[]; tone: string }[] = [
 
 export function TodayPage() {
   const [adding, setAdding] = useState(false);
+  const qc = useQueryClient();
+  const toast = useToast();
   const summary = useQuery({ queryKey: ["summary"], queryFn: api.summary });
   const followUps = useQuery({ queryKey: ["applications", { status: "active", q: "", stale: true }], queryFn: () => api.listApplications({ status: "active", stale: true }) });
   const recent = useQuery({ queryKey: ["applications", { status: "all", q: "", stale: false }], queryFn: () => api.listApplications({ status: "all" }) });
+  const recentEvents = useQuery({ queryKey: ["events", "recent"], queryFn: api.recentEvents });
+  const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
+
+  const undoMutation = useMutation({
+    mutationFn: (eventId: number) => api.undo(eventId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["events"] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
+      qc.invalidateQueries({ queryKey: ["applications"] });
+      toast({ text: `Update undone · reverted to ${data.status}` });
+    },
+    onError: () => {
+      toast({ text: "Failed to undo update" });
+    },
+  });
 
   const counts = summary.data?.counts ?? {};
   const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
   const now = Math.floor(Date.now() / 1000);
+
+  const autoChanges = (recentEvents.data?.items ?? []).filter(
+    (e) => e.auto_applied === 1 && e.undone === 0,
+  );
+
+  const accounts = accountsQuery.data?.accounts ?? [];
+  const needsReauth = accounts.some((a) => a.status === "needs_reauth");
+  const activeAccounts = accounts.filter((a) => a.status === "active");
+  const lastSyncTime = Math.max(0, ...accounts.map((a) => a.last_sync_at ?? 0));
 
   return (
     <>
@@ -78,6 +104,39 @@ export function TodayPage() {
               )}
             </Card>
 
+            {autoChanges.length > 0 && (
+              <Card className="overflow-hidden border-accent/40">
+                <SectionTitle aside={<span className="text-[12.5px] text-muted">24-hour undo available</span>}>
+                  Since yesterday
+                </SectionTitle>
+                <ul className="m-0 list-none p-0">
+                  {autoChanges.map((ev) => {
+                    const newStatus = ev.type.startsWith("status:") ? ev.type.slice(7) : ev.current_status;
+                    return (
+                      <li key={ev.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 hover:bg-sunken">
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <Link to={`/applications/${ev.app_id}`} className="truncate font-medium text-ink hover:underline">
+                            {ev.company}
+                          </Link>
+                          <span className="text-[12px] text-muted">
+                            Automatically moved {ev.prev_status ?? "applied"} → <strong className="text-ink">{newStatus}</strong> · {formatRelative(ev.at)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={undoMutation.isPending}
+                          onClick={() => undoMutation.mutate(ev.id)}
+                        >
+                          Undo
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            )}
+
             <Card className="overflow-hidden">
               <SectionTitle aside={<span className="text-[12.5px] text-muted">Latest first</span>}>Recent activity</SectionTitle>
               {recent.isPending ? (
@@ -128,7 +187,20 @@ export function TodayPage() {
             <section className="flex flex-col gap-1.5 rounded-[14px] border border-dashed border-line-strong px-5 py-4">
               <p className="m-0 text-[12.5px] font-semibold text-muted">System health</p>
               <p className="m-0 text-[13px] text-ink-2">Tracking {total} application{total === 1 ? "" : "s"}. Data encrypted at rest.</p>
-              <p className="m-0 text-[13px] text-ink-2">Gmail sync isn’t connected yet. It arrives in the next phase.</p>
+              {needsReauth ? (
+                <p className="m-0 text-[13px] font-medium text-red-text">
+                  Action needed: Reconnect your Gmail account in <Link to="/settings" className="underline">Settings</Link>.
+                </p>
+              ) : activeAccounts.length > 0 ? (
+                <p className="m-0 text-[13px] text-ink-2">
+                  Gmail sync active · {activeAccounts.length} mailbox{activeAccounts.length === 1 ? "" : "es"} connected
+                  {lastSyncTime > 0 ? ` · synced ${formatRelative(lastSyncTime)}` : ""}.
+                </p>
+              ) : (
+                <p className="m-0 text-[13px] text-ink-2">
+                  No Gmail accounts connected yet. Connect in <Link to="/settings" className="underline">Settings</Link>.
+                </p>
+              )}
             </section>
           </div>
         </div>

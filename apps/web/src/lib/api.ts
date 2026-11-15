@@ -42,6 +42,51 @@ export interface Health {
   locked: boolean;
 }
 
+export interface MailAccount {
+  id: number;
+  email: string;
+  label: string | null;
+  status: "disconnected" | "active" | "needs_reauth" | "paused";
+  last_sync_at: number | null;
+  last_error_code: string | null;
+  reauth_since: number | null;
+  messages_scanned: number;
+  testing_mode_detected: boolean;
+}
+
+export interface ReviewItem {
+  id: number;
+  kind: "classify" | "link" | "interview_time" | "action" | "outreach" | "dedupe";
+  accountId: number | null;
+  gmailId: string | null;
+  appId: number | null;
+  company: string | null;
+  appStatus: Status | null;
+  proposal: {
+    class?: string;
+    suggested?: Status | null;
+    reason?: string;
+    company?: string | null;
+  } | null;
+  context: {
+    subject?: string;
+    from?: string;
+  } | null;
+  createdAt: number;
+}
+
+export interface RecentEvent {
+  id: number;
+  app_id: number;
+  type: string;
+  at: number;
+  prev_status: Status | null;
+  auto_applied: number;
+  undone: number;
+  company: string;
+  current_status: Status;
+}
+
 export type ApplicationInput = {
   company: string;
   role?: string | null;
@@ -104,4 +149,11 @@ export const api = {
   resume: () => request<{ paused: false }>("/api/admin/resume", "POST"),
   wipe: (phrase: string) => request<{ wiped: true }>("/api/admin/wipe", "POST", { phrase }),
   logout: () => request<{ ok: true }>("/auth/logout", "POST"),
+  mailAccounts: () => request<{ accounts: MailAccount[] }>("/api/mail/accounts"),
+  connectMail: (email: string) => request<{ url: string }>("/api/mail/connect", "POST", { email }),
+  disconnectMail: (email: string) => request<{ ok: true }>("/api/mail/disconnect", "POST", { email }),
+  listReview: () => request<{ items: ReviewItem[] }>("/api/review"),
+  resolveReview: (id: number, data: { action: "confirm" | "dismiss"; appId?: number; status?: Status }) =>
+    request<{ ok: true }>(`/api/review/${id}/resolve`, "POST", data),
+  recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

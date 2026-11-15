@@ -1,215 +1,259 @@
-# Phase 2: Gmail. Implementation plan
+# Phase 2: Gmail. Implementation plan (revision 2)
 
-Status: **awaiting Ani's approval. No code, migrations, OAuth configuration or deployment until approved.**
-Spec: §8 (OAuth and sync), §9 (classification and state machine), §5 (free-tier rules), §16 (tests).
+Revision 2 (2026-11-15) incorporates Ani's eight changes: metadata scope, no previews, the callback security flow, real quota maths, backfill capacity, a synthetic dataset, process, and voice.
+**Approved to implement and test locally once the synthetic suite and regressions pass. NOT approved: deploying, live Gmail OAuth, connecting a real inbox, or paid dependencies.**
 
 ## 1. Scope
 **In:**
-- Connect both Gmail accounts read-only, with a token-expiry canary and reconnect handling (D-022).
-- A 15-minute sync tick with 90-day backfill.
-- Rules-only classification, linking emails to applications, the automatic state machine, and a review queue.
-- Undo for automatic changes; the "Since yesterday" changes on Today; a Review page; Gmail accounts in Settings.
-- An eval harness for Ani's own labelled emails.
+- Connect both Gmail accounts with the **`gmail.metadata`** scope.
+- Token-expiry canary and reconnect handling.
+- A 15-minute sync: a 90-day backfill, then incremental sync via Gmail history.
+- Rules-only classification of headers, linking, a forward-only state machine, a review queue, and Undo.
+- Settings → Gmail accounts, a Review page, and Today's "Since yesterday" changes and health line.
+- A reusable synthetic email dataset and evaluation harness.
 
 **Out:**
-- Job-alert body parsing and vacancy extraction (Phase 5).
-- ntfy pings (Phase 3; Phase 2 shows banners in the app only).
-- Any AI (Phase 8).
-- Interview date extraction (spec: not in Phase 2).
+- Message bodies or snippets of any kind.
+- Job-alert vacancy extraction (Phase 5, with `gmail.readonly` and renewed consent).
+- ntfy (Phase 3), AI (Phase 8), interview date extraction.
 
-## 2. Gmail OAuth: scopes and read-only guarantees
-**Requested scopes (exactly three):**
+## 2. Gmail permission: `gmail.metadata` now, `gmail.readonly` only in Phase 5
+**Scopes requested in Phase 2:**
 - `openid`
 - `email`
-- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/gmail.metadata`
 
-Google describes `gmail.readonly` as "View your email messages and settings" (restricted scope, verified 2026-11-15). GRU never requests `gmail.modify`, `gmail.send`, `gmail.compose`, `gmail.labels`, `gmail.insert` or `https://mail.google.com/`.
+Google describes the last as "View your email message metadata such as labels and headers, but not the email body". Verified 2026-11-15.
 
-**Guarantees, enforced and tested:**
-1. **A single scope constant.** The scope list is one constant, `GMAIL_SCOPES`. A unit test fails if any scope other than the three above appears anywhere in the source.
-2. **Granted scopes are checked at the callback:**
-   - The token response's `scope` field must contain `gmail.readonly`; otherwise the connection is refused ("GRU needs read-only Gmail access").
-   - It must contain **no** other Gmail scope; if it does, GRU revokes the token immediately and refuses.
-   - With only one non-sign-in scope Google shows no per-scope checkboxes, but GRU checks regardless (Google's guidance: "can't assume users grant all requested scopes").
-   - `include_granted_scopes=false`, so scopes granted earlier never ride along.
-3. **Read-only API calls only:** `users.messages.list` and `users.messages.get` with `format=metadata`. A test asserts that every Gmail URL the client can build is one of those GET endpoints. No POST, PUT, PATCH or DELETE ever goes to `gmail.googleapis.com`.
-4. **No message bodies:** `format=metadata` returns "only email message ID, labels, and email headers". `full` and `raw` are never used in Phase 2; a test asserts the format.
-5. **Considered and rejected:** the narrower `gmail.metadata` scope. It can't run the search query (`q`) the sync needs, and Phase 5 must read job-alert bodies. This will be re-verified when Phase 2 starts.
+**What `gmail.metadata` allows** (official reference pages, 2026-11-15):
+| Call | Accepts `gmail.metadata` | Used for |
+|---|---|---|
+| `users.getProfile` (1 unit) | ✅ | `historyId` at connect time (the sync starting point) |
+| `users.messages.list` (5 units) | ✅, **but `q` is not allowed**: "Parameter cannot be used when accessing the api using the gmail.metadata scope." | paging message ids for the backfill |
+| `users.messages.get` with `format=metadata` (20 units) | ✅ (`full`/`raw` are refused under this scope) | the headers below |
+| `users.history.list` (2 units) | ✅ | incremental sync after the backfill |
 
-**Connect flow:**
-1. Settings → Connect calls `POST /api/mail/connect {hint}`. This requires a GRU session, checks the hint against `ALLOWED_EMAILS`, and creates a single-use `state`:
-   - 256 random bits, 10-minute expiry;
-   - stored with the session's hash and an encrypted PKCE verifier.
-2. The browser is redirected to Google with:
-   - `access_type=offline`, `prompt=consent`, `include_granted_scopes=false`, `login_hint`;
-   - `code_challenge` (S256): best-effort, see below.
-3. **Callback at `/auth/google/callback`, not under `/api` — deviation from spec §12, D-045.** GRU's session cookie is `SameSite=Strict`, so the browser won't send it on the redirect back from accounts.google.com, and an `/api` callback would always get 401. The callback is instead authorised by the single-use, unguessable `state` (bound to the session that started it), and then:
-   - marks the state used;
-   - exchanges the code (with `client_secret`, plus PKCE if Google accepts it);
-   - reads `email` + `email_verified` from the `id_token` received directly from Google over TLS, and checks `aud`, `iss` and `exp`;
-   - enforces the allowlist and the scope checks above;
-   - encrypts and stores the refresh token;
-   - applies the Testing-mode canary (D-007);
-   - redirects to `/settings?connected=1`.
-4. **PKCE** isn't documented for Google's web-server flow (checked 2026-11-15). GRU sends it anyway. If Google rejects it during setup, it's removed and recorded; `state` + `client_secret` remain the protection either way.
+**Technical limitations and how the design handles them:**
+1. **No server-side search.** GRU can't ask Gmail for "job emails only", so it lists **all** mail in the 90-day window, fetches each message's headers, and classifies locally.
+   - Consequence: about 10–30× more `messages.get` calls than the readonly design.
+   - Handled with Gmail **batch requests**: up to 50 calls per HTTP request, counted as 1 Cloudflare subrequest (§6).
+   - Spam and trash are excluded by default.
+2. **Headers only, no text.** Classification uses only the sender display name, sender domain, subject, `List-Unsubscribe`, `Content-Type` (e.g. `text/calendar` for invites), `Auto-Submitted`, and Gmail labels.
+   - Messages whose meaning is only in the body (for example a rejection with the subject "Your application to Plexure") **can't be classified confidently**. They go to the **review queue** instead of changing status.
+   - This is a deliberate accuracy-for-privacy trade. §5 measures it.
+3. **Phase 5 upgrade.** Reading job-alert content needs `gmail.readonly`. Phase 5 will request it in a new, explicit consent screen (`prompt=consent`, shown to Ani with an explanation); until then GRU never holds it.
+   - At the Phase 5 callback, the same granted-scope check will require `gmail.readonly` and refuse anything broader.
 
-**Disconnect:** `POST /api/mail/:id/disconnect` revokes the token at Google (`oauth2.googleapis.com/revoke`), deletes the stored tokens and sets status `disconnected`. Wipe also revokes (already built).
+**Enforcement (tested):**
+- A single `GMAIL_SCOPES` constant; a test fails if any other Google scope string appears in the code.
+- Granted-scope check at the callback: `gmail.metadata` must be present. If **any** other Gmail scope or `https://mail.google.com/` is present, GRU revokes the token immediately and refuses.
+- `include_granted_scopes=false`.
+- The Gmail client can only build `GET` URLs for profile, messages.list (no `q`), messages.get (`format=metadata`) and history.list. Batch POST bodies contain only those GETs. Tests assert both.
+- The `fields` mask **excludes `snippet`**: `fields=id,threadId,labelIds,internalDate,payload/headers`.
 
-## 3. Database changes: migration `0003_gmail.sql` (additive only)
+## 3. No previews, no bodies (resolves the earlier contradiction)
+- GRU never requests or stores snippets or bodies. `emails_seen.snippet_enc` stays in the schema (SQLite can't easily drop columns) but is **always NULL**, and a test asserts it.
+- **Stored per job-related email:** Gmail id, thread id, date, sender **domain**, class, confidence, rule id, linked application, disposition.
+  - **Not stored:** sender address or name, subject, other headers.
+  - Non-job mail ("other") is classified in memory and **not stored at all** (§6 explains why that's safe).
+- **One necessary exception, for your approval:** a pending **review item** needs context for you to decide. GRU stores the subject and sender display name **encrypted** in `review_queue.context_enc`, deletes them when the item is resolved, and purges them after 30 days. The review card also offers **Open in Gmail** (a link built from the message id). If you'd rather store nothing, the card shows only the domain, date and the link; it's a one-line switch.
+
+## 4. OAuth callback security flow: `/auth/google/callback` (D-045)
+Why not `/api`: the GRU session cookie is `SameSite=Strict`, so the browser does not send it on the redirect back from Google.
+
+1. **Start** (`POST /api/mail/connect {email}`):
+   - Requires a valid GRU session plus JSON/X-App/Origin hygiene. `email` must be in `ALLOWED_EMAILS`.
+   - Server generates, with WebCrypto CSPRNG:
+     - `state`: 32 random bytes;
+     - a PKCE `code_verifier`: 32 bytes → base64url, `code_challenge = SHA-256` (S256);
+     - an OIDC `nonce`: 16 bytes;
+     - a **browser binding** nonce: 32 bytes.
+   - Server stores in `oauth_states`, keyed by SHA-256(state):
+     - the encrypted verifier;
+     - SHA-256(binding);
+     - the nonce;
+     - SHA-256(GRU session token);
+     - the email hint;
+     - `created_at`, `expires_at = now + 600`, `used = 0`.
+   - The raw state is never stored.
+   - The binding nonce goes to the browser as `__Host-gru_oauth` (HttpOnly; Secure; **SameSite=Lax**, so it is sent on the top-level redirect back from Google; Path=/; Max-Age=600).
+   - Returns the Google URL; the page navigates to it.
+2. **Google URL:**
+   - `client_id`;
+   - `redirect_uri` = `APP_ORIGIN + "/auth/google/callback"`, **built from server config only, never from the request**;
+   - the three scopes;
+   - `access_type=offline`, `prompt=consent`, `include_granted_scopes=false`;
+   - `login_hint`, `state`, `nonce`, `code_challenge`, `code_challenge_method=S256`.
+3. **Callback checks**, in order; any failure → generic error page, nothing stored:
+   - request origin == `APP_ORIGIN`;
+   - `state` format valid; SHA-256(state) row exists, **not used, not expired**;
+   - row is atomically marked used (`UPDATE … WHERE used=0` must change 1 row, which **prevents replay** and races);
+   - `__Host-gru_oauth` cookie present and SHA-256(cookie) == stored binding (**same browser that started it**);
+   - the initiating GRU session is still valid in D1 (looked up by the stored hash);
+   - Google `error` parameter → recorded as `oauth_denied`.
+4. **Code exchange** (server → `oauth2.googleapis.com/token`, TLS):
+   - sends `code`, `client_id`, `client_secret`, **the same `redirect_uri`** and `code_verifier`;
+   - Google's web-server docs don't mention PKCE (checked 2026-11-15), so it's sent best-effort; if live setup shows Google rejects it, it's removed and recorded, and state + binding + client secret still protect the flow.
+5. **Identity token checks**, on the `id_token` received directly from Google's token endpoint over TLS (Google's guidance allows skipping signature verification in this case):
+   - `iss` ∈ {`accounts.google.com`, `https://accounts.google.com`};
+   - `aud` == client id;
+   - `exp` in the future;
+   - `nonce` == stored nonce;
+   - `email_verified` true;
+   - `email` (lower-cased) == the hint **and** in `ALLOWED_EMAILS`.
+6. **Scope check** (§2). Testing-mode canary: `refresh_token_expires_in` present → banner (D-007).
+7. **Store and finish:**
+   - the refresh token is encrypted (AAD `mail_accounts:refresh_token_enc:<id>`);
+   - `getProfile` → `history_id`; the backfill floor = now − 90 days;
+   - the binding cookie is cleared;
+   - **303** to `/settings?gmail=connected`, with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, so the code never lingers in history or referrers.
+8. **Session:** the callback **does not create or change a GRU login session**. Gmail OAuth only attaches a mailbox to the existing account (D-001). Afterwards the Settings page loads with the existing `__Host-gru_s` session.
+9. **Housekeeping:** expired `oauth_states` rows are deleted daily (already built).
+
+## 5. Classification, decisions and the safety gate
+- **Classes:** `application_received`, `assessment`, `interview_invite`, `interview_update`, `rejection`, `offer`, `recruiter_outreach`, `info_request`, `alert`, `other`.
+  - Rules are data (`rules.ts`) over headers only.
+  - Confidence = rule weight, +0.1 for a known ATS or board domain, −0.3 per negative pattern, capped at 0.99.
+  - Forwarded mail (`Fwd:`/`FW:`) and mail from Ani's own addresses are never auto-applied.
+- **Linking:**
+  1. the same thread as an already-linked email;
+  2. exactly one application whose normalised company matches a company extracted from the sender display name (with "Careers", "Recruitment Team", "Talent", "via Greenhouse" and similar stripped), subject patterns ("applying to X", "application to/at/with X"), or the sender domain;
+  3. otherwise unlinked.
+- **Automatic changes in Phase 2 (deliberately conservative):**
+  - Only `application_received` and `assessment`, when linked with confidence ≥ 0.90, and only along a **forward** transition.
+  - An unlinked `application_received` with a confidently extracted company creates the application (source `email`).
+- **Always review in Phase 2:** `interview_invite`, `interview_update`, `rejection`, `offer`, `recruiter_outreach`, `info_request`, and anything below threshold or conflicting.
+  - Spec §9 allows auto-applying some of these after a real-world precision gate, and synthetic data can't establish real-world accuracy (Ani's rule).
+  - So the setting `auto_apply_high_impact` stays **off**, and the evaluation report states it can't be turned on from synthetic results.
+- **Never backwards:** the automatic transition table is forward-only and terminal states never change automatically. Property-tested over random email sequences.
+- A late "application received" after an interview is linked and recorded, but changes nothing.
+
+## 6. Sync workflow and capacity
+**Per account, per tick** (cron every 15 min, or Sync now), within `SubrequestBudget(40)` for the whole tick:
+1. Access token: reuse it if valid for 120 s or more; otherwise refresh (1 subrequest). `invalid_grant` → `needs_reauth`, skip; other accounts continue.
+2. **Incremental first:** `history.list(startHistoryId, historyTypes=messageAdded)` gives new message ids.
+   - HTTP 404 (history expired; "typically valid for at least a week") → reset `history_id` via `getProfile` and re-run the backfill from `last_success_at − 1 day` (a "full sync", as Google advises).
+3. **Backfill** (until done): `messages.list(maxResults=200, pageToken)`, no `q`, spam/trash excluded.
+4. Fetch headers for at most **200 ids per account per tick** via **4 batch requests of 50** (`format=metadata`, `fields` mask without snippet).
+5. Classify in memory. Diff the job-related ids against `emails_seen` (1 D1 query). Write emails_seen, events, application changes, review items, the sync run and cursor in **one D1 batch** (atomic).
+6. Cursor safety:
+   - The page token / history id advance only if every message in the page was processed.
+   - A failed batch part (429/5xx) leaves the cursor; the page is redone next tick.
+   - Re-processing is idempotent: job-related ids are de-duplicated by primary key, and "other" mail has no side effects.
+   - The backfill stops when a full page is older than the floor (now − 90 days at connect), or there's no next page.
+
+**Subrequests per tick (worst case, both accounts):**
+- 2 × (1 refresh + 1 history + 1 list + 4 batch + 1 D1 diff + 1 D1 write) = **18**;
+- plus about 5 tick overhead (state, lock, release, housekeeping);
+- = **≈ 23 of 40**.
+
+**Gmail quota per tick per account** (new quotas for projects created on or after 1 May 2026):
+- 200 × 20 (messages.get) + 5 (list) + 2 (history) = **4,007 units**;
+- the limit is **6,000 units per user per minute**. Each mailbox is its own user, and a tick's calls land within one minute, so 4,007 ≤ 6,000 with 33% headroom;
+- per project: 2 × 4,007 = 8,014 units in that minute ≪ **1,200,000 units per project per minute**.
+
+**Where the old "47,000 units/day" came from** (now replaced): it assumed the readonly design's 12 fetches every tick: 2 accounts × 96 ticks × (5 list + 12 × 20 get) = 47,040.
+
+**New daily figures:**
+| Mode | Messages/day/account | Units/day (both accounts) | vs Google's published 80,000,000/day per-project threshold |
+|---|---|---|---|
+| Backfill at full speed | 19,200 (96 ticks × 200) | 2 × 96 × 4,007 ≈ **769,000** | 0.96% |
+| Steady state, 120 emails/day/account | 120 | 2 × (96 × 2 history + 120 × 20) ≈ **5,200** | 0.007% |
+
+The 80M figure is Google's published daily threshold after which charges are "planned … later in 2026". The project has **no billing account**, so nothing can be charged; GRU stays at or below 1% of it even during a backfill.
+
+**Backfill capacity** (90 days, per account, at 19,200 messages/day):
+| Mailbox volume (all mail) | Messages in 90 days | List pages (200) | Ticks | Time |
+|---|---|---|---|---|
+| Light: 40/day | 3,600 | 18 | 18 | ≈ 4.5 h |
+| Typical: 120/day | 10,800 | 54 | 54 | ≈ 13.5 h |
+| Heavy: 300/day | 27,000 | 135 | 135 | ≈ 34 h (1.4 days) |
+| Extreme: 500/day | 45,000 | 225 | 225 | ≈ 56 h (2.3 days); exceeds the target, reported honestly |
+
+Both accounts backfill in parallel, since quotas are per user.
+
+**Fallback if Gmail batch HTTP doesn't work live** (Google's batch guide doesn't print the endpoint URL; GRU uses the default `/batch/gmail/v1` path, to be confirmed at the first live connect): individual GETs within the budget allow ~14 messages/account/tick, so the typical mailbox would take ~8 days. GRU would show progress and tell you, and nothing breaks.
+
+**CPU** (10 ms per invocation, network wait excluded): parsing 4 × 50 metadata responses plus classifying 200 messages is benchmarked locally before relying on it. If it measures over 5 ms, the per-tick batch size drops (configurable) and the table above is recalculated.
+
+## 7. Cloudflare free tier (re-checked 2026-11-15; Workers limits page updated 13 Nov 2026, D1 pricing 30 Oct 2026)
+| Resource | Free limit (quoted) | Phase 2 worst day (backfill) | Steady day |
+|---|---|---|---|
+| Requests | "100,000 requests, resetting at midnight UTC" | 96 ticks + ~600 app ≈ 700 | ≈ 700 |
+| CPU | "10 ms" per request and per Cron Trigger | benchmarked < 5 ms target | same |
+| Subrequests | 50 per invocation | ≈ 23 per tick | ≈ 15 |
+| Cron Triggers | 5 per account | 1 | 1 |
+| D1 rows read | "5 million / day" | ≈ 25k (diff reads + UI) | ≈ 16k |
+| D1 rows written | "100,000 / day" | only job-related emails are stored: e.g. 3% of 19,200 × 2 ≈ 1,150 emails × ~3 rows incl. indexes + 192 sync runs + cursor updates ≈ **4–5k** | ≈ 1.5k |
+| D1 storage | 5 GB total (500 MB per database) | < 5 MB | — |
+
+Over-limit behaviour is failure, not billing: Workers return Error 1027; D1 "will not be able to run queries". The Workers pricing page says "By default, users have access to the Workers Free plan" and doesn't mention a payment method; SETUP keeps the explicit checks "no payment method on the Cloudflare account" and "no billing account on the Google Cloud project". **No paid service, billing account or payment method is required anywhere in Phase 2.** The config guard test still fails the build on paid bindings.
+
+## 8. Database changes: migration `0003_gmail.sql` (additive)
 ```sql
-ALTER TABLE mail_accounts ADD COLUMN label TEXT;              -- "Primary" / "University" (UI shows masked address)
-ALTER TABLE mail_accounts ADD COLUMN granted_scope TEXT;      -- scope string from the token response, for audit
-ALTER TABLE mail_accounts ADD COLUMN last_success_at INTEGER; -- last fully successful tick (health line, 6 h alert)
-ALTER TABLE mail_accounts ADD COLUMN reauth_since INTEGER;    -- when needs_reauth began (banner copy, D-022)
-ALTER TABLE oauth_states ADD COLUMN session_hash TEXT;        -- binds a connect attempt to the session that started it
+ALTER TABLE mail_accounts ADD COLUMN label TEXT;
+ALTER TABLE mail_accounts ADD COLUMN granted_scope TEXT;
+ALTER TABLE mail_accounts ADD COLUMN last_success_at INTEGER;
+ALTER TABLE mail_accounts ADD COLUMN reauth_since INTEGER;
+ALTER TABLE mail_accounts ADD COLUMN history_id TEXT;
+ALTER TABLE mail_accounts ADD COLUMN backfill_floor INTEGER;        -- now − 90 days at connect
+ALTER TABLE mail_accounts ADD COLUMN messages_scanned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE oauth_states ADD COLUMN binding_hash TEXT;
+ALTER TABLE oauth_states ADD COLUMN session_hash TEXT;
+ALTER TABLE oauth_states ADD COLUMN oidc_nonce TEXT;
 ALTER TABLE oauth_states ADD COLUMN created_at INTEGER;
+ALTER TABLE review_queue ADD COLUMN context_enc TEXT;               -- encrypted subject + sender name; deleted on resolve
 CREATE INDEX idx_seen_account_date ON emails_seen(account_id, internal_date);
 CREATE INDEX idx_review_open ON review_queue(resolved_at, created_at);
 CREATE INDEX idx_events_app ON events(app_id, at);
 ```
-- **No new tables.** `emails_seen.disposition` gains one value, `alert_pending` (the column is TEXT; documented in code).
-- **What is stored per email** (spec §8): Gmail id, thread id, date, **sender domain only** (never the address or name), class, confidence, rule id, disposition, and an **encrypted** 300-character snippet (snippets are cleared after 90 days, already in housekeeping).
-- **Never stored:** subject, full headers, body.
+- `oauth_states.state` stores **SHA-256 of the state**, not the state itself.
+- Housekeeping adds: `review_queue.context_enc` → NULL after 30 days.
 
-## 4. Sync workflow: one tick (cron every 15 min, or Sync now)
-1. Take the `tick_lock`. Exit if paused, wiping or wiped (built).
-2. Accounts in order of oldest `last_sync_at`. For each `active` account, while the budget allows:
-   1. **Access token:** reuse it if valid for 120 s or more; otherwise refresh (1 subrequest). On `invalid_grant`: set `needs_reauth` + `reauth_since`, record a sync_run, and skip the account. Other accounts continue (D-022).
-   2. **List:** `messages.list` with `q = jobQuery + after:<sync_after_epoch − 300>`, `maxResults=25`, and `pageToken` while backfilling.
-   3. **Dedupe:** diff the ids against `emails_seen` in one D1 query.
-   4. **Fetch:** up to 12 unseen messages with `format=metadata`, headers From, Subject, Date, List-Unsubscribe and Content-Type, and a `fields` mask.
-   5. **Classify** (rules), **link** to an application, apply the **state machine**, and write everything (emails_seen, events, applications, review_queue, sync_run) in **one D1 batch** (atomic, verified in Phase 0).
-   6. **Advance the cursor** (`sync_after_epoch`) only past fully processed messages. Keep the page token while the backlog drains; an expired page token restarts the page safely (duplicates are ignored by the primary key).
-3. **Budget:** `SubrequestBudget(40)`. When the remaining budget can't cover the next account's minimum, stop cleanly and resume next tick.
-4. **Gmail batch HTTP (D-009):** benchmark CPU on synthetic multipart responses first. Adopt only if CPU stays under about 5 ms; it would cut 12 fetches to 1 per account. **Reported back for approval before adopting.**
+## 9. Synthetic dataset and evaluation harness (no real emails required)
+- **Generator:** `test/fixtures/synthetic/` (deterministic, seeded, committed). Output to `eval/generated/` is **git-ignored**; tests generate in memory.
+  - Fictional companies, people and domains; public ATS and job-board domains only.
+  - Bodies are never needed in Phase 2. Alert fixtures also get synthetic vacancy text for Phase 5.
+  - Ani's five pasted examples were used only as **style references**: no names, companies or text copied.
+- **Size and categories:** ≥ 100 emails (target ~300) across:
+  - application confirmations, rejections, interview invitations, scheduling changes, offers and offer updates;
+  - recruiter outreach, requests for more information, job alerts (Indeed/SEEK/LinkedIn/Employment Hero-style digests and single "match" emails), newsletters;
+  - unrelated personal mail, look-alikes (e.g. a newsletter saying "unfortunately", a bank "application" update, a course "offer");
+  - duplicates and forwards, ambiguous messages, misleading or conflicting wording.
+- **Each email** has an expected class, an expected decision (ignore / alert / auto / review / create), and, in scenario threads, the expected application status afterwards.
+- **Splits:** a deterministic **tuning** set (for writing rules) and a **held-out** set (never used for tuning), by seeded hash.
+- **Metrics:** precision, recall and F1 per class, plus a confusion matrix, on the held-out set (`npm run eval:synthetic` prints the report).
+- **Hard assertions (tests fail otherwise):**
+  - zero incorrect automatic status changes;
+  - every ambiguous, conflicting, forwarded or look-alike email → review or ignore, never automatic;
+  - no automatic backwards move across all scenario timelines and random sequences.
+- **Reported, not over-claimed:** synthetic results say nothing about real-world accuracy. The report says so, and the high-impact auto-apply stays off.
+- `npm run eval` (real labelled CSV) stays available for when Ani has real examples. **Optional, not a dependency.**
+- **High-volume tests:** in-memory fake Gmail mailboxes at 40, 120, 300 and 500 emails/day over 90 days, run through real ticks in workerd. Assert ticks to completion, subrequests ≤ 40 per tick, Gmail units ≤ 6,000 per user per tick, D1 rows written per simulated day, history-404 recovery, partial batch failure, and duplicates.
 
-## 5. Classification, linking, state machine (spec §9)
-- **Rules as data** (`rules.ts`): `application_received`, `assessment`, `interview_invite`, `rejection`, `offer`, `recruiter_outreach`, `alert`, `other`.
-  - Confidence = rule weight, +0.1 for a known ATS or job-board domain, +0.1 when subject and snippet both match, −0.3 per negative pattern, capped at 0.99.
-  - Ties go to the higher-impact class and are queued.
-- **Linking order:** (1) the same thread as an already-linked email; (2) exactly one application whose `company_norm` matches the sender display name, an ATS subject pattern ("at X", "to X", "with X") or the domain; (3) otherwise unlinked.
-- **Automatic transitions:**
-  - applied → assessment / interview / offer / rejected;
-  - assessment → interview / offer / rejected;
-  - interview → offer / rejected;
-  - offer → rejected.
-  - **No automatic downgrades** (property-tested). Terminal states never change automatically.
-- **Auto-apply rules:**
-  - linked + confidence ≥ 0.90 for received, assessment or interview;
-  - **thread-linked** + ≥ 0.95 for rejection or offer;
-  - everything else → the review queue.
-  - An unlinked `application_received` with a confident company creates a new application (source `email`).
-  - Interview invites create an `interview` in state `proposed` plus an `interview_time` review item (no date extraction).
-- **Eval gate (spec §16):** until Ani's own labelled set shows ≥ 95% precision for `rejection`, `interview_invite` and `offer`, those classes **always go to review**. This is enforced by a setting that the eval script reports against.
-- **Undo:** every automatic change records `prev_status` and shows in "Since yesterday" with Undo for 24 hours (built in Phase 1).
+## 10. Other tests
+- **Unit:**
+  - each rule plus negatives; company extraction; linking order; decision table;
+  - OAuth helpers: URL parameters, `redirect_uri` from config, state/binding/nonce, `id_token` claim checks (iss/aud/exp/nonce/email_verified/allowlist), scope check including revoke-on-extra;
+  - batch request builder (GETs only, metadata, no `q`, no snippet) and multipart parser (including part-level errors);
+  - the backfill planner.
+- **Integration (workerd + D1, Google mocked at `fetch`):**
+  - connect → callback happy path;
+  - replay, expiry, wrong browser cookie, expired session, allowlist rejection, scope failures, Testing-mode canary;
+  - `invalid_grant`, disconnect revokes, wipe revokes;
+  - no plaintext subject or address in D1; `snippet_enc` always NULL;
+  - review resolve; Undo of an automatic change.
+- **E2E (390 / 1440, light and dark):** Settings account states (seeded), Review resolution, "Since yesterday" with Undo, no horizontal scroll, screenshots.
 
-## 6. Job-alert handling in Phase 2
-- Mail matching the alert rules is classified `alert` and stored as `disposition = 'alert_pending'`. Alert rules: a known board or ATS domain, or `List-Unsubscribe` plus a digest subject such as "jobs you may like", "job alert", "new jobs" or "recommended jobs". Generic newsletters stay `other`.
-- **Phase 2 never fetches alert bodies.** Phase 5 picks up `alert_pending` ids and reads each body once, in memory, to extract vacancies. The body is never stored. The Gmail id stays for de-duplication.
-- Alerts never change application status.
-- Today's health line says how many alerts are waiting, and that extraction arrives in Phase 5.
-
-## 7. Security and privacy controls
-| Area | Control |
+## 11. Gate (spec §17)
+| Item | Status path |
 |---|---|
-| Tokens | Refresh/access tokens AES-GCM encrypted with AAD `mail_accounts:<col>:<id>`; never logged; revoked on disconnect and wipe |
-| Account allowlist | `ALLOWED_EMAILS` secret checked at connect (hint) **and** at the callback (`id_token` email, `email_verified=true`) |
-| OAuth state | 256-bit, single-use, 10-min expiry, bound to the initiating session hash, expired rows cleared daily |
-| Scopes | §2: exact scope constant, granted-scope check, read-only endpoint allowlist, `format=metadata` |
-| Email content | Sender domain only; subject never stored; snippet encrypted, cleared after 90 days; no bodies |
-| Logging | Allowlisted logger (built): ids, counts, codes only. New test: Gmail ids, thread ids, subjects, domains and snippets are rejected or never passed |
-| Untrusted input | Headers and snippets are treated as data; regexes are precompiled and linear-time; header lengths capped before matching |
-| Failure visibility | `needs_reauth`, Testing-mode canary, budget exhaustion and D1 caps all appear in Settings and the Today health line (D-011, D-022) |
-| Requests | New mutating routes inherit session + hygiene (JSON, X-App, Origin); the callback is the only new public route, protected by `state` |
+| Synthetic eval: hard assertions pass; metrics reported | local |
+| Real-world precision gate (spec) | **not claimable** without real data; high-impact auto-apply stays off |
+| Both accounts connected; 24 h of ticks; CPU/subrequest metrics recorded | needs SETUP + **Ani's deploy approval** |
+| All unit, integration, e2e, lint, typecheck, audit green | local |
 
-## 8. Free-tier usage estimates (Workers Free, no payment method)
-Assumptions: 2 accounts, about 30 job-related emails/day, a 90-day backfill of about 1,500 messages, Ani using the app about 30 times a day.
-
-| Resource | Free limit | Phase 2 estimate | Headroom |
-|---|---|---|---|
-| Worker requests | 100,000 / day | 96 ticks + ~600 app/asset requests ≈ **700** | ~140× |
-| CPU per invocation | 10 ms | tick: regex classification of ≤ 24 messages + JSON parse, est. 2–5 ms (network wait excluded) | to be measured and recorded |
-| Subrequests per invocation | 50 (budget 40) | worst tick ≈ 2 × (1 refresh + 1 list + 1 diff + 12 gets + 1 batch) + 3 state = **35** | within budget; batch HTTP would cut this to ~13 |
-| D1 rows read | 5,000,000 / day | ticks ~6k + UI ~10k ≈ **16k** | ~300× |
-| D1 rows written | 100,000 / day | steady ~1.5k (incl. index writes); backfill days ≤ ~6k | ~16× |
-| D1 storage | 500 MB per database | ~1 KB per email with indexes → ~2 MB per year | negligible |
-| Gmail API | 6,000 units/min/user; billing threshold 80M units/day | per tick ≤ 5 + 12×20 = 245 units/account; ~47k units/day total | ~1,700× under the threshold; no billing account exists |
-| Workers AI / ntfy | n/a in Phase 2 | 0 | — |
-
-**Conclusion:** Phase 2 stays well inside the free tier and adds no paid service. Backfill drains at ≤ 12 messages per account per tick (~1,150/day/account), so 90 days of mail is caught up within 1–2 days.
-
-## 9. UI changes (from the approved design)
-- **Settings → Gmail accounts:** Connect / Reconnect / Disconnect, masked address, last sync, emails checked, error state, Testing-mode banner, Sync now.
-- **Review page** (nav item appears, D-041): one-tap Confirm / Edit / Dismiss, and the interview-time form.
-- **Today:**
-  - "Since yesterday" automatic changes with Undo;
-  - a "Needs your input" count;
-  - a health line ("Synced 6 min ago · 2 accounts", or the failure).
-
-## 10. Test plan
-**Unit (`node:test`):**
-- One test per rule id plus negatives, including look-alikes (a newsletter containing "unfortunately").
-- The confidence formula and tie-breaking.
-- Company extraction from display names and subjects.
-- Linking order.
-- State machine property tests: no automatic downgrades; terminal states never change automatically.
-- Auto-apply thresholds; the eval-gate setting.
-- The `jobQuery` builder and the `after:` overlap.
-- Scope validation: missing readonly, extra Gmail scope, unexpected scope.
-- `id_token` claim checks: wrong `aud`, wrong `iss`, expired, `email_verified=false`, email not on the allowlist.
-- The read-only endpoint allowlist and `format=metadata`.
-- Budget arithmetic.
-
-**Integration (workerd + D1, a fake Gmail and OAuth client injected through an interface, no network):**
-- Connect → callback happy path.
-- Allowlist rejection; state reuse, expiry and session mismatch.
-- Granted-scope failures, including revoke-on-extra-scope.
-- Testing-mode canary.
-- Backfill across several ticks.
-- Duplicate messages; an expired page token.
-- `invalid_grant` → `needs_reauth`, with the other account still syncing.
-- Two accounts in one tick under budget; budget exhaustion persisting the cursor.
-- Auto-apply vs queue; review resolve; undo of an automatic change.
-- Disconnect revokes; wipe revokes connected accounts.
-- No plaintext subject, address or snippet in D1.
-
-**Fixtures:** at least 40 synthetic metadata-only emails in `eval/fixtures/`: every class, NZ ATS styles, look-alikes, alerts, malformed headers.
-
-**Eval harness:** `npm run eval` reads `eval/private/labelled.csv` (git-ignored, **Ani provides about 50 real labelled emails**) and prints precision and recall per class plus a confusion matrix.
-
-**E2E (Playwright, 390 and 1440, light and dark):**
-- Settings accounts states (seeded): connected, needs reconnect, Testing-mode.
-- Review queue one-tap resolution.
-- "Since yesterday" with Undo.
-- No horizontal scroll; screenshots.
-
-**Benchmarks:** tick CPU with 24 fixture messages; D-009 batch-HTTP parse CPU.
-
-## 11. Gate (spec §17 Phase 2)
-| Gate item | How it's met | Needs |
-|---|---|---|
-| Eval gate met | `npm run eval` precision ≥ 95% on rejection / interview / offer; otherwise those stay review-only | Ani's labelled CSV |
-| Both accounts connected | Real OAuth on the deployed Worker | SETUP steps 2–6 + **Ani's deploy approval** |
-| 24 h of ticks with no unexplained errors | `sync_runs` + dashboard | deployed |
-| CPU and subrequest metrics recorded | Dashboard p99 → DECISIONS | deployed |
-| All tests green | unit + integration + e2e + lint + typecheck + audit | — |
-
-Everything except the deployed items can be completed and tested locally before any deployment.
-
-## 12. Voice decisions recorded (Ani, 2026-11-15; no voice code in Phase 2)
-- **Fallback STT = Cloudflare Workers AI Whisper** when on-device recognition is unavailable:
-  - the mic turns on only after an explicit tap;
-  - audio is processed in memory and never stored or logged;
-  - transcripts and conversation content are never logged;
-  - text input stays a full alternative.
-- **Allowance and retention**, verified 2026-11-15 and to be **re-verified at V1 start**: Workers AI free allocation 10,000 Neurons/day, reset 00:00 UTC; whisper-large-v3-turbo ≈ 46.6 Neurons/audio-minute (about 214 min/day); "Zero data retention" and "No training" per the data-usage page. No paid models.
-- **Phase 8 is not brought forward.** V1 (after Phase 6): spoken briefings, voice commands, confirmation cards. V2 (Phase 8): genuine conversation with follow-ups, interruptible speech, shared access to GRU's existing data and memory, and actions only through the existing permission-controlled APIs. No separate voice database or duplicate memory.
-
-## 13. Risks
-| Risk | Mitigation |
-|---|---|
-| Google rejects PKCE on a web client | Drop the parameter, record it; state + client_secret remain |
-| Testing-mode tokens expire after 7 days | Canary + "In production" SETUP checkbox |
-| CPU near 10 ms on large ticks | Fewer messages per tick (configurable); measure p99 after deploy |
-| Over-eager classification | Eval gate; high-impact classes review-only until precision is proven; Undo everywhere |
-| Gmail search query misses some ATS mail | Editable `jobQuery.ts`; eval set shows the misses |
+## 12. Voice (unchanged, recorded)
+- Whisper is the fallback when on-device recognition is unavailable; the mic turns on only after a tap; audio is transient and never stored or logged; text input remains complete.
+- V1 after Phase 6, V2 in Phase 8, with no separate voice database or memory.
+- Workers AI allowance and retention are re-checked when V1 starts.

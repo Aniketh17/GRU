@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { HoldButton, Modal } from "../components/Dialog.tsx";
 import { useTheme } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
-import { Button, Card, PageHeader, cx } from "../components/ui.tsx";
-import { api } from "../lib/api.ts";
+import { Banner, Button, Card, PageHeader, Pill, cx } from "../components/ui.tsx";
+import { api, type MailAccount } from "../lib/api.ts";
 import { formatTime } from "../lib/format.ts";
 import { SCHEDULE, localMinutes, type ThemePref } from "../lib/theme.ts";
 
@@ -18,9 +19,50 @@ export function SettingsPage() {
   const { pref, theme, setPref } = useTheme();
   const qc = useQueryClient();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
+  const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
+
   const [wipeOpen, setWipeOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectEmail, setConnectEmail] = useState("");
   const [phrase, setPhrase] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("connected")) {
+      toast({ text: "Gmail mailbox connected successfully!" });
+      searchParams.delete("connected");
+      setSearchParams(searchParams, { replace: true });
+      qc.invalidateQueries({ queryKey: ["mailAccounts"] });
+    }
+    const err = searchParams.get("error");
+    if (err) {
+      toast({ text: `Connection failed: ${err}` });
+      searchParams.delete("error");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast, qc]);
+
+  const connectMail = useMutation({
+    mutationFn: (email: string) => api.connectMail(email),
+    onSuccess: (data) => {
+      location.assign(data.url);
+    },
+    onError: (err: Error) => {
+      toast({ text: err.message || "Failed to start connection" });
+    },
+  });
+
+  const disconnectMail = useMutation({
+    mutationFn: (email: string) => api.disconnectMail(email),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mailAccounts"] });
+      toast({ text: "Mailbox disconnected" });
+    },
+    onError: (err: Error) => {
+      toast({ text: err.message || "Failed to disconnect mailbox" });
+    },
+  });
 
   const togglePause = useMutation({
     mutationFn: (pause: boolean): Promise<{ paused: boolean }> => (pause ? api.pause() : api.resume()),
@@ -87,10 +129,93 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="flex flex-col gap-3 p-5" aria-labelledby="s-acc">
-        <h2 id="s-acc" className="m-0 text-[15px] font-semibold">Gmail accounts</h2>
-        <p className="m-0 text-[13px] text-muted">Read-only Gmail sync arrives in the next phase. GRU will never send, delete or label mail.</p>
+      <Card className="flex flex-col gap-4 p-5" aria-labelledby="s-acc">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="s-acc" className="m-0 text-[15px] font-semibold">Gmail accounts</h2>
+            <p className="m-0 text-[12.5px] text-muted">
+              Metadata-only sync every 15 minutes. GRU cannot read email bodies, send, or delete mail.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => setConnectOpen(true)}>
+            Connect account
+          </Button>
+        </div>
+
+        {accountsQuery.data?.accounts && accountsQuery.data.accounts.length > 0 ? (
+          <div className="flex flex-col divide-y divide-line">
+            {accountsQuery.data.accounts.map((acc) => (
+              <div key={acc.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px] font-medium text-ink">{acc.email}</span>
+                    <Pill tone={acc.status === "active" ? "accent" : acc.status === "needs_reauth" ? "red" : "neutral"}>
+                      {acc.status === "active" ? "Active" : acc.status === "needs_reauth" ? "Reconnect needed" : acc.status}
+                    </Pill>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {acc.status === "needs_reauth" && (
+                      <Button variant="primary" onClick={() => connectMail.mutate(acc.email)} disabled={connectMail.isPending}>
+                        Reconnect
+                      </Button>
+                    )}
+                    {acc.status === "disconnected" ? (
+                      <Button variant="secondary" onClick={() => connectMail.mutate(acc.email)} disabled={connectMail.isPending}>
+                        Connect
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" onClick={() => disconnectMail.mutate(acc.email)} disabled={disconnectMail.isPending}>
+                        Disconnect
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {acc.testing_mode_detected && (
+                  <Banner tone="amber" title="Testing mode">
+                    Google OAuth is currently in Testing mode; refresh tokens expire after 7 days. Publish app to Production in Google Cloud Console.
+                  </Banner>
+                )}
+                {acc.last_sync_at && (
+                  <p className="m-0 text-[12px] text-muted">
+                    Last synced {formatTime(acc.last_sync_at)} · {acc.messages_scanned} messages scanned
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-line p-4 text-center text-[13px] text-muted">
+            No mailboxes connected yet. Connect your job-hunt Gmail account to automatically discover application updates.
+          </div>
+        )}
       </Card>
+
+      <Modal open={connectOpen} onClose={() => setConnectOpen(false)} title="Connect Gmail account">
+        <p className="m-0 text-ink-2">
+          Connect your Gmail account using the secure, restricted <code>gmail.metadata</code> permission.
+          GRU will only inspect message headers to identify status updates, and will never request or view message bodies.
+        </p>
+        <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
+          Gmail address
+          <input
+            type="email"
+            placeholder="you@gmail.com"
+            value={connectEmail}
+            onChange={(e) => setConnectEmail(e.target.value)}
+            className="h-11 rounded-[10px] border border-line-strong bg-sunken px-3 font-medium text-ink"
+          />
+        </label>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={() => setConnectOpen(false)}>Cancel</Button>
+          <Button
+            variant="primary"
+            disabled={!connectEmail.includes("@") || connectMail.isPending}
+            onClick={() => connectMail.mutate(connectEmail)}
+          >
+            {connectMail.isPending ? "Connecting…" : "Proceed to Google"}
+          </Button>
+        </div>
+      </Modal>
 
       <Card className="flex flex-wrap items-center justify-between gap-3 p-5" aria-labelledby="s-session">
         <div>

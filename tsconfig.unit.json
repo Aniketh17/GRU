@@ -17,6 +17,7 @@
     "scripts/**/*.ts",
     "apps/worker/src/**/*.ts",
     "apps/web/src/derive.ts",
-    "apps/web/src/lib/theme-core.ts"
+    "apps/web/src/lib/theme-core.ts",
+    "test/fixtures/**/*.ts"
   ]
 }

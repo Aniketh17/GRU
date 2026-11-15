@@ -1,10 +1,11 @@
-// Cron tick (spec section 8). Phase 0: lock, pause/kill checks and housekeeping only.
-// Gmail sync (Phase 2) and scheduler tasks (Phase 3) plug in here.
+// Cron tick (spec section 8). Phase 0: lock, pause/kill checks and housekeeping.
+// Phase 2: Gmail synchronisation, classification, and review queue integration.
 import type { Env } from "./env.ts";
 import { IDLE_TTL } from "./auth/session.ts";
 import { SubrequestBudget } from "./db/budget.ts";
 import { Db } from "./db/client.ts";
 import { getSystemState } from "./db/kv.ts";
+import { syncMailAccounts } from "./gmail/sync.ts";
 import { errorCode, log } from "./log/index.ts";
 
 export const TICK_LOCK_TTL = 300;
@@ -37,10 +38,11 @@ export function housekeepingStmts(db: Db, now: number): D1PreparedStatement[] {
     db.stmt("DELETE FROM oauth_states WHERE expires_at <= ?", now),
     db.stmt("DELETE FROM sync_runs WHERE started_at < ?", now - 30 * 86400),
     db.stmt("UPDATE emails_seen SET snippet_enc = NULL WHERE snippet_enc IS NOT NULL AND internal_date < ?", now - 90 * 86400),
+    db.stmt("UPDATE review_queue SET context_enc = NULL WHERE context_enc IS NOT NULL AND created_at < ?", now - 30 * 86400),
   ];
 }
 
-export async function runTick(env: Env, now: number): Promise<TickResult> {
+export async function runTick(env: Env, now: number, fetchFn: typeof fetch = fetch): Promise<TickResult> {
   const db = new Db(env.DB, new SubrequestBudget());
   try {
     const s = await getSystemState(db);
@@ -50,6 +52,7 @@ export async function runTick(env: Env, now: number): Promise<TickResult> {
     if (!lock) return skip("locked");
     try {
       await db.batch(housekeepingStmts(db, now));
+      await syncMailAccounts(env, db, now, fetchFn);
       log("tick_done", { budget_used_count: db.budget.usedCount });
       return { ran: true };
     } finally {

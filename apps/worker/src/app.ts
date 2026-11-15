@@ -13,6 +13,8 @@ import { applicationRoutes } from "./routes/applications.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { healthRoutes } from "./routes/health.ts";
+import { mailRoutes } from "./routes/mail.ts";
+import { reviewRoutes } from "./routes/review.ts";
 
 export type AppEnv = { Bindings: Env; Variables: { db: Db } };
 
@@ -32,6 +34,8 @@ app.route("/api", healthRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/applications", applicationRoutes);
 app.route("/api/events", eventRoutes);
+app.route("/api/mail", mailRoutes);
+app.route("/api/review", reviewRoutes);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));

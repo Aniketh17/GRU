@@ -6,7 +6,7 @@ Last updated 2026-11-15. Every phase starts with a plan and ends with a walkthro
 |---|---|---|
 | 0 Foundations | Auth, crypto, kill switch, security baseline, docs | ✅ done (gate met; toolchain lint warning documented, D-034) |
 | 1 Dashboard | Applications CRUD, timeline, filters, search, manual status, undo, PWA shell, theme schedule | ✅ built (see plans/PHASE-1.md) |
-| 2 Gmail | Read-only sync, rules classifier, linking, review queue, reconnect handling | plan ready, awaiting approval (plans/PHASE-2.md) |
+| 2 Gmail | Read-only sync, rules classifier, linking, review queue, reconnect handling | ✅ built (see plans/PHASE-2.md) |
 | 3 Daily loop | Morning brief, check-in, ntfy, follow-up rules | |
 | 4 Interviews | Interview records, prep, reminders, debriefs | |
 | 5 Job discovery | Job-alert parsing, resume profile, 100-point scoring, Apply Tomorrow | |
