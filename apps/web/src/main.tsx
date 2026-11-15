@@ -10,6 +10,10 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { ApiError } from "./lib/api.ts";
 import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
+import { AgendaPage } from "./pages/Agenda.tsx";
+import { JobsPage } from "./pages/Jobs.tsx";
+import { MorePage } from "./pages/More.tsx";
+import { NotesPage } from "./pages/Notes.tsx";
 import { ReviewPage } from "./pages/Review.tsx";
 import { SettingsPage } from "./pages/Settings.tsx";
 import { TodayPage } from "./pages/Today.tsx";
@@ -53,6 +57,10 @@ const router = createBrowserRouter([
       { path: "applications", element: <ApplicationsPage /> },
       { path: "applications/:id", element: <ApplicationsPage /> },
       { path: "review", element: <ReviewPage /> },
+      { path: "jobs", element: <JobsPage /> },
+      { path: "agenda", element: <AgendaPage /> },
+      { path: "notes", element: <NotesPage /> },
+      { path: "more", element: <MorePage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

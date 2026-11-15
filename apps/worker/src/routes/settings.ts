@@ -8,18 +8,21 @@ export interface UserSettings {
   brief_time: string; // HH:mm (default "08:30")
   stale_days: number; // days before application is marked stale (default 14)
   interview_stale_days: number; // days after interview before follow-up prompt (default 7)
+  shortlist_threshold: number; // minimum job match score for Apply Tomorrow (default 65)
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
   brief_time: "08:30",
   stale_days: 14,
   interview_stale_days: 7,
+  shortlist_threshold: 65,
 };
 
 const settingsSchema = z.strictObject({
   brief_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   stale_days: z.number().int().min(1).max(90),
   interview_stale_days: z.number().int().min(1).max(90),
+  shortlist_threshold: z.number().int().min(30).max(95).default(65),
 });
 
 export async function getSettings(db: Db): Promise<UserSettings> {

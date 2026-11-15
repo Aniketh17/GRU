@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { InterviewPanel } from "../components/InterviewPanel.tsx";
 import { ApplicationForm } from "../components/ApplicationForm.tsx";
 import { ConfirmDialog } from "../components/Dialog.tsx";
 import { ChevronLeft, ListIcon, PlusIcon, SearchIcon, TrashIcon } from "../components/Icons.tsx";
@@ -258,6 +259,8 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
               No activity for {daysSince(a.last_event_at ?? a.applied_at)} days. A polite follow-up might help.
             </p>
           )}
+
+          <InterviewPanel appId={a.id} onChanged={refresh} />
 
           <div className="px-5 py-4">
             <h3 className="mt-0 mb-2.5 text-[13.5px] font-semibold">Timeline</h3>

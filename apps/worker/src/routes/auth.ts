@@ -1,4 +1,5 @@
 // Public auth routes: /auth/params, /auth/login, /auth/logout, and /auth/google/callback (D-001, D-045).
+import { BACKFILL_DAYS } from "../gmail/constants.ts";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../app.ts";
@@ -245,7 +246,7 @@ authRoutes.get("/google/callback", async (c) => {
       existingAccount.id,
     );
   } else {
-    const backfillFloor = now - 90 * 86400; // 90 days ago
+    const backfillFloor = now - BACKFILL_DAYS * 86400;
     await db.run(
       "INSERT INTO mail_accounts (email, label, refresh_token_enc, access_token_enc, access_expires_at, status, history_id, backfill_floor, backfill_done, testing_mode_detected, created_at, last_success_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)",
       email,

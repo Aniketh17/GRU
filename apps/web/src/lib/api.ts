@@ -1,6 +1,6 @@
 // Typed client for the GRU Worker API. Every mutating call sends JSON + X-App (request hygiene).
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly code: string) {
+  constructor(readonly status: number, readonly code: string, readonly data: Record<string, unknown> = {}) {
     super(code);
     this.name = "ApiError";
   }
@@ -115,7 +115,7 @@ async function request<T>(path: string, method = "GET", body?: unknown): Promise
     window.dispatchEvent(new CustomEvent("gru:locked", { detail: data }));
     throw new ApiError(423, typeof data.state === "string" ? data.state : "locked");
   }
-  if (!res.ok) throw new ApiError(res.status, typeof data.error === "string" ? data.error : "request_failed");
+  if (!res.ok) throw new ApiError(res.status, typeof data.error === "string" ? data.error : "request_failed", data);
   return data as T;
 }
 
@@ -126,6 +126,8 @@ export interface Brief {
   missing_debriefs: { id: number; app_id: number; company: string; at: number }[];
   follow_ups: { id: number; company: string; role: string | null; status: string; days_stale: number }[];
   health: { summary: string; needs_reauth: boolean };
+  jobs: { new_count: number; top: { id: number; title: string; company: string | null; score: number | null }[]; closing_soon: number; queue_count: number };
+  tasks_due: number;
 }
 export interface Checkin {
   date: string;
@@ -139,7 +141,40 @@ export interface Settings {
   brief_time: string;
   stale_days: number;
   interview_stale_days: number;
+  shortlist_threshold: number;
   ntfy_configured?: boolean;
+}
+
+export interface Interview {
+  id: number; app_id: number; company: string; role: string | null; state: string; start_utc: number | null; tz: string | null;
+  format: string | null; rating: number | null; followup_sent: boolean; prep: string | null; debrief: Record<string, string | null> | null;
+}
+export interface Job {
+  id: number; title: string; company: string | null; location: string | null; work_arrangement: string | null; employment_type: string | null;
+  source: string; url: string | null; closing_at: number | null; status: string; first_seen_at: number;
+  score: number | null; band: "strong" | "good" | "possible" | "low" | null; confidence: string | null;
+}
+export interface JobDetail extends Job {
+  description: string | null;
+  match: { components: Record<string, number>; evidence: { matched: { skill: string; evidence: string }[]; explanation: string; provisional: boolean } | null; gaps: string[] } | null;
+}
+export interface JobInput {
+  title: string; company?: string; location?: string; work_arrangement?: "remote" | "hybrid" | "onsite"; url?: string;
+  description?: string; closing_at?: number;
+}
+export interface ResumeProfile { id: number; version: number; label: string; active: boolean; created_at: number; skills: string[] }
+export interface Note { id: number; body: string | null; tags: string[]; created_at: number; updated_at: number }
+export interface Task { id: number; title: string | null; due_at: number | null; priority: number; kind: string; done_at: number | null; app_id: number | null }
+export interface Agenda {
+  date: string; overdue: Task[]; today: Task[]; upcoming: Task[]; someday: Task[];
+  interviews: { id: number; app_id: number; company: string; start_utc: number; format: string | null }[];
+}
+export interface Weekly {
+  is_sunday: boolean; applications_added: number; status_changes: number; interviews_done: number; tasks_done: number;
+  tasks_open: number; notes_added: number; checkins_done: number; jobs_found: number;
+}
+export interface DebriefInput {
+  rating: number; questions: string; went_well: string; improve: string; followup_sent: boolean; next_step: string; next_date: string | null;
 }
 
 export interface ListParams {
@@ -184,5 +219,34 @@ export const api = {
     request<{ status: string }>("/api/checkin/today", "POST", d),
   settings: () => request<Settings>("/api/settings"),
   saveSettings: (d: Omit<Settings, "ntfy_configured">) => request<Settings>("/api/settings", "PUT", d),
+  interviews: (appId?: number) => request<{ items: Interview[] }>(`/api/interviews${appId ? `?app_id=${appId}` : ""}`),
+  createInterview: (d: { app_id: number; start_utc: number; format: string; review_id?: number }) => request<{ id: number }>("/api/interviews", "POST", d),
+  patchInterview: (id: number, d: Record<string, unknown>) => request<Interview>(`/api/interviews/${id}`, "PATCH", d),
+  debrief: (id: number, d: DebriefInput) => request<{ ok: true }>(`/api/interviews/${id}/debrief`, "POST", d),
+  deleteInterview: (id: number) => request<{ deleted: true }>(`/api/interviews/${id}`, "DELETE"),
+  jobs: (status = "open", band = "") => request<{ has_resume: boolean; items: Job[] }>(`/api/jobs?status=${status}${band ? `&band=${band}` : ""}`),
+  jobQueue: () => request<{ has_resume: boolean; threshold: number; items: Job[] }>("/api/jobs/queue"),
+  job: (id: number) => request<JobDetail>(`/api/jobs/${id}`),
+  createJob: (d: JobInput) => request<{ id: number; duplicate: boolean }>("/api/jobs", "POST", d),
+  jobDecision: (id: number, decision: "shortlist" | "save" | "dismiss" | "reopen") => request<{ ok: true }>(`/api/jobs/${id}/decision`, "POST", { decision }),
+  markApplied: (id: number, d: { link_application_id?: number; create_new?: boolean } = {}) => request<{ ok: true; app_id: number }>(`/api/jobs/${id}/mark-applied`, "POST", d),
+  deleteJob: (id: number) => request<{ deleted: true }>(`/api/jobs/${id}`, "DELETE"),
+  resumes: () => request<{ items: ResumeProfile[] }>("/api/resume-profiles"),
+  getResume: (id: number) => request<{ id: number; label: string; text: string | null }>(`/api/resume-profiles/${id}`),
+  saveResume: (d: { label: string; text: string }) => request<{ id: number }>("/api/resume-profiles", "POST", d),
+  updateResume: (id: number, d: { label: string; text: string }) => request<{ ok: true }>(`/api/resume-profiles/${id}`, "PATCH", d),
+  activateResume: (id: number) => request<{ ok: true }>(`/api/resume-profiles/${id}/activate`, "POST"),
+  deleteResume: (id: number) => request<{ deleted: true }>(`/api/resume-profiles/${id}`, "DELETE"),
+  notes: () => request<{ items: Note[] }>("/api/notes"),
+  searchNotes: (q: string) => request<{ items: Note[] }>(`/api/notes/search?q=${encodeURIComponent(q)}`),
+  saveNote: (d: { body: string; tags: string[] }, id?: number) => request<{ id?: number }>(id ? `/api/notes/${id}` : "/api/notes", id ? "PATCH" : "POST", d),
+  deleteNote: (id: number) => request<{ deleted: true }>(`/api/notes/${id}`, "DELETE"),
+  tasks: (status: "open" | "done" = "open") => request<{ items: Task[] }>(`/api/tasks?status=${status}`),
+  createTask: (d: { title: string; due_at?: number | null; priority?: number; kind?: string }) => request<{ id: number }>("/api/tasks", "POST", d),
+  patchTask: (id: number, d: { done?: boolean; title?: string; due_at?: number | null; priority?: number }) => request<{ ok: true }>(`/api/tasks/${id}`, "PATCH", d),
+  deleteTask: (id: number) => request<{ deleted: true }>(`/api/tasks/${id}`, "DELETE"),
+  agenda: () => request<Agenda>("/api/agenda"),
+  weekly: () => request<Weekly>("/api/agenda/weekly"),
+  exportTable: (table: string, after = "") => request<{ items: unknown[]; next: string | null }>(`/api/export?table=${table}${after ? `&after=${encodeURIComponent(after)}` : ""}`),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

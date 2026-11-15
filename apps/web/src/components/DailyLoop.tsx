@@ -17,7 +17,7 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
   const skipped = checkin.data?.status === "skipped";
   const focus = checkin.data?.answers?.today_focus;
   if (!b) return null;
-  const quiet = b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0;
+  const quiet = b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0 && b.tasks_due === 0 && b.jobs.queue_count === 0;
 
   return (
     <Card className="overflow-hidden border-accent/40">
@@ -37,6 +37,16 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
             <Link to={`/applications/${i.app_id}`} className="font-medium text-ink">Debrief missing · {i.company}</Link>
           </li>
         ))}
+        {b.jobs.queue_count > 0 && (
+          <li>
+            <Link to="/jobs" className="font-medium text-accent-text">
+              {b.jobs.queue_count} job{b.jobs.queue_count === 1 ? "" : "s"} to apply for{b.jobs.new_count > 0 ? ` (${b.jobs.new_count} new)` : ""} →
+            </Link>
+            {b.jobs.top[0] && <span className="text-muted"> · top: {b.jobs.top[0].title} ({b.jobs.top[0].score})</span>}
+            {b.jobs.closing_soon > 0 && <span className="text-amber-text"> · {b.jobs.closing_soon} closing soon</span>}
+          </li>
+        )}
+        {b.tasks_due > 0 && <li><Link to="/agenda" className="font-medium text-accent-text">{b.tasks_due} task{b.tasks_due === 1 ? "" : "s"} due →</Link></li>}
         {b.follow_ups.length > 0 && <li className="text-muted">{b.follow_ups.length} follow-up{b.follow_ups.length === 1 ? "" : "s"} due.</li>}
         {quiet && b.follow_ups.length === 0 && <li className="text-muted">All clear. Nothing needs you right now.</li>}
         {focus && <li><Pill tone="accent">Today’s focus</Pill> <span className="text-ink">{focus}</span></li>}

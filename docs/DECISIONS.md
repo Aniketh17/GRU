@@ -520,6 +520,12 @@ ode.exe`. | ✅ done 2026-11-15 |
 | D-046 | Gmail scope restricted to `https://www.googleapis.com/auth/gmail.metadata` in Phase 2. GRU never requests or reads email bodies or snippets. Only headers and labels are accessed. Token exchange validates granted scope and revokes/rejects if unexpected scopes are present. | ✅ |
 | D-047 | Classification pipeline uses header-only rules. High-impact transitions (interview, rejection, offer) route to the review queue with `autoApplyHighImpact: false`. Auto-applied changes carry 24-hour undo (`/api/events/:id/undo`) and are displayed in the "Since yesterday" section on Today. | ✅ |
 | D-048 | Synthetic evaluation dataset of 372 emails (tuning + held-out) with zero safety violations. High-impact auto-apply stays OFF until real-world precision is proven. | ✅ |
+| D-049 | Gmail first-connect backfill window is **5 days** (was 90), per Ani 2026-11-15, for a fast first sync. Constant `BACKFILL_DAYS`. | ✅ |
+| D-050 | Phase 3 daily loop: brief and check-in computed on read; ntfy pings are constant generic strings, claimed atomically in `notifications_sent` and released if delivery fails. | ✅ |
+| D-051 | Phases 4-6 built together: interviews with 24 h / 2 h reminders and debriefs, resume profiles + deterministic 100-point scoring + Apply Tomorrow, notes with HMAC blind-index search, tasks, agenda, weekly review, export. | ✅ |
+| D-052 | **Vacancies are added by the user (paste/URL), not parsed from Gmail alerts.** GRU uses the `gmail.metadata` scope, which cannot read message bodies, so job-alert bodies cannot be parsed without widening to `gmail.readonly` (a forbidden scope, spec §2). Revisit only with Ani's explicit approval. | ⚠️ deviation from §10 flagged |
+| D-053 | Note tags are stored as plaintext short labels (`a-z0-9-`, max 24 chars). Note bodies, task titles, job descriptions, resume text, prep and debrief are encrypted. | ✅ |
+| D-054 | Voice (spec §22) and Workers AI (Phase 8) are **not built**; both need separate approval. | ⏸ |
 
 ## Runtime dependencies (rule 6)
 | Package | Version | Where | Why |

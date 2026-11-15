@@ -27,3 +27,6 @@ export const GMAIL_BATCH_ENDPOINT = "https://gmail.googleapis.com/batch/gmail/v1
 
 /** Fields mask for messages.get: strictly metadata headers, id, threadId, labelIds, internalDate. No snippet! */
 export const GMAIL_METADATA_FIELDS = "id,threadId,labelIds,internalDate,payload/headers";
+
+/** Backfill window on first connect. Kept short (5 days) so the first sync is fast (Ani, 2026-11-15). */
+export const BACKFILL_DAYS = 5;

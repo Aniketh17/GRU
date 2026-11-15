@@ -72,3 +72,29 @@ export function eventLabel(type: string, prev: Status | null): string {
   }
   return type;
 }
+
+const partsFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+function tzOffsetMs(ms: number): number {
+  const p = partsFmt.formatToParts(new Date(ms));
+  const g = (t: string) => Number(p.find((x) => x.type === t)?.value);
+  return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second")) - ms;
+}
+
+/** <input type="datetime-local"> value interpreted as Auckland wall-clock time → UTC epoch seconds (DST-safe). */
+export function localDateTimeToEpoch(value: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const asUtc = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+  let guess = asUtc;
+  for (let i = 0; i < 2; i++) guess = asUtc - tzOffsetMs(guess);
+  return Math.floor(guess / 1000);
+}
+
+/** Auckland wall-clock date+time for an epoch, formatted like a datetime-local value. */
+export function epochToDateTimeInput(epoch: number): string {
+  const p = partsFmt.formatToParts(new Date(epoch * 1000));
+  const g = (t: string) => p.find((x) => x.type === t)?.value ?? "";
+  return `${g("year")}-${g("month")}-${g("day")}T${g("hour")}:${g("minute")}`;
+}
+
+export const formatDateTime = (epoch: number): string => `${formatShort(epoch)} ${formatTime(epoch)}`;

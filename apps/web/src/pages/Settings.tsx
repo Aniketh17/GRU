@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { HoldButton, Modal } from "../components/Dialog.tsx";
 import { useTheme } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
+import { ExportCard, ResumeCard } from "../components/SettingsCards.tsx";
 import { Banner, Button, Card, Field, PageHeader, Pill, cx } from "../components/ui.tsx";
 import { api } from "../lib/api.ts";
 import { formatTime } from "../lib/format.ts";
@@ -24,7 +25,7 @@ export function SettingsPage() {
   const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
 
   const settingsQ = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number } | null>(null);
+  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number; shortlist_threshold: number } | null>(null);
   const loop = draft ?? settingsQ.data;
   const saveLoop = useMutation({
     mutationFn: api.saveSettings,
@@ -150,14 +151,18 @@ export function SettingsPage() {
           </p>
         </div>
         {loop && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days })} />
-            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days })} />
-            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value) })} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold })} />
+            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold })} />
+            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value), shortlist_threshold: loop.shortlist_threshold })} />
+            <Field label="Job shortlist score (min)" type="number" min={30} max={95} value={loop.shortlist_threshold} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: Number(e.target.value) })} />
           </div>
         )}
         <div><Button variant="primary" disabled={!draft || saveLoop.isPending} onClick={() => draft && saveLoop.mutate(draft)}>Save</Button></div>
       </Card>
+
+      <ResumeCard />
+      <ExportCard />
 
       <Card className="flex flex-col gap-4 p-5" aria-labelledby="s-acc">
         <div className="flex flex-wrap items-center justify-between gap-2">

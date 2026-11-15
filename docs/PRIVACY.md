@@ -14,7 +14,7 @@ Last updated 2026-11-15. This file describes what GRU stores, where it lives, wh
 | Application notes, interview prep and debriefs, check-in answers, notes, task titles and bodies | AES-256-GCM encrypted | Key `DATA_KEY_V1` (Worker secret) |
 | Gmail refresh/access tokens | Encrypted | Read-only scope |
 | Email metadata: Gmail id, thread id, date, sender **domain**, class, confidence | Plaintext | No subject, no sender address, no body |
-| Email snippet (first 300 chars) | Encrypted | Set to NULL after 90 days |
+| Email snippet (first 300 chars) | Encrypted | Set to NULL after 90 days (backfill itself only reads the last 5 days) |
 | Ordinary email bodies | **Never fetched, never stored** | |
 | Job-alert email bodies | **Processed in memory only, never stored** | Only the extracted vacancy fields are kept; descriptions and requirements are encrypted |
 | Resume text and structured profile | Encrypted | |

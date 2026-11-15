@@ -5,6 +5,7 @@ import type { AppEnv } from "../app.ts";
 import type { Db } from "../db/client.ts";
 import { nowSec } from "../env.ts";
 import { aucklandDate } from "../lib/timezone.ts";
+import { applyTomorrow } from "./jobs.ts";
 import { getSettings } from "./settings.ts";
 
 export const briefRoutes = new Hono<AppEnv>();
@@ -125,6 +126,16 @@ export async function computeBrief(db: Db, now: number) {
       days_stale: Math.floor((now - i.start_utc) / 86400),
     }));
 
+  // 4b. New job matches (count, top matches, closing soon) and tasks due
+  const queue = await applyTomorrow(db, now, settings.shortlist_threshold, 20);
+  const jobs = {
+    new_count: queue.filter((j) => j.first_seen_at >= now - 86400).length,
+    top: queue.slice(0, 3).map((j) => ({ id: j.id, title: j.title, company: j.company, score: j.score })),
+    closing_soon: queue.filter((j) => j.closing_at !== null && j.closing_at - now <= 3 * 86400).length,
+    queue_count: queue.length,
+  };
+  const tasksDue = (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE done_at IS NULL AND due_at IS NOT NULL AND due_at <= ?", now + 86400))?.n ?? 0;
+
   // 5. Pipeline status counts
   const countRows = await db.all<{ status: string; cnt: number }>(
     "SELECT status, COUNT(*) as cnt FROM applications GROUP BY status",
@@ -170,6 +181,8 @@ export async function computeBrief(db: Db, now: number) {
     follow_ups: [...followUps, ...interviewFollowUps],
     interviews_upcoming: interviewsUpcoming,
     missing_debriefs: missingDebriefs,
+    jobs,
+    tasks_due: tasksDue,
     pipeline,
     total_applications: totalApplications,
     health: {

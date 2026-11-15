@@ -13,7 +13,7 @@ afterEach(async () => {
 const EXPECTED_TABLES = [
   "applications", "checkins", "emails_seen", "events", "interviews", "job_matches", "jobs", "kv",
   "login_attempts", "mail_accounts", "note_tokens", "notes", "notifications_sent", "oauth_states",
-  "resume_profiles", "review_queue", "sessions", "sync_runs",
+  "resume_profiles", "review_queue", "sessions", "sync_runs", "tasks",
 ];
 
 async function tableCounts(): Promise<Record<string, number>> {

@@ -1,8 +1,9 @@
 // Gmail sync engine (spec §8, Phase 2 rev 2 §5, §6).
-// 15-minute cron sync: 90-day backfill then incremental history, batch GETs,
+// 15-minute cron sync: 5-day backfill then incremental history, batch GETs,
 // max 12 new processed emails per account per tick, forward-only auto-transitions,
 // and isolated account failure handling.
 
+import { BACKFILL_DAYS } from "./constants.ts";
 import { classify } from "../classify/classify.ts";
 import { extractCompanies } from "../classify/company.ts";
 import { decide } from "../classify/decide.ts";
@@ -266,7 +267,7 @@ async function syncSingleAccount(
   // Batch GET metadata for unseen messages (1 HTTP subrequest for up to 50 messages!)
   const rawMessages = await batchGetGmailMessages(accessToken, unseenIds, fetchFn);
   let processedCount = 0;
-  const floor = account.backfill_floor ?? now - 90 * 86400;
+  const floor = Math.max(account.backfill_floor ?? 0, now - BACKFILL_DAYS * 86400);
 
   for (const rawMsg of rawMessages) {
     const meta = gmailMessageToMeta(rawMsg);

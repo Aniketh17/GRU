@@ -49,6 +49,33 @@ export async function runDailyLoopScheduler(
     }
   }
 
+  const send = (kind: "interview" | "debrief" | "task_due" | "jobs", key: string) =>
+    sendNotification(db, env.NTFY_TOPIC, env.APP_ORIGIN, kind, key, now, fetchFn);
+
+  // 2b. Interview reminders: 24 h and 2 h before (generic text), debrief nudge the morning after
+  const upcoming = await db.all<{ id: number; start_utc: number }>(
+    "SELECT id, start_utc FROM interviews WHERE state = 'scheduled' AND start_utc > ? AND start_utc <= ?", now, now + 24 * 3600,
+  );
+  for (const i of upcoming) {
+    if (i.start_utc - now <= 2 * 3600) await send("interview", `iv2:${i.id}`);
+    else await send("interview", `iv24:${i.id}`);
+  }
+  if (minutes >= briefMinutes) {
+    const past = await db.all<{ id: number; start_utc: number }>(
+      "SELECT id, start_utc FROM interviews WHERE state IN ('scheduled','done') AND debrief_enc IS NULL AND start_utc < ? AND start_utc > ?", now, now - 3 * 86400,
+    );
+    for (const i of past) if (aucklandDate(i.start_utc) < today) await send("debrief", `debrief:${i.id}`);
+
+    // 2c. Tasks due, and new job matches, at most once per day after the brief time
+    const due = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE done_at IS NULL AND due_at IS NOT NULL AND due_at <= ?", now);
+    if ((due?.n ?? 0) > 0) await send("task_due", `task_due:${today}`);
+    const fresh = await db.first<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM jobs j JOIN job_matches m ON m.job_id = j.id
+       WHERE j.status = 'new' AND j.first_seen_at >= ? AND m.score >= ?`, now - 86400, settings.shortlist_threshold,
+    );
+    if ((fresh?.n ?? 0) > 0) await send("jobs", `jobs:${today}`);
+  }
+
   // 3. Mail sync health canary (any account needs_reauth or last sync > 6 hours ago)
   const accounts = await db.all<{ status: string; last_sync_at: number | null }>(
     "SELECT status, last_sync_at FROM mail_accounts WHERE status IN ('active', 'needs_reauth')",

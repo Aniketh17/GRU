@@ -4,14 +4,19 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
-import { InboxIcon, ListIcon, MoreIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { BriefcaseIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
 import { Banner, cx } from "./ui.tsx";
 
 const NAV = [
   { to: "/", label: "Today", icon: SunIcon, end: true },
   { to: "/applications", label: "Applications", icon: ListIcon, end: false },
+  { to: "/jobs", label: "Jobs", icon: BriefcaseIcon, end: false },
+  { to: "/agenda", label: "Agenda", icon: CheckIcon, end: false },
+  { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
   { to: "/review", label: "Review", icon: InboxIcon, end: false },
 ] as const;
+
+const TABS = [NAV[0], NAV[2], NAV[1], NAV[3]] as const;
 
 function SideLink({ to, end, icon: Icon, children }: { to: string; end: boolean; icon: typeof SunIcon; children: ReactNode }) {
   return (
@@ -54,9 +59,9 @@ function Sidebar() {
 }
 
 function TabBar() {
-  const tabs = [...NAV, { to: "/settings", label: "More", icon: MoreIcon, end: false }];
+  const tabs = [...TABS, { to: "/more", label: "More", icon: MoreIcon, end: false }];
   return (
-    <nav aria-label="Primary" className="pb-safe fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-surface px-1 pt-1.5 lg:hidden">
+    <nav aria-label="Primary" className="pb-safe fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface px-1 pt-1.5 lg:hidden">
       {tabs.map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}
