@@ -27,7 +27,7 @@ import {
 
 export const MAX_NEW_EMAILS_PER_TICK = 12;
 
-interface MailAccountRow {
+export interface MailAccountRow {
   id: number;
   email: string;
   status: string;
@@ -93,7 +93,7 @@ export async function syncMailAccounts(
   return { processed: totalProcessed, accountsSynced };
 }
 
-async function getOrRefreshAccessToken(
+export async function getOrRefreshAccessToken(
   env: Env,
   db: Db,
   ring: ReturnType<typeof keyringFromEnv>,

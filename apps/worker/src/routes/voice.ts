@@ -4,17 +4,18 @@ import { z } from "zod";
 import type { AppEnv } from "../app.ts";
 import { nowSec } from "../env.ts";
 import { safeJson } from "../http/hygiene.ts";
+import { AI_CAPS, NEURONS_PER_STT_MINUTE, NEURONS_PER_TTS_CHAR, releaseNeurons, reserveNeurons } from "../lib/aibudget.ts";
 import { decText, encText } from "../lib/enc.ts";
 
 export const voiceRoutes = new Hono<AppEnv>();
 export const VOICE_RETENTION_SECONDS = 30 * 86400;
 
-// Natural voice: Workers AI Aura-1. 1,363.64 Neurons per 1,000 characters; the Free allowance is 10,000 Neurons/day (~7,300 chars).
-// GRU stops itself well below that, so Workers AI never reaches its hard stop and no other feature is starved.
-export const TTS_DAILY_CHARS = 5500;
+// Natural voice: Workers AI Aura-1 (D-055). Billing is the shared Neuron ledger (lib/aibudget.ts).
+export const TTS_DAILY_CHARS = Math.floor(AI_CAPS.tts / NEURONS_PER_TTS_CHAR);
 export const TTS_SPEAKERS = ["luna", "asteria", "athena", "stella", "hera", "orion", "arcas"] as const;
 const Tts = z.object({ text: z.string().min(1).max(400), speaker: z.enum(TTS_SPEAKERS).default("luna") });
-
+const Stt = z.object({ audio: z.string().min(200).max(1_700_000) });
+const MAX_STT_SECONDS = 35;
 const Entry = z.object({ role: z.enum(["user", "gru"]), text: z.string().min(1).max(1500) });
 
 voiceRoutes.get("/history", async (c) => {
@@ -45,21 +46,37 @@ voiceRoutes.post("/tts", async (c) => {
   const b = Tts.safeParse(await safeJson(c.req));
   if (!b.success) return c.json({ error: "bad_request" }, 400);
   const db = c.get("db");
-  const day = `tts_chars:${new Date(nowSec() * 1000).toISOString().slice(0, 10)}`; // Workers AI resets at 00:00 UTC
-  const len = b.data.text.length;
-  // Reserve first (atomic), refuse when it would pass the cap, release if synthesis fails.
-  const r = await db.run(
-    `INSERT INTO kv (k, v) VALUES (?1, CAST(?2 AS TEXT))
-     ON CONFLICT(k) DO UPDATE SET v = CAST(CAST(kv.v AS INTEGER) + ?2 AS TEXT) WHERE CAST(kv.v AS INTEGER) + ?2 <= ?3`,
-    day, len, TTS_DAILY_CHARS,
-  );
-  if (r.meta.changes !== 1) return c.json({ error: "tts_cap" }, 429);
+  const now = nowSec();
+  const cost = Math.ceil(b.data.text.length * NEURONS_PER_TTS_CHAR);
+  if (!(await reserveNeurons(db, "tts", cost, now))) return c.json({ error: "tts_cap" }, 429);
   try {
     const out = (await c.env.AI.run("@cf/deepgram/aura-1", { text: b.data.text, speaker: b.data.speaker, encoding: "mp3" }, { returnRawResponse: true })) as unknown as Response;
     if (!out.ok || !out.body) throw new Error("tts_upstream");
     return new Response(out.body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
   } catch {
-    await db.run("UPDATE kv SET v = CAST(MAX(0, CAST(v AS INTEGER) - ?) AS TEXT) WHERE k = ?", len, day);
+    await releaseNeurons(db, "tts", cost, now);
     return c.json({ error: "tts_failed" }, 502);
+  }
+});
+
+// Speech to text for devices without on-device recognition (iPhone). The recording is sent as a 16 kHz mono WAV (base64),
+// transcribed by Whisper, and discarded: never stored, never logged (Ani, 2026-11-15, D-042/D-059).
+voiceRoutes.post("/stt", async (c) => {
+  if (!c.env.AI) return c.json({ error: "stt_unavailable" }, 501);
+  const b = Stt.safeParse(await safeJson(c.req));
+  if (!b.success || !b.data.audio.startsWith("UklGR")) return c.json({ error: "bad_request" }, 400); // "RIFF"
+  const bytes = Math.floor((b.data.audio.length * 3) / 4);
+  const seconds = Math.max(1, (bytes - 44) / 32000);
+  if (seconds > MAX_STT_SECONDS) return c.json({ error: "too_long" }, 413);
+  const db = c.get("db");
+  const now = nowSec();
+  const cost = Math.ceil((seconds / 60) * NEURONS_PER_STT_MINUTE) + 1;
+  if (!(await reserveNeurons(db, "stt", cost, now))) return c.json({ error: "stt_cap" }, 429);
+  try {
+    const out = (await c.env.AI.run("@cf/openai/whisper-large-v3-turbo", { audio: b.data.audio, language: "en", vad_filter: true })) as { text?: string };
+    return c.json({ text: String(out.text ?? "").trim().slice(0, 500) });
+  } catch {
+    await releaseNeurons(db, "stt", cost, now);
+    return c.json({ error: "stt_failed" }, 502);
   }
 });

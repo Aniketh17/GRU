@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { MailViewer } from "../components/MailViewer.tsx";
 import { InterviewPanel } from "../components/InterviewPanel.tsx";
 import { ApplicationForm } from "../components/ApplicationForm.tsx";
 import { ConfirmDialog } from "../components/Dialog.tsx";
@@ -173,6 +174,7 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [viewMail, setViewMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const app = useQuery({ queryKey: ["application", id], queryFn: () => api.getApplication(id) });
   const timeline = useQuery({ queryKey: ["timeline", id], queryFn: () => api.timeline(id) });
   const [notes, setNotes] = useState<string | null>(null);
@@ -282,6 +284,9 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
                       <div className="pb-3.5">
                         <p className={cx("m-0 font-medium", e.undone === 1 && "text-muted line-through")}>{eventLabel(e.type, e.prev_status)}</p>
                         <p className="m-0 text-[12.5px] text-muted">{formatDateTime(e.at)} · {formatRelative(e.at)} · {e.auto_applied ? "automatic, from email" : "by you"}</p>
+                        {e.gmail_id && e.account_id && (
+                          <Button size="sm" variant="quiet" className="mt-1" onClick={() => setViewMail({ accountId: e.account_id as number, gmailId: e.gmail_id as string })}>View email</Button>
+                        )}
                         {canUndo && (
                           <Button size="sm" className="mt-1.5" onClick={() => undo.mutate(e.id)} disabled={undo.isPending}>Undo</Button>
                         )}
@@ -313,6 +318,7 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
             <Button size="sm" onClick={() => setEditing(true)}>Edit details</Button>
             <Button size="sm" variant="quiet" onClick={() => setConfirmDelete(true)}><TrashIcon size={14} />Delete</Button>
           </div>
+          {viewMail && <MailViewer accountId={viewMail.accountId} gmailId={viewMail.gmailId} onClose={() => setViewMail(null)} />}
           <ApplicationForm open={editing} onClose={() => setEditing(false)} existing={a} />
           <ConfirmDialog
             open={confirmDelete}

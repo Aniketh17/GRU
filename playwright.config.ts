@@ -13,6 +13,8 @@ export default defineConfig({
     timezoneId: "Pacific/Auckland",
     locale: "en-NZ",
     trace: "retain-on-failure",
+    permissions: ["microphone"],
+    launchOptions: { args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] },
   },
   projects: [
     { name: "phone", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 } },

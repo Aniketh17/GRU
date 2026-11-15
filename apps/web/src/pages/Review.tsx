@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { MailViewer } from "../components/MailViewer.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, PageHeader, Pill } from "../components/ui.tsx";
 import { api, type ReviewItem, type Status } from "../lib/api.ts";
@@ -78,6 +80,7 @@ function ReviewCard({
   onDismiss: () => void;
   disabled: boolean;
 }) {
+  const [viewing, setViewing] = useState(false);
   const company = item.company || item.proposal?.company || "Unknown company";
   const suggested = item.proposal?.suggested;
   const reason = item.proposal?.reason;
@@ -117,15 +120,8 @@ function ReviewCard({
       )}
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-line">
-        {item.gmailId ? (
-          <a
-            href={`https://mail.google.com/mail/u/0/#inbox/${item.gmailId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12.5px] font-medium text-accent hover:underline"
-          >
-            Open in Gmail ↗
-          </a>
+        {item.gmailId && item.accountId ? (
+          <Button size="sm" onClick={() => setViewing(true)}>Open email</Button>
         ) : <span />}
 
         <div className="flex items-center gap-2">
@@ -139,6 +135,7 @@ function ReviewCard({
           )}
         </div>
       </div>
+      {viewing && item.gmailId && item.accountId && <MailViewer accountId={item.accountId} gmailId={item.gmailId} onClose={() => setViewing(false)} />}
     </Card>
   );
 }

@@ -380,3 +380,12 @@ export function gmailMessageToMeta(msg: GmailMessage): MailMeta {
     autoSubmitted: getHeader("auto-submitted"),
   };
 }
+
+/** One message with its body, for the in-app mail viewer (job-related mail only; the caller enforces that). */
+export async function getGmailMessageFull(accessToken: string, id: string, fetchFn: typeof fetch = fetch): Promise<GmailMessage> {
+  const res = await fetchFn(`${GMAIL_API_BASE}/messages/${encodeURIComponent(id)}?format=full&fields=${encodeURIComponent(GMAIL_FULL_FIELDS)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new GmailApiError(`message_get_failed:${res.status}`, res.status);
+  return (await res.json()) as GmailMessage;
+}

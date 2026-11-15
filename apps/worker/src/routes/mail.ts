@@ -7,7 +7,10 @@ import { b64urlEncode } from "../crypto/b64.ts";
 import { aadFor, encryptField, keyringFromEnv } from "../crypto/envelope.ts";
 import { sha256 } from "../crypto/hmac.ts";
 import { nowSec } from "../env.ts";
-import { buildGoogleAuthUrl, hasBodyAccess } from "../gmail/client.ts";
+import { extractMeetingLink } from "../classify/body.ts";
+import { messageBody } from "../gmail/body.ts";
+import { batchGetGmailMessages, buildGoogleAuthUrl, getGmailMessageFull, gmailMessageToMeta, hasBodyAccess } from "../gmail/client.ts";
+import { getOrRefreshAccessToken, type MailAccountRow } from "../gmail/sync.ts";
 import { safeJson } from "../http/hygiene.ts";
 import { log } from "../log/index.ts";
 
@@ -158,4 +161,43 @@ mailRoutes.post("/disconnect", async (c) => {
 
   log("mail_disconnected", { id: account.id });
   return c.json({ ok: true });
+});
+
+// In-app email viewer. Only emails GRU already stored as job-related (emails_seen) can be opened; the body is fetched live,
+// shown, and never stored. Without read access only the headers are shown.
+mailRoutes.get("/view", async (c) => {
+  const accountId = Number(c.req.query("account"));
+  const gmailId = c.req.query("gmail") ?? "";
+  if (!Number.isInteger(accountId) || !/^[A-Za-z0-9_-]{6,64}$/.test(gmailId)) return c.json({ error: "bad_request" }, 400);
+  const db = c.get("db");
+  const row = await db.first<{ thread_id: string; class: string | null } & MailAccountRow & { granted_scope: string | null }>(
+    `SELECT e.thread_id, e.class, m.id, m.email, m.status, m.refresh_token_enc, m.access_token_enc, m.access_expires_at, m.history_id,
+            m.backfill_page_token, m.backfill_floor, m.backfill_done, m.messages_scanned, m.granted_scope
+     FROM emails_seen e JOIN mail_accounts m ON m.id = e.account_id WHERE e.account_id = ? AND e.gmail_id = ?`,
+    accountId, gmailId,
+  );
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const bodyAccess = hasBodyAccess(row.granted_scope);
+  try {
+    const now = nowSec();
+    const token = await getOrRefreshAccessToken(c.env, db, keyringFromEnv(c.env), row, now, fetch);
+    const msg = bodyAccess
+      ? await getGmailMessageFull(token, gmailId)
+      : (await batchGetGmailMessages(token, [gmailId]))[0];
+    if (!msg) return c.json({ error: "not_found" }, 404);
+    const meta = gmailMessageToMeta(msg);
+    const body = bodyAccess ? messageBody(msg) : null;
+    return c.json({
+      subject: meta.subject,
+      from: meta.from,
+      date: meta.internalDate,
+      class: row.class,
+      text: body ? body.text.slice(0, 12000) : null,
+      meeting_link: body ? extractMeetingLink(body.text, body.html) : null,
+      body_access: bodyAccess,
+      gmail_url: `https://mail.google.com/mail/u/${encodeURIComponent(row.email)}/#all/${row.thread_id}`,
+    });
+  } catch {
+    return c.json({ error: "gmail_unavailable" }, 502);
+  }
 });

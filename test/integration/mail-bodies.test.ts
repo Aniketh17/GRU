@@ -140,4 +140,37 @@ describe("body reading", () => {
     const api = (await (await call("/api/mail/accounts", { cookie })).json()) as { accounts: { body_access: boolean }[] };
     expect(api.accounts[0]?.body_access).toBe(false);
   });
+
+  it("opens a stored job email inside GRU (live, text only), and refuses anything else", async () => {
+    await addAccount(READONLY);
+    await seedApp(1);
+    await seed("view_1", 1, "interview_invite", now - 3600);
+    const accountId = (await env.DB.prepare("SELECT id FROM mail_accounts").first<{ id: number }>())!.id;
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const u = typeof input === "string" ? input : input.toString();
+      if (u.includes("/messages/view_1")) {
+        return Response.json({
+          id: "view_1", threadId: "thread_view_1", internalDate: String((now - 3600) * 1000),
+          payload: { mimeType: "text/plain", headers: [{ name: "From", value: "HR <hr@acme.co.nz>" }, { name: "Subject", value: "Interview invitation" }],
+            body: { data: b64("Kia ora Ani, please join: https://acme.zoom.us/j/555?pwd=a on 20 Nov 2026 at 2pm.") } },
+        });
+      }
+      return original(input, init);
+    }) as typeof fetch;
+    try {
+      const ok = (await (await call(`/api/mail/view?account=${accountId}&gmail=view_1`, { cookie })).json()) as Record<string, unknown>;
+      expect(ok).toMatchObject({ subject: "Interview invitation", body_access: true, class: "interview_invite" });
+      expect(String(ok.text)).toContain("Kia ora Ani");
+      expect(ok.meeting_link).toEqual({ url: "https://acme.zoom.us/j/555?pwd=a", kind: "Zoom" });
+      expect(String(ok.gmail_url)).toContain("#all/t_view_1");
+      expect((await call(`/api/mail/view?account=${accountId}&gmail=unknown_id_1`, { cookie })).status).toBe(404); // not filed as job mail
+      expect((await call("/api/mail/view?account=1&gmail=x", { cookie })).status).toBe(400);
+      expect((await call(`/api/mail/view?account=${accountId}&gmail=view_1`)).status).toBe(401);
+      const dump = JSON.stringify((await env.DB.prepare("SELECT * FROM emails_seen").all()).results);
+      expect(dump).not.toContain("Kia ora");
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
 });

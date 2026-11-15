@@ -139,3 +139,29 @@ test("assistant offers today's brief once a day as text and never speaks or list
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(ttsCalls).toEqual([]);
 });
+
+test("microphone on a device without on-device speech (iPhone): records, transcribes in the cloud, shows a confirm card", async ({ page }) => {
+  // iPhone Safari has webkitSpeechRecognition but no on-device `available()`; emulate that.
+  await page.addInitScript(() => {
+    for (const k of ["SpeechRecognition", "webkitSpeechRecognition"] as const) {
+      const C = (window as unknown as Record<string, unknown>)[k];
+      if (C) Object.defineProperty(C, "available", { value: undefined, configurable: true });
+    }
+  });
+  let wavStart = "";
+  await page.route("**/api/voice/stt", async (route) => {
+    wavStart = String((route.request().postDataJSON() as { audio: string }).audio).slice(0, 5);
+    await route.fulfill({ json: { text: "add a task to water the plants tomorrow" } });
+  });
+  await login(page);
+  await page.evaluate(() => localStorage.setItem("gru.voice.speak", "0"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Talk to GRU" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Start listening" }).click();
+  await expect(dialog.getByRole("button", { name: "Stop listening" })).toBeVisible();
+  await page.waitForTimeout(1500);
+  await dialog.getByRole("button", { name: "Stop listening" }).click();
+  await expect(dialog.getByRole("group", { name: "Confirm" })).toContainText("Water the plants");
+  expect(wavStart).toBe("UklGR"); // a WAV (RIFF) recording was sent
+});

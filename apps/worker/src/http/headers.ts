@@ -19,7 +19,7 @@ export function applySecurityHeaders(res: Response, path: string): Response {
   h.set("Referrer-Policy", "no-referrer");
   h.set("X-Content-Type-Options", "nosniff");
   h.set("Cross-Origin-Opener-Policy", "same-origin");
-  h.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()");
+  h.set("Permissions-Policy", "camera=(), microphone=(self), geolocation=(), interest-cohort=()");
   if (isNoStorePath(path)) h.set("Cache-Control", "no-store");
   return out;
 }

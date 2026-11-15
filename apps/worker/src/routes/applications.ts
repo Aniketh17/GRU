@@ -207,7 +207,7 @@ applicationRoutes.get("/:id/timeline", async (c) => {
   const db = c.get("db");
   if (!(await db.first("SELECT id FROM applications WHERE id = ?", id))) return c.json({ error: "not_found" }, 404);
   const items = await db.all(
-    "SELECT id, type, at, prev_status, auto_applied, confidence, undone FROM events WHERE app_id = ? ORDER BY at DESC, id DESC LIMIT 50",
+    "SELECT id, type, at, prev_status, auto_applied, confidence, undone, account_id, gmail_id FROM events WHERE app_id = ? ORDER BY at DESC, id DESC LIMIT 50",
     id,
   );
   return c.json({ items });

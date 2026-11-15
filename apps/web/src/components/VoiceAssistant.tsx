@@ -6,6 +6,8 @@ import { api, type Application } from "../lib/api.ts";
 import { formatDateTime, greeting, localDay } from "../lib/format.ts";
 import { NATURAL_SPEAKERS, installStt, getPrefs, listen, localVoices, setPrefs, speak, speakable, sttMaybe, sttStatus, stopSpeaking, unlockAudio, voicesReady, type Listener, type SttStatus } from "../lib/speech.ts";
 import { HELP_TEXT, composeBriefScript, parseIntent, type Intent } from "../lib/voice-intents.ts";
+import { MicError, micSupported, startRecording, type Recording } from "../lib/recorder.ts";
+import { ApiError } from "../lib/api.ts";
 import { Modal } from "./Dialog.tsx";
 import { MicIcon } from "./Icons.tsx";
 import { useToast } from "./Toast.tsx";
@@ -25,6 +27,9 @@ export function VoiceAssistant() {
   const [input, setInput] = useState("");
   const [interim, setInterim] = useState("");
   const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorder = useRef<Recording | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [stt, setStt] = useState<SttStatus>("unsupported");
@@ -214,25 +219,46 @@ export function VoiceAssistant() {
     }
   }
 
+  async function cloudListen() {
+    if (!micSupported()) return void toast({ text: "This browser can’t use the microphone. Type, or use your keyboard’s mic." });
+    try {
+      recorder.current = await startRecording(25);
+      setRecording(true);
+      const wav = await recorder.current.result;
+      setRecording(false);
+      if (!wav) return void toast({ text: "I didn’t hear anything. Tap the mic and try again." });
+      setTranscribing(true);
+      const { text } = await api.stt(wav);
+      setTranscribing(false);
+      if (text) await handleInput(text);
+      else toast({ text: "I couldn’t make that out. Try again a little closer." });
+    } catch (e) {
+      if (e instanceof MicError && e.reason === "denied") toast({ text: "Microphone is blocked. On iPhone: Settings → Safari (or GRU) → Microphone → Allow." });
+      else if (e instanceof ApiError && e.code === "stt_cap") toast({ text: "Today’s voice-typing allowance is used up. Type, or use your keyboard’s mic." });
+      else toast({ text: "Couldn’t use the microphone. Try again, or type." });
+    } finally {
+      setRecording(false);
+      setTranscribing(false);
+    }
+  }
+
   async function onMic() {
+    if (recording) return void recorder.current?.stop();
     if (listening) return void listener.current?.stop();
+    if (transcribing) return;
     unlockAudio();
     stopSpeaking();
     setSpeaking(false);
-    if (stt !== "ready") {
-      // Probed only now, after an explicit tap.
+    // Prefer on-device recognition when the browser confirms it; otherwise record and transcribe in the cloud (iPhone).
+    if (stt !== "ready" && stt !== "unsupported") {
       const st = await sttStatus();
-      if (st === "unsupported") {
-        setStt("unsupported");
-        toast({ text: "On-device speech isn’t available here. Type instead." });
-        return;
-      }
       if (st === "downloadable") {
         toast({ text: "Downloading on-device speech…" });
-        if (!(await installStt())) { setStt("unsupported"); return; }
+        if (!(await installStt())) { setStt("unsupported"); return void (await cloudListen()); }
       }
-      setStt("ready");
+      setStt(st === "unsupported" ? "unsupported" : "ready");
     }
+    if (stt === "unsupported" || (stt !== "ready" && !sttMaybe())) return void (await cloudListen());
     setListening(true);
     setInterim("");
     try {
@@ -250,7 +276,7 @@ export function VoiceAssistant() {
   }
 
   const voiceList = voices.length ? voices : localVoices();
-  const micOk = stt !== "unsupported";
+  const busyMic = recording || listening;
 
   return (
     <>
@@ -292,12 +318,12 @@ export function VoiceAssistant() {
           <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); const t = input; setInput(""); void handleInput(t); }}>
             <button
               type="button"
-              aria-label={listening ? "Stop listening" : "Start listening"}
-              aria-pressed={listening}
-              disabled={!micOk}
-              title={micOk ? "Tap to talk" : "On-device speech isn’t available in this browser. Type instead, or use your keyboard’s microphone."}
+              aria-label={busyMic ? "Stop listening" : "Start listening"}
+              aria-pressed={busyMic}
+              disabled={transcribing}
+              title="Tap to talk, tap again when you’re done"
               onClick={() => void onMic()}
-              className={cx("grid size-11 flex-none cursor-pointer place-items-center rounded-full border border-line disabled:cursor-not-allowed disabled:opacity-40", listening ? "animate-pulse bg-accent text-accent-ink" : "bg-surface text-ink")}
+              className={cx("grid size-11 flex-none cursor-pointer place-items-center rounded-full border border-line disabled:cursor-wait disabled:opacity-60", busyMic ? "animate-pulse bg-accent text-accent-ink" : "bg-surface text-ink")}
             >
               <MicIcon size={20} />
             </button>
@@ -305,13 +331,13 @@ export function VoiceAssistant() {
               aria-label="Type to GRU"
               value={input}
               maxLength={300}
-              placeholder={listening ? "Listening…" : "Type or tap the mic"}
+              placeholder={transcribing ? "Transcribing…" : busyMic ? "Listening… tap the mic when done" : "Type or tap the mic"}
               onChange={(e) => setInput(e.target.value)}
               className="h-11 min-w-0 flex-1 rounded-[10px] border border-line bg-sunken px-3 text-[14px] text-ink placeholder:text-muted"
             />
             {speaking ? <Button onClick={() => { stopSpeaking(); setSpeaking(false); }}>Stop</Button> : <Button variant="primary" type="submit" disabled={!input.trim()}>Send</Button>}
           </form>
-          {!micOk && <p className="m-0 text-[12px] text-muted">Speech recognition runs only on your device, and this browser can’t do that. Typing works fully; your phone keyboard’s microphone also works.</p>}
+          {stt === "unsupported" && <p className="m-0 text-[12px] text-muted">Your short recording is sent to Cloudflare to be turned into text, then discarded. You can also type, or use your keyboard’s microphone.</p>}
 
           <details className="text-[13px]">
             <summary className="cursor-pointer font-medium text-ink-2">Voice settings</summary>

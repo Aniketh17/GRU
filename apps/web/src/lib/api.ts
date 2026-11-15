@@ -33,6 +33,19 @@ export interface TimelineEvent {
   auto_applied: number;
   confidence: number | null;
   undone: number;
+  account_id: number | null;
+  gmail_id: string | null;
+}
+
+export interface MailView {
+  subject: string;
+  from: string;
+  date: number;
+  class: string | null;
+  text: string | null;
+  meeting_link: { url: string; kind: string } | null;
+  body_access: boolean;
+  gmail_url: string;
 }
 
 export interface Health {
@@ -255,5 +268,7 @@ export const api = {
   voiceHistory: () => request<{ items: { id: number; role: "user" | "gru"; text: string | null; at: number }[] }>("/api/voice/history"),
   saveVoiceEntry: (role: "user" | "gru", text: string) => request<{ id: number }>("/api/voice/history", "POST", { role, text }),
   clearVoiceHistory: () => request<{ deleted: true }>("/api/voice/history", "DELETE"),
+  mailView: (accountId: number, gmailId: string) => request<MailView>(`/api/mail/view?account=${accountId}&gmail=${encodeURIComponent(gmailId)}`),
+  stt: (audio: string) => request<{ text: string }>("/api/voice/stt", "POST", { audio }),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };
