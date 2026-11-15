@@ -172,7 +172,7 @@ authRoutes.get("/google/callback", async (c) => {
   // Granted scopes check: must have gmail.metadata and no other Gmail scope!
   try {
     validateGrantedScopes(tokens.scope);
-  } catch (e) {
+  } catch {
     // Revoke unexpected access immediately!
     await revokeGoogleToken(tokens.access_token);
     log("oauth_scope_rejected");
@@ -211,7 +211,7 @@ authRoutes.get("/google/callback", async (c) => {
   let profile;
   try {
     profile = await getGmailProfile(tokens.access_token);
-  } catch (e) {
+  } catch {
     log("gmail_profile_failed");
     return fail("gmail_profile_failed");
   }

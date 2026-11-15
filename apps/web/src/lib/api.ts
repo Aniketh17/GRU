@@ -119,6 +119,29 @@ async function request<T>(path: string, method = "GET", body?: unknown): Promise
   return data as T;
 }
 
+export interface Brief {
+  date: string;
+  review_count: number;
+  interviews_upcoming: { id: number; app_id: number; company: string; at: number; format: string | null; prep_ready: boolean }[];
+  missing_debriefs: { id: number; app_id: number; company: string; at: number }[];
+  follow_ups: { id: number; company: string; role: string | null; status: string; days_stale: number }[];
+  health: { summary: string; needs_reauth: boolean };
+}
+export interface Checkin {
+  date: string;
+  status: "pending" | "completed" | "skipped";
+  answers: { today_focus?: string; applied_off_email?: boolean } | null;
+  review_prompts: { id: number }[];
+  interviews_upcoming: Brief["interviews_upcoming"];
+  missing_debriefs: Brief["missing_debriefs"];
+}
+export interface Settings {
+  brief_time: string;
+  stale_days: number;
+  interview_stale_days: number;
+  ntfy_configured?: boolean;
+}
+
 export interface ListParams {
   status?: string;
   q?: string;
@@ -155,5 +178,11 @@ export const api = {
   listReview: () => request<{ items: ReviewItem[] }>("/api/review"),
   resolveReview: (id: number, data: { action: "confirm" | "dismiss"; appId?: number; status?: Status }) =>
     request<{ ok: true }>(`/api/review/${id}/resolve`, "POST", data),
+  brief: () => request<Brief>("/api/brief"),
+  checkin: () => request<Checkin>("/api/checkin/today"),
+  saveCheckin: (d: { status: "completed" | "skipped"; today_focus?: string; applied_off_email?: boolean }) =>
+    request<{ status: string }>("/api/checkin/today", "POST", d),
+  settings: () => request<Settings>("/api/settings"),
+  saveSettings: (d: Omit<Settings, "ntfy_configured">) => request<Settings>("/api/settings", "PUT", d),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

@@ -1,6 +1,5 @@
 // Unit tests for Gmail API client, OAuth helpers, scope enforcement and batch parsing (spec §8, Phase 2 rev 2 §2, §10).
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   FORBIDDEN_GMAIL_SCOPES,
@@ -30,7 +29,7 @@ describe("Gmail scope enforcement (Phase 2 rev 2 §2)", () => {
   it("ensures no code requests any forbidden scopes", () => {
     assert.equal(GMAIL_SCOPES.length, 3);
     for (const scope of GMAIL_SCOPES) {
-      assert.ok(!FORBIDDEN_GMAIL_SCOPES.includes(scope as any));
+      assert.ok(!FORBIDDEN_GMAIL_SCOPES.includes(scope as never));
     }
   });
 

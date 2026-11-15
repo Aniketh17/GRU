@@ -3,12 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { ApplicationForm } from "../components/ApplicationForm.tsx";
+import { BriefCard } from "../components/DailyLoop.tsx";
 import { ListIcon, PlusIcon } from "../components/Icons.tsx";
 import { ThemeToggle } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, ErrorState, SectionTitle, SkeletonRows, StatusChip } from "../components/ui.tsx";
-import { api, type RecentEvent, type Status } from "../lib/api.ts";
-import { daysSince, formatLong, formatRelative, formatTime, greeting } from "../lib/format.ts";
+import { api, type Status } from "../lib/api.ts";
+import { daysSince, formatLong, formatRelative, greeting } from "../lib/format.ts";
 
 const PIPELINE: { label: string; statuses: Status[]; tone: string }[] = [
   { label: "Applied", statuses: ["applied"], tone: "bg-line-strong" },
@@ -80,6 +81,7 @@ export function TodayPage() {
       ) : (
         <div className="flex flex-wrap items-start gap-5">
           <div className="flex min-w-0 flex-[2_1_520px] flex-col gap-5">
+            <BriefCard onAdd={() => setAdding(true)} />
             <Card>
               <SectionTitle aside={<Link to="/applications" className="text-[13px] font-medium text-accent-text no-underline">All applications →</Link>}>Pipeline</SectionTitle>
               {summary.isPending ? (

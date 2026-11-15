@@ -174,7 +174,7 @@ async function syncSingleAccount(
   }
 
   let candidateIds: string[] = [];
-  let isBackfill = account.backfill_done === 0;
+  const isBackfill = account.backfill_done === 0;
   let nextBackfillToken: string | null = account.backfill_page_token;
   let nextHistoryId: string | null = account.history_id;
   let backfillFinished = false;

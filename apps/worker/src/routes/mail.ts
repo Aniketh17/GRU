@@ -7,7 +7,7 @@ import { b64urlEncode } from "../crypto/b64.ts";
 import { aadFor, encryptField, keyringFromEnv } from "../crypto/envelope.ts";
 import { sha256 } from "../crypto/hmac.ts";
 import { nowSec } from "../env.ts";
-import { buildGoogleAuthUrl, revokeGoogleToken } from "../gmail/client.ts";
+import { buildGoogleAuthUrl } from "../gmail/client.ts";
 import { safeJson } from "../http/hygiene.ts";
 import { log } from "../log/index.ts";
 

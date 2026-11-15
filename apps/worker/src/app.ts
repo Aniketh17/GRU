@@ -11,10 +11,13 @@ import { errorCode, log } from "./log/index.ts";
 import { adminRoutes } from "./routes/admin.ts";
 import { applicationRoutes } from "./routes/applications.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { briefRoutes } from "./routes/brief.ts";
+import { checkinRoutes } from "./routes/checkin.ts";
 import { eventRoutes } from "./routes/events.ts";
 import { healthRoutes } from "./routes/health.ts";
 import { mailRoutes } from "./routes/mail.ts";
 import { reviewRoutes } from "./routes/review.ts";
+import { settingsRoutes } from "./routes/settings.ts";
 
 export type AppEnv = { Bindings: Env; Variables: { db: Db } };
 
@@ -36,6 +39,9 @@ app.route("/api/applications", applicationRoutes);
 app.route("/api/events", eventRoutes);
 app.route("/api/mail", mailRoutes);
 app.route("/api/review", reviewRoutes);
+app.route("/api/brief", briefRoutes);
+app.route("/api/checkin", checkinRoutes);
+app.route("/api/settings", settingsRoutes);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));

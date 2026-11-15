@@ -7,6 +7,7 @@ import { Db } from "./db/client.ts";
 import { getSystemState } from "./db/kv.ts";
 import { syncMailAccounts } from "./gmail/sync.ts";
 import { errorCode, log } from "./log/index.ts";
+import { runDailyLoopScheduler } from "./notify/scheduler.ts";
 
 export const TICK_LOCK_TTL = 300;
 
@@ -53,6 +54,7 @@ export async function runTick(env: Env, now: number, fetchFn: typeof fetch = fet
     try {
       await db.batch(housekeepingStmts(db, now));
       await syncMailAccounts(env, db, now, fetchFn);
+      await runDailyLoopScheduler(env, db, now, fetchFn);
       log("tick_done", { budget_used_count: db.budget.usedCount });
       return { ran: true };
     } finally {

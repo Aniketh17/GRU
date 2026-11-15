@@ -4,8 +4,8 @@ import { useSearchParams } from "react-router";
 import { HoldButton, Modal } from "../components/Dialog.tsx";
 import { useTheme } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
-import { Banner, Button, Card, PageHeader, Pill, cx } from "../components/ui.tsx";
-import { api, type MailAccount } from "../lib/api.ts";
+import { Banner, Button, Card, Field, PageHeader, Pill, cx } from "../components/ui.tsx";
+import { api } from "../lib/api.ts";
 import { formatTime } from "../lib/format.ts";
 import { SCHEDULE, localMinutes, type ThemePref } from "../lib/theme.ts";
 
@@ -23,6 +23,19 @@ export function SettingsPage() {
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
   const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
 
+  const settingsQ = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number } | null>(null);
+  const loop = draft ?? settingsQ.data;
+  const saveLoop = useMutation({
+    mutationFn: api.saveSettings,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["brief"] });
+      setDraft(null);
+      toast({ text: "Daily loop settings saved" });
+    },
+    onError: () => toast({ text: "Couldn’t save settings" }),
+  });
   const [wipeOpen, setWipeOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectEmail, setConnectEmail] = useState("");
@@ -127,6 +140,23 @@ export function SettingsPage() {
           </div>
           <div className="flex justify-between text-[12px] text-muted"><span>12 AM</span><span>9:00 AM light</span><span>6:30 PM dark</span><span>12 AM</span></div>
         </div>
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-5" aria-labelledby="s-loop">
+        <div>
+          <h2 id="s-loop" className="m-0 text-[15px] font-semibold">Daily loop</h2>
+          <p className="m-0 text-[12.5px] text-muted">
+            Phone alerts via ntfy: {settingsQ.data?.ntfy_configured ? "on" : "off (set NTFY_TOPIC)"}. Alerts never include names or numbers.
+          </p>
+        </div>
+        {loop && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days })} />
+            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days })} />
+            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value) })} />
+          </div>
+        )}
+        <div><Button variant="primary" disabled={!draft || saveLoop.isPending} onClick={() => draft && saveLoop.mutate(draft)}>Save</Button></div>
       </Card>
 
       <Card className="flex flex-col gap-4 p-5" aria-labelledby="s-acc">
