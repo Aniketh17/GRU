@@ -140,6 +140,7 @@ export interface Brief {
   interviews_upcoming: { id: number; app_id: number; company: string; at: number; format: string | null; prep_ready: boolean }[];
   missing_debriefs: { id: number; app_id: number; company: string; at: number }[];
   interviews_proposed: { id: number; app_id: number; company: string; start_utc: number | null }[];
+  deadlines_soon: { id: number; app_id: number | null; kind: string; due_at: number; company: string | null }[];
   follow_ups: { id: number; company: string; role: string | null; status: string; days_stale: number }[];
   health: { summary: string; needs_reauth: boolean };
   jobs: { new_count: number; top: { id: number; title: string; company: string | null; score: number | null }[]; closing_soon: number; queue_count: number };
@@ -199,6 +200,20 @@ export interface DebriefInput {
 export interface Contact {
   id: number; name: string | null; email: string | null; notes: string | null; company: string | null;
   app_id: number | null; first_seen_at: number; last_contact_at: number; msg_count: number;
+}
+
+export interface CalendarItem {
+  key: string;
+  kind: "interview" | "deadline" | "task" | "closing";
+  title: string;
+  start: number;
+  all_day: boolean;
+  state: "scheduled" | "proposed" | "open" | "done";
+  company: string | null;
+  link: { url: string; kind: string } | null;
+  app_id: number | null;
+  job_id: number | null;
+  ref_id: number;
 }
 
 export interface ListParams {
@@ -280,5 +295,9 @@ export const api = {
   contacts: () => request<{ items: Contact[] }>("/api/contacts"),
   saveContactNotes: (id: number, notes: string) => request<{ ok: true }>(`/api/contacts/${id}`, "PATCH", { notes }),
   deleteContact: (id: number) => request<{ deleted: true }>(`/api/contacts/${id}`, "DELETE"),
+  calendar: (from: number, to: number) => request<{ items: CalendarItem[] }>(`/api/calendar?from=${from}&to=${to}`),
+  calendarFeed: () => request<{ url: string }>("/api/calendar/feed"),
+  resetCalendarFeed: () => request<{ url: string }>("/api/calendar/feed/reset", "POST"),
+  setDeadlineDone: (id: number, done: boolean) => request<{ ok: true }>(`/api/calendar/deadlines/${id}`, "PATCH", { done }),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

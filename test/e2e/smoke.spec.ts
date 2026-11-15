@@ -46,7 +46,7 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
   for (const [path, text] of [
-    ["/jobs", "Jobs"], ["/agenda", "Agenda"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"],
+    ["/jobs", "Jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: text, exact: true }).first()).toBeVisible();
@@ -164,4 +164,20 @@ test("microphone on a device without on-device speech (iPhone): records, transcr
   await dialog.getByRole("button", { name: "Stop listening" }).click();
   await expect(dialog.getByRole("group", { name: "Confirm" })).toContainText("Water the plants");
   expect(wavStart).toBe("UklGR"); // a WAV (RIFF) recording was sent
+});
+
+test("calendar shows the day's items, offers the private feed, and a new feed link replaces the old one", async ({ page }) => {
+  await login(page);
+  await api(page, "/api/tasks", { title: "Calendar smoke task", due_at: Math.floor(Date.now() / 1000) + 600 });
+  await page.goto("/calendar");
+  await expect(page.getByRole("heading", { name: "Calendar", exact: true })).toBeVisible();
+  await expect(page.getByText("Calendar smoke task").first()).toBeVisible();
+  const feedLink = page.getByRole("link", { name: "Subscribe in Apple Calendar" });
+  await expect(feedLink).toHaveAttribute("href", /^webcal:\/\/.+\/cal\/[A-Za-z0-9_-]+\.ics$/);
+  const first = await feedLink.getAttribute("href");
+  const path = new URL(first!.replace("webcal:", "http:")).pathname;
+  expect((await page.request.get(path)).status()).toBe(200);
+  await page.getByRole("button", { name: /Create a new link/ }).click();
+  await expect(feedLink).not.toHaveAttribute("href", first!);
+  expect((await page.request.get(path)).status()).toBe(404);
 });

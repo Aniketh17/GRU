@@ -18,7 +18,8 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
   const focus = checkin.data?.answers?.today_focus;
   if (!b) return null;
   const proposed = b.interviews_proposed ?? [];
-  const quiet = proposed.length === 0 && b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0 && b.tasks_due === 0 && b.jobs.queue_count === 0;
+  const dls = b.deadlines_soon ?? [];
+  const quiet = dls.length === 0 && proposed.length === 0 && b.review_count === 0 && b.interviews_upcoming.length === 0 && b.missing_debriefs.length === 0 && b.tasks_due === 0 && b.jobs.queue_count === 0;
 
   return (
     <Card className="overflow-hidden border-accent/40">
@@ -27,6 +28,12 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
         {b.review_count > 0 && (
           <li><Link to="/review" className="font-medium text-accent-text">{b.review_count} email{b.review_count === 1 ? "" : "s"} to review →</Link></li>
         )}
+        {dls.map((d) => (
+          <li key={`dl${d.id}`}>
+            <Link to="/calendar" className="font-medium text-amber-text">{{ assessment: "Assessment due", offer_reply: "Reply to offer", interview_reply: "Confirm interview", other: "Action needed" }[d.kind] ?? "Deadline"}{d.company ? ` · ${d.company}` : ""}</Link>
+            <span className="text-muted"> · {formatDateTime(d.due_at)}</span>
+          </li>
+        ))}
         {proposed.map((i) => (
           <li key={`p${i.id}`}>
             <Link to={`/applications/${i.app_id}`} className="font-medium text-accent-text">Confirm interview · {i.company}</Link>

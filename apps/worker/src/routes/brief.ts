@@ -141,6 +141,12 @@ export async function computeBrief(db: Db, now: number) {
      WHERE i.state = 'proposed' ORDER BY i.created_at DESC LIMIT 5`,
   );
 
+  const deadlinesSoon = await db.all<{ id: number; app_id: number | null; kind: string; due_at: number; company: string | null }>(
+    `SELECT d.id, d.app_id, d.kind, d.due_at, a.company FROM deadlines d LEFT JOIN applications a ON a.id = d.app_id
+     WHERE d.done = 0 AND d.due_at >= ? AND d.due_at <= ? ORDER BY d.due_at ASC LIMIT 5`,
+    now - 3600, now + 7 * 86400,
+  );
+
   // 5. Pipeline status counts
   const countRows = await db.all<{ status: string; cnt: number }>(
     "SELECT status, COUNT(*) as cnt FROM applications GROUP BY status",
@@ -187,6 +193,7 @@ export async function computeBrief(db: Db, now: number) {
     interviews_upcoming: interviewsUpcoming,
     missing_debriefs: missingDebriefs,
     interviews_proposed: proposedInterviews,
+    deadlines_soon: deadlinesSoon,
     jobs,
     tasks_due: tasksDue,
     pipeline,

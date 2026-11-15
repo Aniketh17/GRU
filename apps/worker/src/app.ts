@@ -12,6 +12,7 @@ import { adminRoutes } from "./routes/admin.ts";
 import { applicationRoutes } from "./routes/applications.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { briefRoutes } from "./routes/brief.ts";
+import { calendarFeedRoutes, calendarRoutes } from "./routes/calendar.ts";
 import { checkinRoutes } from "./routes/checkin.ts";
 import { contactRoutes } from "./routes/contacts.ts";
 import { eventRoutes } from "./routes/events.ts";
@@ -57,6 +58,8 @@ app.route("/api/agenda", agendaRoutes);
 app.route("/api/export", exportRoutes);
 app.route("/api/voice", voiceRoutes);
 app.route("/api/contacts", contactRoutes);
+app.route("/api/calendar", calendarRoutes);
+app.route("/cal", calendarFeedRoutes); // token-protected, read-only, no session (calendar apps fetch it)
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));

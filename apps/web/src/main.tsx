@@ -11,6 +11,7 @@ import { ApiError } from "./lib/api.ts";
 import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
 import { AgendaPage } from "./pages/Agenda.tsx";
+import { CalendarPage } from "./pages/Calendar.tsx";
 import { JobsPage } from "./pages/Jobs.tsx";
 import { MorePage } from "./pages/More.tsx";
 import { NotesPage } from "./pages/Notes.tsx";
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: "review", element: <ReviewPage /> },
       { path: "jobs", element: <JobsPage /> },
       { path: "agenda", element: <AgendaPage /> },
+      { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },
       { path: "people", element: <PeoplePage /> },
       { path: "more", element: <MorePage /> },
