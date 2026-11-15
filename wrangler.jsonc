@@ -24,7 +24,7 @@
       "binding": "DB",
       "database_name": "gru",
       // Replace with the id printed by `npx wrangler d1 create gru` (SETUP step 3).
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "88c2d5d9-299c-42b5-b983-83395ed50084",
       "migrations_dir": "migrations"
     }
   ],
@@ -33,6 +33,6 @@
 
   "vars": {
     // Set to https://gru.<subdomain>.workers.dev before deploying (SETUP step 3).
-    "APP_ORIGIN": "http://localhost:8787"
+    "APP_ORIGIN": "https://gru.aniketh123ani.workers.dev"
   }
 }
