@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Jobs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#17605A}a:hover{color:#0F4A45}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="jobs" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 48px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+
+      <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em;">Jobs</h1>
+          <p style="margin: 2px 0 0; font-size: 13px; color: {{t.muted}};">Found in your job-alert emails · scored against <strong style="color: {{t.ink2}}; font-weight: 600;">Resume — AI/Software (v3)</strong></p>
+        </div>
+        <a href="#how" style="font-size: 13px; font-weight: 500; text-decoration: none; color: {{t.accentText}};">How scores work</a>
+      </header>
+
+      <div role="tablist" aria-label="Job views" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: {{t.sunkenStrong}}; align-self: flex-start;">
+        <button type="button" role="tab" aria-selected="true" style="height: 32px; padding: 0 14px; border-radius: 9px; border: 0; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 600; box-shadow: {{t.shadow}}; cursor: pointer;">Apply tomorrow · 7</button>
+        <button type="button" role="tab" aria-selected="false" style="height: 32px; padding: 0 14px; border-radius: 9px; border: 0; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">All discovered · 42</button>
+        <button type="button" role="tab" aria-selected="false" style="height: 32px; padding: 0 14px; border-radius: 9px; border: 0; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Saved · 5</button>
+        <button type="button" role="tab" aria-selected="false" style="height: 32px; padding: 0 14px; border-radius: 9px; border: 0; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Needs review · 3</button>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+          <button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{f.border}}; background: {{f.bg}}; color: {{f.fg}}; font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;">{{f.label}}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+        </sc-for>
+        <span style="flex: 1;"></span>
+        <span style="font-size: 12.5px; color: {{t.muted}};">Sorted by score, then closing date</span>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+
+        <section aria-label="Shortlist" style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{jobs}}" as="j" hint-placeholder-count="5">
+            <article style="padding: 14px 16px; border-radius: 14px; background: {{t.surface}}; border: {{j.border}}; display: flex; gap: 14px; align-items: flex-start;">
+              <svg width="46" height="46" viewBox="0 0 36 36" role="img" aria-label="{{j.aria}}" style="flex: none;">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="{{t.track}}" stroke-width="3"></circle>
+                <circle cx="18" cy="18" r="15" fill="none" stroke="{{j.ring}}" stroke-width="3" stroke-linecap="round" stroke-dasharray="{{j.dash}}" transform="rotate(-90 18 18)"></circle>
+                <text x="18" y="21.5" text-anchor="middle" font-size="10.5" font-weight="650" fill="{{t.ink}}" font-family="Inter, system-ui, sans-serif">{{j.score}}</text>
+              </svg>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-weight: 600; line-height: 1.35;">{{j.title}}</span>
+                <span style="font-size: 13px; color: {{t.ink2}};">{{j.company}} · {{j.place}}</span>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
+                  <span style="font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: {{j.bandBg}}; color: {{j.bandFg}};">{{j.band}}</span>
+                  <span style="font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">{{j.family}}</span>
+                  <span style="font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">{{j.type}}</span>
+                  <sc-if value="{{j.provisional}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px dashed {{t.amber}}; color: {{t.amberText}};">Provisional</span>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; text-align: right;">
+                <span style="font-size: 12px; font-weight: 600; color: {{j.closeFg}};">{{j.closes}}</span>
+                <span style="font-size: 12px; color: {{t.muted}};">{{j.source}}</span>
+              </div>
+            </article>
+          </sc-for>
+          <p style="margin: 4px 2px 0; font-size: 12.5px; color: {{t.muted}};">Jobs scoring under 65, already applied, dismissed or past their closing date stay out of this list. Change the threshold in Settings.</p>
+        </section>
+
+        <section aria-label="Match detail" style="flex: 1.25 1 440px; min-width: 0; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+          <div style="padding: 20px 22px 16px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid {{t.line}};">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span style="font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">ML engineering</span>
+              <span style="font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">Graduate</span>
+              <span style="font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">SEEK alert · 14 Nov</span>
+            </div>
+            <h2 style="margin: 0; font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em;">Graduate Machine Learning Engineer</h2>
+            <p style="margin: 0; font-size: 13.5px; color: {{t.ink2}};">Kōwhai Labs · Auckland CBD · Hybrid (3 days) · Graduate · $72–80k</p>
+            <p style="margin: 0; font-size: 13px; font-weight: 600; color: {{t.amberText}};">Closes Tuesday 18 November — 3 days left</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+              <a href="#" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; background: {{t.accent}}; color: {{t.accentInk}}; text-decoration: none; font-weight: 600; font-size: 13px;">Open job listing<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+              <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Mark for tomorrow</button>
+              <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Already applied</button>
+              <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Save</button>
+              <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Dismiss</button>
+            </div>
+          </div>
+
+          <div style="padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 22px; border-bottom: 1px solid {{t.line}};">
+            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex: none;">
+              <span style="font-size: 44px; line-height: 1; font-weight: 650; letter-spacing: -0.03em;">86<span style="font-size: 18px; font-weight: 500; color: {{t.muted}}; letter-spacing: 0;"> /100</span></span>
+              <span style="font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: {{t.accentSoft}}; color: {{t.accentText}};">Strong match</span>
+              <span style="font-size: 12.5px; color: {{t.muted}};">Confidence: high</span>
+            </div>
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 9px;">
+              <sc-for list="{{dims}}" as="d" hint-placeholder-count="7">
+                <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 48px; align-items: center; gap: 10px;">
+                  <span style="font-size: 12.5px; color: {{t.ink2}};">{{d.label}}</span>
+                  <span style="height: 6px; border-radius: 3px; background: {{t.track}}; overflow: hidden;"><span style="display: block; height: 6px; border-radius: 3px; width: {{d.w}}; background: {{d.c}};"></span></span>
+                  <span style="font-size: 12.5px; font-weight: 600; text-align: right;">{{d.v}}<span style="color: {{t.muted}}; font-weight: 500;">/{{d.max}}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid {{t.line}};">
+            <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Why it fits</h3>
+            <sc-for list="{{evidence}}" as="e" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.accent}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-top: 2px;"><path d="m5 12 5 5 9-10"></path></svg>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-weight: 500;">{{e.claim}}</span>
+                  <span style="font-size: 12.5px; color: {{t.muted}};">Job: “{{e.job}}”</span>
+                  <span style="font-size: 12.5px; color: {{t.muted}};">Your resume: “{{e.resume}}”</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid {{t.line}};">
+            <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Gaps to consider</h3>
+            <sc-for list="{{gaps}}" as="g" hint-placeholder-count="2">
+              <div style="display: flex; gap: 10px; align-items: baseline;">
+                <span style="font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: {{g.bg}}; color: {{g.fg}}; flex: none;">{{g.kind}}</span>
+                <span style="color: {{t.ink2}};">{{g.text}}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div id="how" style="padding: 16px 22px 20px; background: {{t.sunken}};">
+            <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">GRU scores only what your resume and the listing actually say: skills 35, role 20, experience 15, education 10, location 10, employment type 5, domain 5. It never infers skills you haven’t evidenced. A score is a decision aid, not a prediction. Scored 15 Nov 07:58 against resume v3.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1440}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', sunkenStrong:'#EAEAE4', line:'#E4E4DE', lineStrong:'#D3D3CB', track:'#ECECE6', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', amber:'#B45309', amberSoft:'#FBEEDC', amberText:'#8F4207', red:'#B42318', redSoft:'#FBE8E6', redText:'#9A1C12', neutralSoft:'#EFEFEA', shadow:'0 1px 2px rgba(20,22,26,.08)' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', sunkenStrong:'#1D2024', line:'#262A2F', lineStrong:'#353A41', track:'#24282D', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', amber:'#E8A24F', amberSoft:'#33261A', amberText:'#F0B872', red:'#F08A7E', redSoft:'#3A1F1C', redText:'#F4A79D', neutralSoft:'#23272C', shadow:'0 1px 0 rgba(255,255,255,.04)' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    const C = 2 * Math.PI * 15;
+    const band = (s) => s >= 80 ? { band:'Strong', ring:t.accent, bandBg:t.accentSoft, bandFg:t.accentText }
+      : s >= 65 ? { band:'Good', ring:t.accent, bandBg:t.neutralSoft, bandFg:t.ink2 }
+      : s >= 50 ? { band:'Possible', ring:t.amber, bandBg:t.amberSoft, bandFg:t.amberText }
+      : { band:'Low', ring:t.muted, bandBg:t.neutralSoft, bandFg:t.muted };
+    const job = (score, title, company, place, family, type, closes, urgent, source, selected, provisional) => Object.assign({
+      score, title, company, place, family, type, closes, source, provisional,
+      dash: (score / 100 * C).toFixed(1) + ' ' + C.toFixed(1),
+      aria: 'Match score ' + score + ' out of 100',
+      closeFg: urgent ? t.amberText : t.muted,
+      border: selected ? '1.5px solid ' + t.accent : '1px solid ' + t.line
+    }, band(score));
+    const dim = (label, v, max) => ({ label, v, max, w: Math.round(v / max * 100) + '%', c: v / max >= 0.75 ? t.accent : v / max >= 0.5 ? t.lineStrong : t.amber });
+    const chip = (label, on) => ({ label, bg: on ? t.accentSoft : t.surface, fg: on ? t.accentText : t.ink2, border: on ? t.accentSoft : t.line });
+    return {
+      theme, t,
+      filters: [chip('Band: Good and above', true), chip('Role family'), chip('Location: Auckland, Remote', true), chip('Source'), chip('Status')],
+      jobs: [
+        job(86, 'Graduate Machine Learning Engineer', 'Kōwhai Labs', 'Auckland · Hybrid', 'ML engineering', 'Graduate', 'Closes Tue', true, 'SEEK alert', true, false),
+        job(78, 'Junior Backend Developer (TypeScript)', 'Harbourline', 'Remote NZ', 'Backend', 'Junior', 'Closes 28 Nov', false, 'LinkedIn alert', false, false),
+        job(74, 'AI Platform Intern 2027', 'Pūriri Systems', 'Auckland · On-site', 'AI / ML', 'Internship', 'Closes Wed', true, 'Indeed alert', false, false),
+        job(71, 'Data Engineering Intern — Summer', 'Tidewater Analytics', 'Wellington', 'Data engineering', 'Internship', 'No closing date', false, 'SEEK alert', false, true),
+        job(67, 'Graduate Software Engineer', 'Southern Cross Freight', 'Auckland · Hybrid', 'Software engineering', 'Graduate', 'Closes 5 Dec', false, 'SEEK alert', false, false)
+      ],
+      dims: [dim('Skills & technologies', 31, 35), dim('Role & responsibilities', 17, 20), dim('Experience & seniority', 12, 15), dim('Education', 9, 10), dim('Location & arrangement', 10, 10), dim('Employment type', 5, 5), dim('Domain & industry', 2, 5)],
+      evidence: [
+        { claim: 'Retrieval-augmented generation in production-like settings', job: 'experience building RAG or search systems', resume: 'Built a RAG study assistant with LangChain and pgvector (capstone)' },
+        { claim: 'Python and PyTorch are evidenced', job: 'strong Python; PyTorch or TensorFlow', resume: 'Fine-tuned a DistilBERT classifier in PyTorch, 91% F1' },
+        { claim: 'Graduate level matches your experience', job: 'graduates or up to 1 year experience', resume: 'BSc Computer Science, University of Auckland, 2026' }
+      ],
+      gaps: [
+        { kind: 'REQUIRED', text: 'Kubernetes or container orchestration: not evidenced in your resume', bg: t.redSoft, fg: t.redText },
+        { kind: 'PREFERRED', text: 'Experience in health-tech: not mentioned (domain 2/5)', bg: t.neutralSoft, fg: t.ink2 }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

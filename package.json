@@ -1,0 +1,28 @@
+{
+  "name": "gru",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GRU: Ani's private job-search assistant (single-user, $0, Cloudflare Workers Free)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.16.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.worker.json && tsc -p tsconfig.web.json && tsc -p tsconfig.unit.json --noEmit",
+    "lint:console": "node scripts/check-console.mjs",
+    "build:unit": "node scripts/clean-build.mjs && tsc -p tsconfig.unit.json",
+    "test:unit": "npm run build:unit && node scripts/run-unit.mjs",
+    "check": "npm run typecheck && npm run lint:console && npm run test:unit",
+    "upgrade-check": "npm outdated"
+  },
+  "dependencies": {
+    "hash-wasm": "4.12.0",
+    "hono": "4.13.16",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261031.1",
+    "@types/node": "26.6.6",
+    "typescript": "6.0.3"
+  }
+}

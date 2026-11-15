@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Agenda and tasks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#17605A}a:hover{color:#0F4A45}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="agenda" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 48px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+
+      <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em;">Agenda &amp; tasks</h1>
+          <p style="margin: 2px 0 0; font-size: 13px; color: {{t.muted}};">Sunday 15 November · 4 items today · 1 overdue</p>
+        </div>
+        <div style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: {{t.sunkenStrong}};" role="tablist" aria-label="Agenda range">
+          <button type="button" role="tab" aria-selected="true" style="height: 30px; padding: 0 12px; border-radius: 9px; border: 0; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Day</button>
+          <button type="button" role="tab" aria-selected="false" style="height: 30px; padding: 0 12px; border-radius: 9px; border: 0; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Next 7 days</button>
+        </div>
+      </header>
+
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px;">
+        <sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+          <button type="button" aria-pressed="{{d.pressed}}" style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 10px; border-radius: 12px; border: 1px solid {{d.border}}; background: {{d.bg}}; color: {{d.fg}}; font: inherit; cursor: pointer;">
+            <span style="font-size: 12px; font-weight: 500; opacity: .8;">{{d.dow}}</span>
+            <span style="font-size: 17px; font-weight: 600;">{{d.n}}</span>
+            <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: {{d.dot1}};"></span><span style="width: 5px; height: 5px; border-radius: 50%; background: {{d.dot2}};"></span></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+        <section aria-label="Today's timeline" style="flex: 1.2 1 440px; min-width: 0; border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 10px 0 14px;">
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="10">
+            <div style="display: grid; grid-template-columns: 64px minmax(0, 1fr); min-height: 46px;">
+              <span style="padding: 0 0 0 18px; font-size: 12px; color: {{t.muted}}; transform: translateY(-8px);">{{h.label}}</span>
+              <div style="border-top: 1px solid {{h.line}}; padding: 4px 16px 4px 0; display: flex; flex-direction: column; gap: 4px; position: relative;">
+                <sc-if value="{{h.now}}" hint-placeholder-val="{{ false }}">
+                  <span style="position: absolute; left: -6px; right: 16px; top: 18px; height: 2px; background: {{t.red}};" aria-hidden="true"></span>
+                  <span style="position: absolute; left: -10px; top: 14px; width: 10px; height: 10px; border-radius: 50%; background: {{t.red}};" aria-hidden="true"></span>
+                </sc-if>
+                <sc-for list="{{h.items}}" as="e" hint-placeholder-count="1">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: {{e.bg}}; border: 1px solid {{e.border}};">
+                    <span style="font-size: 12px; font-weight: 600; color: {{e.timeFg}}; width: 70px; flex: none;">{{e.time}}</span>
+                    <div style="flex: 1; min-width: 0;">
+                      <p style="margin: 0; font-weight: 600; font-size: 13.5px;">{{e.title}}</p>
+                      <p style="margin: 0; font-size: 12px; color: {{t.muted}};">{{e.sub}}</p>
+                    </div>
+                    <span style="font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: {{e.kindBg}}; color: {{e.kindFg}};">{{e.kind}}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section aria-label="Tasks" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+          <div style="border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 12px;">
+            <label for="quick" style="position: absolute; left: -9999px;">Add a task</label>
+            <div style="display: flex; gap: 8px;">
+              <input id="quick" placeholder="Add a task… e.g. “Call Harbourline tomorrow 4pm !high”" style="flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13px;">
+              <button type="button" style="height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+            </div>
+            <p style="margin: 8px 2px 0; font-size: 12px; color: {{t.muted}};">GRU reads the date, time and !priority. Link it to an application with @company.</p>
+          </div>
+
+          <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+            <div style="border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 8px;">
+                <h2 style="margin: 0; font-size: 13.5px; font-weight: 600; color: {{g.titleFg}};">{{g.title}}</h2>
+                <span style="font-size: 12px; color: {{t.muted}};">{{g.count}}</span>
+              </div>
+              <sc-for list="{{g.tasks}}" as="k" hint-placeholder-count="2">
+                <div style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border-top: 1px solid {{t.line}};">
+                  <input type="checkbox" aria-label="{{k.aria}}" checked="{{k.done}}" style="width: 18px; height: 18px; margin: 2px 0 0; accent-color: {{t.accent}}; flex: none;">
+                  <div style="flex: 1; min-width: 0;">
+                    <p style="margin: 0; font-weight: 500; color: {{k.fg}}; text-decoration: {{k.strike}};">{{k.title}}</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 3px; font-size: 12px; color: {{t.muted}};">
+                      <span style="color: {{k.dueFg}}; font-weight: {{k.dueFw}};">{{k.due}}</span>
+                      <sc-if value="{{k.link}}" hint-placeholder-val="{{ true }}"><span>↗ {{k.link}}</span></sc-if>
+                    </div>
+                  </div>
+                  <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: {{k.pFg}};"><svg width="11" height="11" viewBox="0 0 24 24" fill="{{k.pFill}}" stroke="{{k.pFg}}" stroke-width="2" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"></path></svg>{{k.priority}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', sunkenStrong:'#EAEAE4', line:'#E4E4DE', faintLine:'#EFEFEA', lineStrong:'#D3D3CB', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', amber:'#B45309', amberSoft:'#FBEEDC', amberText:'#8F4207', red:'#C4321F', redText:'#9A1C12', neutralSoft:'#EFEFEA', blue:'#2F5BB7', blueSoft:'#E7EEFA', blueText:'#24489A' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', sunkenStrong:'#1D2024', line:'#262A2F', faintLine:'#1E2125', lineStrong:'#353A41', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', amber:'#E8A24F', amberSoft:'#33261A', amberText:'#F0B872', red:'#F08A7E', redText:'#F4A79D', neutralSoft:'#23272C', blue:'#8DB0F5', blueSoft:'#1C2740', blueText:'#A9C3F7' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    const K = {
+      Interview: [t.accentSoft, t.accentText, t.accentSoft, t.accentText],
+      Call: [t.blueSoft, t.blueText, t.surface, t.ink2],
+      Task: [t.neutralSoft, t.ink2, t.surface, t.ink2],
+      'Follow-up': [t.amberSoft, t.amberText, t.surface, t.ink2]
+    };
+    const ev = (time, title, sub, kind) => ({ time, title, sub, kind, kindBg: K[kind][0], kindFg: K[kind][1], bg: kind === 'Interview' ? t.accentSoft : t.surface, border: kind === 'Interview' ? t.accentSoft : t.line, timeFg: kind === 'Interview' ? t.accentText : t.ink2 });
+    const hour = (label, items, now) => ({ label, items: items || [], now: !!now, line: t.faintLine });
+    const day = (dow, n, sel, a, b) => ({ dow, n, pressed: sel ? 'true' : 'false', bg: sel ? t.ink : t.surface, fg: sel ? t.bg : t.ink, border: sel ? t.ink : t.line, dot1: a ? (sel ? t.bg : t.accent) : 'transparent', dot2: b ? (sel ? t.bg : t.amber) : 'transparent' });
+    const P = { High: [t.amberText, t.amber], Normal: [t.muted, 'none'], Low: [t.muted, 'none'] };
+    const task = (title, due, priority, link, opts) => {
+      const o = opts || {};
+      return { title, due, priority, link, done: !!o.done, aria: 'Mark done: ' + title, fg: o.done ? t.muted : t.ink, strike: o.done ? 'line-through' : 'none', dueFg: o.overdue ? t.redText : (o.today ? t.ink2 : t.muted), dueFw: o.overdue ? '600' : '500', pFg: P[priority][0], pFill: P[priority][1] };
+    };
+    return {
+      theme, t,
+      week: [day('Sun', 15, true, true, true), day('Mon', 16, false, true, false), day('Tue', 17, false, false, true), day('Wed', 18, false, true, false), day('Thu', 19, false, false, false), day('Fri', 20, false, true, false), day('Sat', 21, false, false, false)],
+      hours: [
+        hour('8 AM'),
+        hour('9 AM', [ev('9:30 – 10:15', 'Prep: Harbourline phone screen', 'Prep card ready · 3 STAR stories linked', 'Task')], true),
+        hour('10 AM'),
+        hour('11 AM', [ev('11:00', 'Send thank-you to Northgate Health', 'Interview was Thu · no follow-up sent', 'Follow-up')]),
+        hour('12 PM'),
+        hour('1 PM'),
+        hour('2 PM', [ev('2:00 – 2:30', 'Harbourline — phone screen', 'With Sam (recruiter) · reminders at 12:00 and 1:50', 'Interview')]),
+        hour('3 PM'),
+        hour('4 PM', [ev('4:30', 'Call Priya back', 'Tidewater Analytics · about the take-home', 'Call')]),
+        hour('5 PM')
+      ],
+      groups: [
+        { title: 'Overdue', count: '1', titleFg: t.redText, tasks: [task('Follow up with Ākau Robotics', 'Was due Fri 13 Nov', 'High', 'Ākau Robotics', { overdue: true })] },
+        { title: 'Today', count: '3 of 4 left', titleFg: t.ink, tasks: [
+          task('Finish Kōwhai Labs application', 'Today · the one thing', 'High', 'Kōwhai Labs', { today: true }),
+          task('Prep: Harbourline phone screen', 'Today 9:30 AM', 'High', 'Harbourline', { today: true }),
+          task('Update resume with capstone results', 'Done 7:40 AM', 'Normal', '', { done: true }),
+          task('Call Priya back', 'Today 4:30 PM', 'Normal', 'Tidewater Analytics', { today: true })
+        ] },
+        { title: 'Upcoming', count: '5', titleFg: t.ink, tasks: [
+          task('HackerRank assessment', 'Mon 16 Nov · 2 h block', 'High', 'Pūriri Systems'),
+          task('Ask Dr Lee for a reference', 'Wed 18 Nov', 'Normal', ''),
+          task('Renew student ID', 'Fri 20 Nov', 'Low', '')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

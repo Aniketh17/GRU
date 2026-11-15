@@ -1,0 +1,9 @@
+# Copy to .dev.vars (git-ignored) for `wrangler dev`.
+# Use THROWAWAY values generated with the scripts. Never use production keys here.
+#   node scripts/gen-keys.ts      -> DATA_KEY_V1, INDEX_KEY, SESSION_SECRET
+#   node scripts/set-password.ts  -> AUTH_USERNAME, AUTH_VERIFIER
+DATA_KEY_V1=
+INDEX_KEY=
+SESSION_SECRET=
+AUTH_USERNAME=
+AUTH_VERIFIER=

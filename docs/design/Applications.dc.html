@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Applications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#17605A}a:hover{color:#0F4A45}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="apps" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 48px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+
+      <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em;">Applications</h1>
+          <p style="margin: 2px 0 0; font-size: 13px; color: {{t.muted}};">25 tracked · 19 active · updated from Gmail 6 min ago</p>
+        </div>
+        <button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add application</button>
+      </header>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <label style="position: relative; flex: 1 1 260px; max-width: 360px;">
+          <span style="position: absolute; left: -9999px;">Search applications</span>
+          <input placeholder="Search company or role" style="width: 100%; box-sizing: border-box; height: 36px; padding: 0 12px 0 34px; border-radius: 10px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 11px; top: 10.5px;"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </label>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <sc-for list="{{statusChips}}" as="s" hint-placeholder-count="6">
+            <button type="button" aria-pressed="{{s.pressed}}" style="height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{s.border}}; background: {{s.bg}}; color: {{s.fg}}; font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;">{{s.label}} <span style="opacity: .7;">{{s.n}}</span></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+        <section aria-label="Applications list" style="flex: 1.4 1 520px; min-width: 0; border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow-x: auto;">
+          <div role="table" style="min-width: 600px;">
+            <div role="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) 130px 96px 120px minmax(0, 1.6fr); gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 600; color: {{t.muted}}; border-bottom: 1px solid {{t.line}};">
+              <span role="columnheader">Company &amp; role</span><span role="columnheader">Status</span><span role="columnheader">Applied</span><span role="columnheader">Last activity</span><span role="columnheader">Next action</span>
+            </div>
+            <sc-for list="{{apps}}" as="a" hint-placeholder-count="8">
+              <div role="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) 130px 96px 120px minmax(0, 1.6fr); gap: 12px; align-items: center; padding: 11px 18px; border-bottom: 1px solid {{t.line}}; background: {{a.rowBg}};">
+                <span role="cell" style="display: flex; flex-direction: column; min-width: 0;">
+                  <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.company}}</span>
+                  <span style="font-size: 12.5px; color: {{t.muted}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.role}}</span>
+                </span>
+                <span role="cell"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{a.sBg}}; color: {{a.sFg}};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{a.sDot}};"></span>{{a.status}}</span></span>
+                <span role="cell" style="font-size: 13px; color: {{t.ink2}};">{{a.applied}}</span>
+                <span role="cell" style="font-size: 13px; color: {{a.lastFg}}; font-weight: {{a.lastFw}};">{{a.last}}</span>
+                <span role="cell" style="font-size: 13px; color: {{t.ink2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.next}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <aside aria-label="Application detail" style="flex: 1 1 340px; min-width: 0; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+          <div style="padding: 18px 20px 14px; border-bottom: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{t.accentSoft}}; color: {{t.accentText}};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{t.accent}};"></span>Interview</span>
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;">Change status</button>
+            </div>
+            <h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em;">Harbourline</h2>
+            <p style="margin: 0; font-size: 13.5px; color: {{t.ink2}};">Junior Backend Developer (TypeScript) · via LinkedIn</p>
+          </div>
+          <div style="padding: 14px 20px; border-bottom: 1px solid {{t.line}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+            <div><p style="margin: 0; font-size: 12px; color: {{t.muted}};">Next action</p><p style="margin: 0; font-weight: 600;">Phone screen today 2:00 PM</p></div>
+            <div><p style="margin: 0; font-size: 12px; color: {{t.muted}};">Applied</p><p style="margin: 0; font-weight: 600;">2 Nov · 13 days ago</p></div>
+          </div>
+          <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 0;">
+            <h3 style="margin: 0 0 10px; font-size: 13.5px; font-weight: 600;">Timeline</h3>
+            <sc-for list="{{timeline}}" as="e" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 12px;">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                  <span style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: {{e.dot}}; border: 2px solid {{t.surface}}; box-shadow: 0 0 0 1px {{e.dot}};"></span>
+                  <span style="flex: 1; width: 1px; background: {{t.line}};"></span>
+                </div>
+                <div style="padding-bottom: 14px;">
+                  <p style="margin: 0; font-weight: 500;">{{e.title}}</p>
+                  <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">{{e.sub}}</p>
+                  <sc-if value="{{e.undo}}" hint-placeholder-val="{{ false }}">
+                    <button type="button" style="margin-top: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">Undo (available 17 h)</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding: 14px 20px 18px; border-top: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 8px;">
+            <label for="appnote" style="font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Private notes <span style="font-weight: 500;">· encrypted</span></label>
+            <textarea id="appnote" rows="3" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13px; resize: vertical;">Recruiter: Sam. Team uses Fastify + Postgres. Ask about on-call for juniors.</textarea>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', line:'#E4E4DE', lineStrong:'#D3D3CB', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', amber:'#B45309', amberSoft:'#FBEEDC', amberText:'#8F4207', red:'#B42318', redSoft:'#FBE8E6', redText:'#9A1C12', neutralSoft:'#EFEFEA', selected:'#F3F8F7', blue:'#2F5BB7', blueSoft:'#E7EEFA', blueText:'#24489A' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', line:'#262A2F', lineStrong:'#353A41', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', amber:'#E8A24F', amberSoft:'#33261A', amberText:'#F0B872', red:'#F08A7E', redSoft:'#3A1F1C', redText:'#F4A79D', neutralSoft:'#23272C', selected:'#1B2422', blue:'#8DB0F5', blueSoft:'#1C2740', blueText:'#A9C3F7' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    const S = {
+      Applied: [t.neutralSoft, t.ink2, t.lineStrong],
+      Assessment: [t.blueSoft, t.blueText, t.blue],
+      Interview: [t.accentSoft, t.accentText, t.accent],
+      Offer: [t.accentSoft, t.accentText, t.accent],
+      Rejected: [t.neutralSoft, t.muted, t.muted],
+      Withdrawn: [t.neutralSoft, t.muted, t.muted]
+    };
+    const app = (company, role, status, applied, last, next, stale, selected) => ({
+      company, role, status, applied, last, next,
+      sBg: S[status][0], sFg: S[status][1], sDot: S[status][2],
+      lastFg: stale ? t.amberText : t.ink2, lastFw: stale ? '600' : '400',
+      rowBg: selected ? t.selected : 'transparent'
+    });
+    const chip = (label, n, on) => ({ label, n, pressed: on ? 'true' : 'false', bg: on ? t.ink : t.surface, fg: on ? t.bg : t.ink2, border: on ? t.ink : t.line });
+    return {
+      theme, t,
+      statusChips: [chip('Active', 19, true), chip('Applied', 14), chip('Assessment', 3), chip('Interview', 2), chip('Offer', 0), chip('Closed', 6)],
+      apps: [
+        app('Harbourline', 'Junior Backend Developer (TypeScript)', 'Interview', '2 Nov', 'Today', 'Phone screen 2:00 PM', false, true),
+        app('Kōwhai Labs', 'Graduate Machine Learning Engineer', 'Applied', '14 Nov', 'Yesterday', 'Wait for reply', false, false),
+        app('Pūriri Systems', 'AI Platform Intern 2027', 'Assessment', '6 Nov', '9 Nov', 'HackerRank due Mon', false, false),
+        app('Northgate Health', 'Graduate Data Analyst', 'Applied', '29 Oct', '17 days · stale', 'Send a follow-up', true, false),
+        app('Tidewater Analytics', 'Data Engineering Intern', 'Assessment', '3 Nov', '11 Nov', 'Take-home in progress', false, false),
+        app('Ākau Robotics', 'Software Engineer — Graduate', 'Applied', '27 Oct', '19 days · stale', 'Send a follow-up', true, false),
+        app('Southern Cross Freight', 'Graduate Software Engineer', 'Applied', '12 Nov', '12 Nov', 'Wait for reply', false, false),
+        app('Mātai Insights', 'Junior ML Engineer', 'Rejected', '20 Oct', '8 Nov', 'None', false, false)
+      ],
+      timeline: [
+        { title: 'Interview invite → status moved to Interview', sub: 'Auto from email · thread-linked · confidence 0.96 · 13 Nov', dot: t.accent, undo: true },
+        { title: 'Phone screen scheduled', sub: 'You confirmed the time · today 2:00 PM NZDT', dot: t.accent, undo: false },
+        { title: 'Application received', sub: 'Auto from email · confidence 0.94 · 2 Nov', dot: t.lineStrong, undo: false },
+        { title: 'Applied', sub: 'Added from Jobs → Already applied · 2 Nov', dot: t.lineStrong, undo: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

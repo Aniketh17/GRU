@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-15T03:20:00Z" },
+  "title": "GRU Interface Design",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "DesignSystem.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 2080, "title": "Design system — tokens & components" },
+    "Sidebar.dc.html": { "x": 1520, "y": 0, "w": 248, "h": 1000, "title": "Component — desktop sidebar" },
+    "Main.dc.html": { "x": 0, "y": 2500, "w": 1440, "h": 1260, "expand": "fill", "title": "Today — light" },
+    "TodayDark.dc.html": { "x": 1520, "y": 2500, "w": 1440, "h": 1260, "expand": "fill", "title": "Today — dark" },
+    "Jobs.dc.html": { "x": 0, "y": 4180, "w": 1440, "h": 1440, "expand": "fill", "title": "Jobs — Apply Tomorrow & match detail" },
+    "Applications.dc.html": { "x": 1520, "y": 4180, "w": 1440, "h": 1200, "expand": "fill", "title": "Applications — tracking" },
+    "Agenda.dc.html": { "x": 0, "y": 6040, "w": 1440, "h": 1200, "expand": "fill", "title": "Agenda & tasks" },
+    "Interviews.dc.html": { "x": 1520, "y": 6040, "w": 1440, "h": 1260, "expand": "fill", "title": "Interviews — prep, reminders, debrief" },
+    "Notes.dc.html": { "x": 3040, "y": 6040, "w": 1440, "h": 1100, "expand": "fill", "title": "Notes — second brain" },
+    "Settings.dc.html": { "x": 0, "y": 7720, "w": 1440, "h": 1900, "expand": "fill", "title": "Settings — Gmail, theme, privacy, wipe" },
+    "Login.dc.html": { "x": 1520, "y": 7720, "w": 1440, "h": 960, "expand": "fill", "title": "Sign in" },
+    "States.dc.html": { "x": 3040, "y": 7720, "w": 1440, "h": 1500, "title": "States — empty, loading, error, dialogs" },
+    "MobileToday.dc.html": { "x": 0, "y": 10040, "w": 390, "h": 844, "title": "Mobile — Today (light)", "radius": 28 },
+    "MobileTodayDark.dc.html": { "x": 470, "y": 10040, "w": 390, "h": 844, "title": "Mobile — Today (dark)", "radius": 28 },
+    "MobileJobs.dc.html": { "x": 940, "y": 10040, "w": 390, "h": 844, "title": "Mobile — Apply Tomorrow", "radius": 28 },
+    "MobileJobDetail.dc.html": { "x": 1410, "y": 10040, "w": 390, "h": 844, "title": "Mobile — match detail (dark)", "radius": 28 },
+    "MobileCheckin.dc.html": { "x": 1880, "y": 10040, "w": 390, "h": 844, "title": "Mobile — morning check-in", "radius": 28 },
+    "MobileAgenda.dc.html": { "x": 2350, "y": 10040, "w": 390, "h": 844, "title": "Mobile — agenda & tasks", "radius": 28 },
+    "MobileSettings.dc.html": { "x": 2820, "y": 10040, "w": 390, "h": 844, "title": "Mobile — appearance & theme schedule", "radius": 28 }
+  },
+  "order": [
+    "DesignSystem.dc.html", "Sidebar.dc.html", "Main.dc.html", "TodayDark.dc.html", "Jobs.dc.html",
+    "Applications.dc.html", "Agenda.dc.html", "Interviews.dc.html", "Notes.dc.html", "Settings.dc.html",
+    "Login.dc.html", "States.dc.html", "MobileToday.dc.html", "MobileTodayDark.dc.html", "MobileJobs.dc.html",
+    "MobileJobDetail.dc.html", "MobileCheckin.dc.html", "MobileAgenda.dc.html", "MobileSettings.dc.html"
+  ],
+  "notes": {
+    "t_found": { "x": 0, "y": -300, "text": "Foundations — GRU design system", "kind": "title1", "maxW": 1768 },
+    "t_today": { "x": 0, "y": 2200, "text": "Today — the morning screen, light & dark", "kind": "title1", "maxW": 2960 },
+    "t_jobs": { "x": 0, "y": 3880, "text": "Jobs & applications", "kind": "title1", "maxW": 2960 },
+    "t_day": { "x": 0, "y": 5740, "text": "Day & mind — agenda, interviews, notes", "kind": "title1", "maxW": 4480 },
+    "t_sys": { "x": 0, "y": 7420, "text": "System — settings, sign-in, states", "kind": "title1", "maxW": 4480 },
+    "t_mobile": { "x": 0, "y": 9740, "text": "Mobile — 390 × 844", "kind": "title1", "maxW": 3210 }
+  },
+  "designSystems": []
+}

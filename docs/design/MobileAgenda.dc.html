@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU mobile — Agenda</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F5F5F2; color: #16181B; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.45; font-feature-settings: 'tnum' 1; overflow: hidden;">
+  <div style="flex: 1; overflow: hidden; padding: 52px 16px 12px; display: flex; flex-direction: column; gap: 12px;">
+    <header>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em;">Agenda</h1>
+      <p style="margin: 0; font-size: 12.5px; color: #5F646D;">Sunday 15 November · 1 overdue</p>
+    </header>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;">
+      <sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+        <span style="display: flex; flex-direction: column; align-items: center; padding: 6px 0; border-radius: 10px; background: {{d.bg}}; color: {{d.fg}};"><span style="font-size: 11px; opacity: .8;">{{d.dow}}</span><span style="font-size: 15px; font-weight: 600;">{{d.n}}</span></span>
+      </sc-for>
+    </div>
+    <label style="display: block;"><span style="position: absolute; left: -9999px;">Add a task</span>
+      <input placeholder="Add a task… “call Priya 4:30pm”" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid #E4E4DE; background: #FFFFFF; color: #16181B; font: inherit; font-size: 14px;">
+    </label>
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+      <section style="border-radius: 16px; background: #FFFFFF; border: 1px solid #E4E4DE; overflow: hidden;">
+        <h2 style="margin: 0; padding: 10px 14px 6px; font-size: 13px; font-weight: 600; color: {{g.fg}};">{{g.title}}</h2>
+        <sc-for list="{{g.items}}" as="k" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid #E4E4DE; background: {{k.bg}};">
+            <sc-if value="{{k.task}}" hint-placeholder-val="{{ true }}"><input type="checkbox" aria-label="{{k.aria}}" style="width: 20px; height: 20px; margin: 0; accent-color: #1F6F68; flex: none;"></sc-if>
+            <sc-if value="{{k.event}}" hint-placeholder-val="{{ false }}"><span style="width: 20px; height: 20px; border-radius: 6px; background: #1F6F68; flex: none;" aria-hidden="true"></span></sc-if>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+              <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{k.title}}</span>
+              <span style="font-size: 12px; color: {{k.subFg}}; font-weight: {{k.subFw}};">{{k.sub}}</span>
+            </span>
+            <sc-if value="{{k.high}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="#B45309" stroke="#8F4207" stroke-width="2" role="img" aria-label="High priority"><path d="M5 21V4h11l-2 4 2 4H5"></path></svg></sc-if>
+          </div>
+        </sc-for>
+      </section>
+    </sc-for>
+  </div>
+  <nav aria-label="Primary" style="flex: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 26px; background: #FFFFFF; border-top: 1px solid #E4E4DE; font-size: 11px; text-align: center;">
+    <a href="MobileToday.dc.html" style="min-height: 48px; display: grid; place-items: center; color: #5F646D; text-decoration: none;">Today</a>
+    <a href="MobileJobs.dc.html" style="min-height: 48px; display: grid; place-items: center; color: #5F646D; text-decoration: none;">Jobs</a>
+    <a href="Applications.dc.html" style="min-height: 48px; display: grid; place-items: center; color: #5F646D; text-decoration: none;">Applications</a>
+    <a href="MobileAgenda.dc.html" aria-current="page" style="min-height: 48px; display: grid; place-items: center; color: #16181B; font-weight: 600; text-decoration: none;"><span style="padding: 4px 12px; border-radius: 999px; background: #E2EFEC;">Agenda</span></a>
+    <a href="MobileSettings.dc.html" style="min-height: 48px; display: grid; place-items: center; color: #5F646D; text-decoration: none;">More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const day = (dow, n, on) => ({ dow, n, bg: on ? '#16181B' : 'transparent', fg: on ? '#F5F5F2' : '#16181B' });
+    const task = (title, sub, high, o) => { const x = o || {}; return { title, sub, high: !!high, task: !x.event, event: !!x.event, aria: 'Mark done: ' + title, subFg: x.overdue ? '#9A1C12' : (x.event ? '#17605A' : '#5F646D'), subFw: x.overdue || x.event ? '600' : '500', bg: x.event ? '#F3F8F7' : 'transparent' }; };
+    return {
+      week: [day('S', 15, true), day('M', 16), day('T', 17), day('W', 18), day('T', 19), day('F', 20), day('S', 21)],
+      groups: [
+        { title: 'Overdue', fg: '#9A1C12', items: [task('Follow up with Ākau Robotics', 'Was due Fri', true, { overdue: true })] },
+        { title: 'Today', fg: '#16181B', items: [
+          task('Prep: Harbourline screen', '9:30 AM · prep card ready', true),
+          task('Harbourline — phone screen', 'Interview · 2:00 PM', false, { event: true }),
+          task('Call Priya back', '4:30 PM · Tidewater', false),
+          task('Finish Kōwhai Labs application', 'The one thing', true)
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

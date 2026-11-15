@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Interviews</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#17605A}a:hover{color:#0F4A45}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="interviews" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 48px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+      <header>
+        <h1 style="margin: 0; font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em;">Interviews</h1>
+        <p style="margin: 2px 0 0; font-size: 13px; color: {{t.muted}};">1 today · 1 this week · 1 debrief missing</p>
+      </header>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+        <section aria-label="Interview list" style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+          <div style="border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+            <h2 style="margin: 0; padding: 12px 16px 8px; font-size: 13.5px; font-weight: 600;">Upcoming</h2>
+            <sc-for list="{{upcoming}}" as="i" hint-placeholder-count="2">
+              <div style="display: flex; gap: 12px; padding: 12px 16px; border-top: 1px solid {{t.line}}; background: {{i.bg}};">
+                <div style="width: 46px; flex: none; text-align: center; border-radius: 10px; padding: 4px 0; background: {{i.dateBg}}; color: {{i.dateFg}};">
+                  <span style="display: block; font-size: 11px; font-weight: 600;">{{i.mon}}</span>
+                  <span style="display: block; font-size: 18px; font-weight: 650; line-height: 1.1;">{{i.day}}</span>
+                </div>
+                <div style="min-width: 0;">
+                  <p style="margin: 0; font-weight: 600;">{{i.company}}</p>
+                  <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">{{i.sub}}</p>
+                  <p style="margin: 2px 0 0; font-size: 12px; font-weight: 600; color: {{i.whenFg}};">{{i.when}}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+            <h2 style="margin: 0; padding: 12px 16px 8px; font-size: 13.5px; font-weight: 600;">Past</h2>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid {{t.line}};">
+              <div style="min-width: 0; flex: 1;">
+                <p style="margin: 0; font-weight: 600;">Northgate Health</p>
+                <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">Video · Thu 12 Nov</p>
+              </div>
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{t.amberSoft}}; color: {{t.amberText}};">Debrief missing</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid {{t.line}};">
+              <div style="min-width: 0; flex: 1;">
+                <p style="margin: 0; font-weight: 600;">Mātai Insights</p>
+                <p style="margin: 0; font-size: 12.5px; color: {{t.muted}};">On-site · 30 Oct · rated 3/5</p>
+              </div>
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">Done</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-label="Prep card" style="flex: 1.5 1 440px; min-width: 0; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+          <div style="padding: 18px 22px 14px; border-bottom: 1px solid {{t.line}}; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-start;">
+            <div>
+              <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.accentText}};">Today · 2:00 – 2:30 PM NZDT · in 4 h 30 min</p>
+              <h2 style="margin: 2px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em;">Harbourline — phone screen</h2>
+              <p style="margin: 2px 0 0; font-size: 13.5px; color: {{t.ink2}};">Junior Backend Developer (TypeScript) · with Sam, Talent Partner</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 9px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Reschedule</button>
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 9px; border: 0; background: {{t.ink}}; color: {{t.bg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Mark done</button>
+            </div>
+          </div>
+
+          <div style="padding: 16px 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; border-bottom: 1px solid {{t.line}};">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Prepare</h3>
+              <sc-for list="{{prep}}" as="p" hint-placeholder-count="4">
+                <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: {{t.ink2}};"><input type="checkbox" checked="{{p.done}}" style="width: 17px; height: 17px; margin: 2px 0 0; accent-color: {{t.accent}}; flex: none;">{{p.text}}</label>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Stories to tell <span style="font-weight: 500; color: {{t.muted}};">· from Notes</span></h3>
+              <sc-for list="{{stories}}" as="s" hint-placeholder-count="3">
+                <a href="Notes.dc.html" style="display: block; padding: 8px 10px; border-radius: 9px; background: {{t.sunken}}; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink}};"><span style="display: block; font-size: 13px; font-weight: 600;">{{s.title}}</span><span style="display: block; font-size: 12px; color: {{t.muted}};">{{s.tag}}</span></a>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding: 16px 22px; display: flex; flex-wrap: wrap; gap: 24px; border-bottom: 1px solid {{t.line}};">
+            <div style="display: flex; flex-direction: column; gap: 8px; flex: 1 1 220px;">
+              <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Reminders</h3>
+              <sc-for list="{{reminders}}" as="r" hint-placeholder-count="2">
+                <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; color: {{t.ink2}};">{{r.label}}
+                  <span style="width: 36px; height: 22px; border-radius: 999px; background: {{r.track}}; position: relative; flex: none;"><span style="position: absolute; top: 3px; left: {{r.knob}}; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF;"></span></span>
+                </label>
+              </sc-for>
+              <p style="margin: 0; font-size: 12px; color: {{t.muted}};">Phone pings say only “Interview coming up”. No names or times.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px;">
+              <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Logistics</h3>
+              <p style="margin: 0; font-size: 13px; color: {{t.ink2}};">Phone · Sam calls you</p>
+              <p style="margin: 0; font-size: 13px; color: {{t.ink2}};">Timezone: Pacific/Auckland (NZDT, UTC+13)</p>
+              <p style="margin: 0; font-size: 13px; color: {{t.ink2}};">Linked to: Harbourline application</p>
+            </div>
+          </div>
+
+          <div style="padding: 16px 22px 20px; background: {{t.sunken}}; display: flex; flex-direction: column; gap: 12px;">
+            <h3 style="margin: 0; font-size: 13.5px; font-weight: 600;">Debrief <span style="font-weight: 500; color: {{t.muted}};">· opens after the interview, encrypted</span></h3>
+            <div style="display: flex; align-items: center; gap: 6px;" role="radiogroup" aria-label="How did it go, 1 to 5">
+              <span style="font-size: 13px; color: {{t.ink2}}; margin-right: 6px;">How did it go?</span>
+              <sc-for list="{{rating}}" as="n" hint-placeholder-count="5">
+                <button type="button" role="radio" aria-checked="{{n.checked}}" style="width: 36px; height: 36px; border-radius: 9px; border: 1px solid {{n.border}}; background: {{n.bg}}; color: {{n.fg}}; font: inherit; font-weight: 600; cursor: pointer;">{{n.v}}</button>
+              </sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Questions they asked<textarea rows="2" placeholder="e.g. Walk me through a bug you fixed" style="padding: 8px 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 400; resize: vertical;"></textarea></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">What went well<textarea rows="2" style="padding: 8px 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 400; resize: vertical;"></textarea></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">What to improve<textarea rows="2" style="padding: 8px 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 400; resize: vertical;"></textarea></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Next step and date<input placeholder="e.g. Technical round, week of 23 Nov" style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 400;"></label>
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{t.ink2}};"><input type="checkbox" style="width: 17px; height: 17px; accent-color: {{t.accent}};">Thank-you / follow-up sent</label>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', line:'#E4E4DE', lineStrong:'#D3D3CB', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', amberSoft:'#FBEEDC', amberText:'#8F4207', neutralSoft:'#EFEFEA', selected:'#F3F8F7', toggleOff:'#C9CAC3' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', line:'#262A2F', lineStrong:'#353A41', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', amberSoft:'#33261A', amberText:'#F0B872', neutralSoft:'#23272C', selected:'#1B2422', toggleOff:'#3A3F46' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    return {
+      theme, t,
+      upcoming: [
+        { company: 'Harbourline', sub: 'Phone screen · 30 min', when: 'Today 2:00 PM', mon: 'NOV', day: '15', bg: t.selected, dateBg: t.accent, dateFg: t.accentInk, whenFg: t.accentText },
+        { company: 'Pūriri Systems', sub: 'Online assessment · HackerRank', when: 'Mon 16 Nov · time not set', mon: 'NOV', day: '16', bg: 'transparent', dateBg: t.neutralSoft, dateFg: t.ink, whenFg: t.amberText }
+      ],
+      prep: [
+        { text: 'Re-read the job listing and your application', done: true },
+        { text: 'Research Harbourline: freight-tracking platform, Fastify + Postgres', done: true },
+        { text: 'Prepare 2 questions about the team and onboarding', done: false },
+        { text: 'Test phone signal and have resume open', done: false }
+      ],
+      stories: [
+        { title: 'Shipped the RAG study assistant', tag: 'STAR · ownership, ML' },
+        { title: 'Fixed a race condition in the club booking app', tag: 'STAR · debugging, backend' },
+        { title: 'Led a 4-person capstone team', tag: 'STAR · teamwork' }
+      ],
+      reminders: [
+        { label: '24 hours before', track: t.accent, knob: '17px' },
+        { label: '2 hours before', track: t.accent, knob: '17px' }
+      ],
+      rating: [1, 2, 3, 4, 5].map((v) => ({ v, checked: 'false', bg: t.surface, fg: t.ink2, border: t.line }))
+    };
+  }
+}
+</script>
+</body>
+</html>

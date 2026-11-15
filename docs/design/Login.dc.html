@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 48px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5;">
+  <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 22px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 34px; height: 34px; border-radius: 10px; background: {{t.ink}}; color: {{t.bg}}; display: grid; place-items: center; font-weight: 700; font-size: 14px;">G</span>
+      <span style="font-weight: 700; letter-spacing: 0.1em; font-size: 14px;">GRU</span>
+    </div>
+    <div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.015em;">Welcome back, Ani</h1>
+      <p style="margin: 4px 0 0; color: {{t.muted}};">Sign in to see this morning’s brief.</p>
+    </div>
+    <form style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}};">
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600;">Username
+        <input autocomplete="username" value="ani" style="height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid {{t.lineStrong}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 15px; font-weight: 400;">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600;">Password
+        <span style="position: relative; display: block;">
+          <input type="password" autocomplete="current-password" value="correct horse battery" style="width: 100%; box-sizing: border-box; height: 44px; padding: 0 44px 0 12px; border-radius: 10px; border: 2px solid {{t.accent}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 15px; font-weight: 400;">
+          <button type="button" aria-label="Show password" style="position: absolute; right: 4px; top: 4px; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: {{t.muted}}; cursor: pointer; display: grid; place-items: center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+        </span>
+      </label>
+      <button type="submit" style="height: 44px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;">Sign in</button>
+      <p role="status" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: {{t.muted}};">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        Your password is hashed on this device. GRU never receives it.
+      </p>
+    </form>
+    <p style="margin: 0; font-size: 12.5px; color: {{t.muted}}; text-align: center;">Private, single-user, encrypted. There is no sign-up.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#FAFAF8', line:'#E4E4DE', lineStrong:'#D3D3CB', ink:'#16181B', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#121417', line:'#262A2F', lineStrong:'#353A41', ink:'#ECEDEE', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E' }
+    };
+    return { t: T[this.props.theme === 'dark' ? 'dark' : 'light'] };
+  }
+}
+</script>
+</body>
+</html>

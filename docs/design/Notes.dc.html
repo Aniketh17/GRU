@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — Notes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7FD4C7}a:hover{color:#A6E4DA}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; font-feature-settings: 'tnum' 1;">
+  <dc-import name="Sidebar" theme="{{theme}}" active="notes" hint-size="248px,1000px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 36px 48px; box-sizing: border-box;">
+    <div style="max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+      <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+        <div>
+          <h1 style="margin: 0; font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.015em;">Notes</h1>
+          <p style="margin: 2px 0 0; font-size: 13px; color: {{t.muted}};">48 notes · encrypted · your second brain for the search</p>
+        </div>
+        <button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New note</button>
+      </header>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <nav aria-label="Tags" style="flex: 0 1 180px; min-width: 150px; display: flex; flex-direction: column; gap: 2px;">
+          <sc-for list="{{tags}}" as="g" hint-placeholder-count="6">
+            <a href="#" style="display: flex; justify-content: space-between; height: 34px; align-items: center; padding: 0 10px; border-radius: 8px; text-decoration: none; background: {{g.bg}}; color: {{g.fg}}; font-weight: {{g.fw}}; font-size: 13.5px;">{{g.label}}<span style="color: {{t.muted}}; font-weight: 500; font-size: 12.5px;">{{g.n}}</span></a>
+          </sc-for>
+        </nav>
+
+        <section aria-label="Note list" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+          <label style="position: relative; display: block;">
+            <span style="position: absolute; left: -9999px;">Search notes</span>
+            <input value="kubernetes" style="width: 100%; box-sizing: border-box; height: 38px; padding: 0 12px 0 34px; border-radius: 10px; border: 1px solid {{t.lineStrong}}; background: {{t.surface}}; color: {{t.ink}}; font: inherit; font-size: 13.5px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 11px; top: 11.5px;"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          </label>
+          <p style="margin: 0 2px; font-size: 12px; color: {{t.muted}};">Exact whole words only, because notes are encrypted. “kube” won’t match “kubernetes”.</p>
+          <sc-for list="{{notes}}" as="n" hint-placeholder-count="4">
+            <article style="padding: 12px 14px; border-radius: 12px; background: {{n.bg}}; border: 1px solid {{n.border}}; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-weight: 600;">{{n.title}}</span>
+              <span style="font-size: 12.5px; color: {{t.ink2}};">{{n.preview}}</span>
+              <span style="font-size: 12px; color: {{t.muted}};">{{n.meta}}</span>
+            </article>
+          </sc-for>
+        </section>
+
+        <article aria-label="Note editor" style="flex: 1.6 1 400px; min-width: 0; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+          <div style="padding: 14px 20px; border-bottom: 1px solid {{t.line}}; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">#learning</span>
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: {{t.neutralSoft}}; color: {{t.ink2}};">#gaps</span>
+            </div>
+            <span style="font-size: 12px; color: {{t.muted}};">Saved · edited 9:12 PM</span>
+          </div>
+          <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em;">Closing the Kubernetes gap</h2>
+            <p style="margin: 0; color: {{t.ink2}}; line-height: 1.65;">Three shortlisted roles list Kubernetes as required. Plan: finish the free “Kubernetes basics” course, deploy the RAG assistant to a local kind cluster, then add one honest line to the resume once it actually runs.</p>
+            <ul style="margin: 0; padding-left: 20px; color: {{t.ink2}}; line-height: 1.75;">
+              <li>Week 1: pods, deployments, services</li>
+              <li>Week 2: package the RAG app, health checks</li>
+              <li>Write it up as a STAR story when done</li>
+            </ul>
+          </div>
+          <div style="padding: 14px 20px 18px; border-top: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 8px;">
+            <p style="margin: 0; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Linked</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <a href="Applications.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink2}}; font-size: 12.5px;">Application · Kōwhai Labs</a>
+              <a href="Jobs.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink2}}; font-size: 12.5px;">Job gap · Kubernetes (3)</a>
+              <a href="Agenda.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink2}}; font-size: 12.5px;">Task · Kubernetes basics wk 1</a>
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px dashed {{t.lineStrong}}; background: transparent; color: {{t.muted}}; font: inherit; font-size: 12.5px; cursor: pointer;">+ Link</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', line:'#E4E4DE', lineStrong:'#D3D3CB', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', neutralSoft:'#EFEFEA', selected:'#F3F8F7', tagActive:'#E8E8E2' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#131518', line:'#262A2F', lineStrong:'#353A41', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', neutralSoft:'#23272C', selected:'#1B2422', tagActive:'#1D2024' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    const tag = (label, n, on) => ({ label, n, bg: on ? t.tagActive : 'transparent', fg: on ? t.ink : t.ink2, fw: on ? '600' : '500' });
+    const note = (title, preview, meta, on) => ({ title, preview, meta, bg: on ? t.selected : t.surface, border: on ? t.accentSoft : t.line });
+    return {
+      theme, t,
+      tags: [tag('All notes', 48, false), tag('#learning', 9, true), tag('#interview', 12), tag('#star-stories', 7), tag('#companies', 11), tag('#weekly-review', 6), tag('#ideas', 3)],
+      notes: [
+        note('Closing the Kubernetes gap', 'Three shortlisted roles list Kubernetes as required…', 'Today 9:12 PM · 3 links', true),
+        note('Weekly review — wk 46', 'Applied to 4, 1 interview. Kubernetes keeps showing up as a gap…', 'Sun 8 Nov · #weekly-review', false),
+        note('Pūriri Systems — platform notes', 'They run Kubernetes on-prem; ask about the intern rotation…', 'Fri 6 Nov · #companies', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU mobile — Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.45; font-feature-settings: 'tnum' 1; overflow: hidden;">
+  <div style="flex: 1; overflow: hidden; padding: 52px 16px 12px; display: flex; flex-direction: column; gap: 14px;">
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+      <div>
+        <p style="margin: 0; font-size: 12.5px; font-weight: 500; color: {{t.muted}};">Sun 15 Nov · synced 6 min ago</p>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em;">Morning, Ani</h1>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" aria-label="Theme: automatic" style="width: 40px; height: 40px; border-radius: 12px; border: 1px solid {{t.line}}; background: {{t.surface}}; color: {{t.ink2}}; display: grid; place-items: center; cursor: pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"></path></svg></button>
+        <button type="button" aria-label="Quick add" style="width: 40px; height: 40px; border-radius: 12px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; display: grid; place-items: center; cursor: pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+      </div>
+    </header>
+
+    <a href="MobileCheckin.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: {{t.ink}}; color: {{t.bg}}; text-decoration: none;">
+      <div style="flex: 1;">
+        <p style="margin: 0; font-weight: 600;">Start your check-in</p>
+        <p style="margin: 0; font-size: 12.5px; opacity: .75;">4 prompts · about a minute</p>
+      </div>
+      <span style="display: flex; gap: 4px;" aria-hidden="true"><span style="width: 16px; height: 4px; border-radius: 2px; background: {{t.accentOnInk}};"></span><span style="width: 16px; height: 4px; border-radius: 2px; background: {{t.dimOnInk}};"></span><span style="width: 16px; height: 4px; border-radius: 2px; background: {{t.dimOnInk}};"></span><span style="width: 16px; height: 4px; border-radius: 2px; background: {{t.dimOnInk}};"></span></span>
+    </a>
+
+    <section style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 6px;">
+        <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Today</h2>
+        <span style="font-size: 12px; color: {{t.muted}};">4 items</span>
+      </div>
+      <sc-for list="{{agenda}}" as="a" hint-placeholder-count="3">
+        <div style="display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-top: 1px solid {{t.line}}; background: {{a.bg}};">
+          <span style="width: 54px; flex: none; font-size: 12px; font-weight: 600; color: {{a.timeFg}};">{{a.time}}</span>
+          <span style="flex: 1; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.title}}</span>
+          <span style="width: 8px; height: 8px; border-radius: 2px; background: {{a.flag}}; flex: none;"></span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 6px;">
+        <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Apply tomorrow</h2>
+        <a href="MobileJobs.dc.html" style="font-size: 12.5px; font-weight: 600; color: {{t.accentText}}; text-decoration: none;">7 →</a>
+      </div>
+      <sc-for list="{{matches}}" as="m" hint-placeholder-count="2">
+        <a href="MobileJobDetail.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-top: 1px solid {{t.line}}; text-decoration: none; color: {{t.ink}};">
+          <svg width="40" height="40" viewBox="0 0 36 36" role="img" aria-label="{{m.aria}}" style="flex: none;">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="{{t.track}}" stroke-width="3"></circle>
+            <circle cx="18" cy="18" r="15" fill="none" stroke="{{m.ring}}" stroke-width="3" stroke-linecap="round" stroke-dasharray="{{m.dash}}" transform="rotate(-90 18 18)"></circle>
+            <text x="18" y="21.5" text-anchor="middle" font-size="10.5" font-weight="650" fill="{{t.ink}}" font-family="Inter, system-ui, sans-serif">{{m.score}}</text>
+          </svg>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+            <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.title}}</span>
+            <span style="font-size: 12.5px; color: {{t.muted}};">{{m.company}} · <span style="color: {{m.closeFg}}; font-weight: 600;">{{m.closes}}</span></span>
+          </span>
+        </a>
+      </sc-for>
+    </section>
+
+    <section style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Since yesterday</h2>
+      <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.accent}};"></span><span style="flex: 1; font-size: 13.5px;">Harbourline → Interview</span><button type="button" style="height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink2}}; font: inherit; font-size: 12.5px; cursor: pointer;">Undo</button></div>
+      <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.amber}};"></span><span style="flex: 1; font-size: 13.5px;">Northgate: possible rejection</span><span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: {{t.amberSoft}}; color: {{t.amberText}};">Review</span></div>
+    </section>
+  </div>
+
+  <nav aria-label="Primary" style="flex: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 26px; background: {{t.surface}}; border-top: 1px solid {{t.line}};">
+    <sc-for list="{{tabs}}" as="b" hint-placeholder-count="5">
+      <a href="{{b.href}}" aria-current="{{b.current}}" style="display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 48px; justify-content: center; text-decoration: none; color: {{b.fg}}; font-size: 11px; font-weight: {{b.fw}}; position: relative;">
+        <span style="width: 44px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: {{b.pill}};">
+          <sc-if value="{{b.isToday}}" hint-placeholder-val="{{ false }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"></path></svg></sc-if>
+          <sc-if value="{{b.isJobs}}" hint-placeholder-val="{{ false }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></sc-if>
+          <sc-if value="{{b.isApps}}" hint-placeholder-val="{{ false }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"></path></svg></sc-if>
+          <sc-if value="{{b.isAgenda}}" hint-placeholder-val="{{ false }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></sc-if>
+          <sc-if value="{{b.isMore}}" hint-placeholder-val="{{ false }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></sc-if>
+        </span>
+        {{b.label}}
+        <sc-if value="{{b.badge}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: 2px; right: 18px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: {{t.amber}}; color: #FFFFFF; font-size: 10px; font-weight: 700; display: grid; place-items: center;">{{b.badge}}</span></sc-if>
+      </a>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', line:'#E4E4DE', track:'#ECECE6', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', accentSoft:'#E2EFEC', accentText:'#17605A', accentOnInk:'#7FD4C7', dimOnInk:'#4A4F57', amber:'#B45309', amberSoft:'#FBEEDC', amberText:'#8F4207', pill:'#E2EFEC' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', line:'#262A2F', track:'#24282D', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', accentSoft:'#16302C', accentText:'#7FD4C7', accentOnInk:'#17605A', dimOnInk:'#B9BCC1', amber:'#E8A24F', amberSoft:'#33261A', amberText:'#F0B872', pill:'#16302C' }
+    };
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = T[theme];
+    const C = 2 * Math.PI * 15;
+    const m = (score, title, company, closes, urgent) => ({ score, title, company, closes, aria: 'Match score ' + score + ' out of 100', ring: score >= 65 ? t.accent : t.amber, dash: (score / 100 * C).toFixed(1) + ' ' + C.toFixed(1), closeFg: urgent ? t.amberText : t.muted });
+    const tab = (key, label, href, on, badge) => ({ label, href, current: on ? 'page' : 'false', fg: on ? t.ink : t.muted, fw: on ? '600' : '500', pill: on ? t.pill : 'transparent', badge: badge || '', isToday: key === 'today', isJobs: key === 'jobs', isApps: key === 'apps', isAgenda: key === 'agenda', isMore: key === 'more' });
+    return {
+      theme, t,
+      agenda: [
+        { time: '9:30', title: 'Prep: Harbourline screen', bg: 'transparent', timeFg: t.ink2, flag: t.amber },
+        { time: '2:00 PM', title: 'Harbourline — phone screen', bg: t.accentSoft, timeFg: t.accentText, flag: t.accent },
+        { time: '4:30 PM', title: 'Call Priya back', bg: 'transparent', timeFg: t.ink2, flag: t.line }
+      ],
+      matches: [
+        m(86, 'Graduate ML Engineer', 'Kōwhai Labs', 'Closes Tue', true),
+        m(78, 'Junior Backend Developer', 'Harbourline', '28 Nov', false)
+      ],
+      tabs: [tab('today', 'Today', 'MobileToday.dc.html', true, '2'), tab('jobs', 'Jobs', 'MobileJobs.dc.html'), tab('apps', 'Applications', 'Applications.dc.html'), tab('agenda', 'Agenda', 'MobileAgenda.dc.html'), tab('more', 'More', 'MobileSettings.dc.html')]
+    };
+  }
+}
+</script>
+</body>
+</html>

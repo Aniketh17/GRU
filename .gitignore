@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+apps/web/dist/
+.vite/
+
+# Wrangler local state (contains local D1 data)
+.wrangler/
+
+# Secrets: never commit
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+*.pem
+*.key
+client_secret*.json
+credentials*.json
+
+# Real data: never commit (spec rule 5)
+eval/private/
+*.local
+*.local.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRU — States and dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1500px; box-sizing: border-box; padding: 48px; background: {{t.bg}}; color: {{t.ink}}; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-content: start;">
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Empty — no job alerts yet</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 32px 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-height: 250px; box-sizing: border-box;">
+      <span style="width: 40px; height: 40px; border-radius: 12px; background: {{t.neutralSoft}}; color: {{t.ink2}}; display: grid; place-items: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">No job alerts found yet</h3>
+      <p style="margin: 0; color: {{t.muted}};">GRU looks for job-alert emails from SEEK, LinkedIn, Indeed and other boards every 15 minutes. Set up a saved search on a job board and new vacancies will appear here.</p>
+      <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Check Gmail now</button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Loading — skeleton (no layout shift)</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; min-height: 250px; box-sizing: border-box;" aria-busy="true" aria-label="Loading jobs">
+      <sc-for list="{{skeleton}}" as="s" hint-placeholder-count="3">
+        <div style="display: flex; gap: 14px; padding: 16px 20px; border-bottom: 1px solid {{t.line}};">
+          <span style="width: 44px; height: 44px; border-radius: 50%; background: {{t.skeleton}}; flex: none;"></span>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
+            <span style="height: 12px; width: {{s.a}}; border-radius: 6px; background: {{t.skeleton}};"></span>
+            <span style="height: 10px; width: {{s.b}}; border-radius: 5px; background: {{t.skeletonSoft}};"></span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Error — can’t reach GRU</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 32px 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-height: 250px; box-sizing: border-box;">
+      <span style="width: 40px; height: 40px; border-radius: 12px; background: {{t.redSoft}}; color: {{t.redText}}; display: grid; place-items: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"></path></svg></span>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Couldn’t reach GRU</h3>
+      <p style="margin: 0; color: {{t.muted}};">You may be offline. Nothing you entered was lost. Showing what was loaded at 7:56 AM.</p>
+      <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.ink}}; color: {{t.bg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Try again</button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px; grid-column: span 2;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Banners — sync and quota problems are always visible, never silent</p>
+    <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: {{t.redSoft}}; color: {{t.redText}};">
+      <strong style="font-weight: 600;">University Gmail needs reconnecting.</strong><span style="flex: 1 1 200px; color: {{t.ink2}};">Syncing is paused for that account since 14 Nov. Primary is fine.</span>
+      <button type="button" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 0; background: {{t.ink}}; color: {{t.bg}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">Reconnect</button>
+    </div>
+    <div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: {{t.amberSoft}}; color: {{t.amberText}};">
+      <strong style="font-weight: 600;">Daily database limit reached at 11:42 AM.</strong><span style="flex: 1 1 200px; color: {{t.ink2}};">Cloudflare’s free tier resets at 1:00 PM NZDT. GRU will catch up automatically.</span>
+    </div>
+    <div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; background: {{t.redSoft}}; color: {{t.redText}};">
+      <strong style="font-weight: 600;">Google app is still in Testing mode.</strong><span style="flex: 1 1 200px; color: {{t.ink2}};">Gmail access will expire in 7 days. Publish the app in Google Cloud (Setup step 5).</span>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Job not scored</p>
+    <div style="border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 16px; display: flex; gap: 14px;">
+      <span style="width: 44px; height: 44px; border-radius: 50%; border: 2px dashed {{t.lineStrong}}; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: {{t.muted}}; flex: none;">—</span>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-weight: 600;">Cloud Support Graduate</span>
+        <span style="font-size: 13px; color: {{t.muted}};">Not scored. Add a resume in Settings to see how this fits.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Review item — one tap to resolve</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+      <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.amberText}};">GRU isn’t sure · confidence 0.82</p>
+      <p style="margin: 0; font-weight: 600;">Is this a rejection from Northgate Health?</p>
+      <p style="margin: 0; font-size: 13px; color: {{t.muted}};">“…we have decided to move forward with other candidates whose experience…” · northgatehealth.co.nz · yesterday</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+        <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Yes, mark rejected</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Edit</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Dismiss</button>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Toast — every automatic change can be undone</p>
+    <div role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 16px; border-radius: 12px; background: {{t.toast}}; color: {{t.toastInk}}; box-shadow: 0 8px 24px rgba(0,0,0,.16);">
+      <span style="flex: 1;">Northgate Health marked rejected</span>
+      <button type="button" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: {{t.toastAccent}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Undo</button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px; grid-row: span 2;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Confirm — wipe everything (typed phrase + 10-second hold)</p>
+    <div style="border-radius: 18px; background: {{t.scrim}}; padding: 28px; display: grid; place-items: center;">
+      <div role="dialog" aria-modal="true" aria-labelledby="wipe-title" style="width: 100%; border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.25);">
+        <h3 id="wipe-title" style="margin: 0; font-size: 18px; font-weight: 600;">Wipe everything?</h3>
+        <p style="margin: 0; color: {{t.ink2}};">GRU will revoke Gmail access and delete every application, job, note, task, resume and interview record. You will be signed out.</p>
+        <p style="margin: 0; font-size: 13px; color: {{t.muted}};">This can’t be undone in GRU. Cloudflare may keep restorable backups for up to 7 days; your encryption keys stay in your password manager.</p>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600;">Type WIPE EVERYTHING to continue
+          <input value="WIPE EVERYTHING" style="height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid {{t.lineStrong}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-weight: 500; letter-spacing: 0.04em;">
+        </label>
+        <button type="button" style="position: relative; overflow: hidden; height: 44px; border-radius: 10px; border: 0; background: {{t.redSoft}}; color: {{t.redText}}; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 62%; background: {{t.red}}; opacity: .22;" aria-hidden="true"></span>
+          <span style="position: relative;">Hold to wipe · 4 s left</span>
+        </button>
+        <button type="button" style="height: 40px; border-radius: 10px; border: 1px solid {{t.line}}; background: transparent; color: {{t.ink}}; font: inherit; font-weight: 500; cursor: pointer;">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Locked page</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 26px; display: flex; flex-direction: column; gap: 10px;">
+      <span style="width: 40px; height: 40px; border-radius: 12px; background: {{t.neutralSoft}}; color: {{t.ink2}}; display: grid; place-items: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">GRU is locked</h3>
+      <p style="margin: 0; color: {{t.muted}};">Your data is encrypted and the keys aren’t loaded. Run <code>scripts/unlock</code> with the keys from your password manager.</p>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Too many attempts</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 26px; display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Sign-in paused for 15 minutes</h3>
+      <p style="margin: 0; color: {{t.muted}};">After 5 incorrect attempts GRU pauses sign-in from this device. If this wasn’t you, change your password afterwards.</p>
+      <p style="margin: 0; font-size: 13px; font-weight: 600; color: {{t.amberText}};">Try again at 8:14 AM</p>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Wiped</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 26px; display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">GRU has been wiped</h3>
+      <p style="margin: 0; color: {{t.muted}};">All records were deleted and Gmail access was revoked at 9:41 PM. Nothing is readable through GRU any more. To start again, follow the setup guide.</p>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px;">
+    <p style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.muted}};">Interview time — one-tap form from an invite</p>
+    <div style="border-radius: 16px; background: {{t.surface}}; border: 1px solid {{t.line}}; padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+      <p style="margin: 0; grid-column: span 2; font-weight: 600;">When is the Pūriri Systems interview?</p>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Date<input value="Mon 16 Nov" style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13.5px;"></label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Time<input value="10:30 AM" style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13.5px;"></label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Timezone<input value="Pacific/Auckland" style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13.5px;"></label>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: {{t.muted}};">Format<input value="Assessment" style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid {{t.line}}; background: {{t.sunken}}; color: {{t.ink}}; font: inherit; font-size: 13.5px;"></label>
+      <button type="button" style="grid-column: span 2; height: 38px; border-radius: 10px; border: 0; background: {{t.accent}}; color: {{t.accentInk}}; font: inherit; font-weight: 600; cursor: pointer;">Save &amp; set reminders</button>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      light: { bg:'#F5F5F2', surface:'#FFFFFF', sunken:'#F7F7F4', line:'#E4E4DE', lineStrong:'#D3D3CB', ink:'#16181B', ink2:'#3B3F46', muted:'#5F646D', accent:'#1F6F68', accentInk:'#FFFFFF', amberSoft:'#FBEEDC', amberText:'#8F4207', red:'#B42318', redSoft:'#FBE8E6', redText:'#9A1C12', neutralSoft:'#EFEFEA', skeleton:'#ECECE6', skeletonSoft:'#F2F2EE', toast:'#1D2024', toastInk:'#ECEDEE', toastAccent:'#7FD4C7', scrim:'#D9D9D3' },
+      dark:  { bg:'#0F1113', surface:'#171A1D', sunken:'#121417', line:'#262A2F', lineStrong:'#353A41', ink:'#ECEDEE', ink2:'#C9CCD1', muted:'#9CA1A9', accent:'#5DBFB1', accentInk:'#05211E', amberSoft:'#33261A', amberText:'#F0B872', red:'#F08A7E', redSoft:'#3A1F1C', redText:'#F4A79D', neutralSoft:'#23272C', skeleton:'#23272C', skeletonSoft:'#1D2024', toast:'#ECEDEE', toastInk:'#16181B', toastAccent:'#17605A', scrim:'#07080A' }
+    };
+    const t = T[this.props.theme === 'dark' ? 'dark' : 'light'];
+    return { t, skeleton: [{ a: '62%', b: '40%' }, { a: '48%', b: '55%' }, { a: '70%', b: '35%' }] };
+  }
+}
+</script>
+</body>
+</html>

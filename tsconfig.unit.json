@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "build/unit",
+    "rootDir": ".",
+    "types": [
+      "node",
+      "@cloudflare/workers-types"
+    ]
+  },
+  "include": [
+    "test/unit/**/*.ts",
+    "scripts/**/*.ts",
+    "apps/worker/src/**/*.ts",
+    "apps/web/src/derive.ts"
+  ]
+}
