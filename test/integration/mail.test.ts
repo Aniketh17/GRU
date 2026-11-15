@@ -394,3 +394,38 @@ describe("Review queue and Undo integration", () => {
     expect(appReverted?.status).toBe("applied");
   });
 });
+
+describe("email dates", () => {
+  it("a new application created from an email carries the email date, not the sync date", async () => {
+    const ring = keyringFromEnv(testEnv());
+    const now = Math.floor(Date.now() / 1000);
+    const emailAt = now - 3 * 86400;
+    const accessEnc = await (await import("../../apps/worker/src/crypto/envelope.ts")).encryptField(ring, "valid_mock_access_token", aadFor("mail_accounts", "access_token", TEST_EMAIL));
+    await env.DB.prepare("DELETE FROM mail_accounts").run();
+    await env.DB.prepare(
+      "INSERT INTO mail_accounts (email, label, access_token_enc, access_expires_at, status, backfill_done, history_id, created_at) VALUES (?, ?, ?, ?, 'active', 1, 'hist_001', ?)",
+    ).bind(TEST_EMAIL, TEST_EMAIL, accessEnc, now + 3600, now).run();
+    const mockFetch = async (input: RequestInfo | URL) => {
+      const u = typeof input === "string" ? input : input.toString();
+      if (u.includes("/batch/gmail/v1")) {
+        const b = "bb";
+        const msg = { id: "msg_new_1", threadId: "t_new_1", labelIds: ["INBOX"], internalDate: String(emailAt * 1000), payload: { headers: [
+          { name: "From", value: "Acme Talent <no-reply@acme-careers.co.nz>" },
+          { name: "Subject", value: "Thank you for applying to Acme Robotics" },
+        ] } };
+        return new Response([`--${b}`, "Content-Type: application/http", "Content-ID: <response-1>", "", "HTTP/1.1 200 OK", "Content-Type: application/json; charset=UTF-8", "", JSON.stringify(msg), `--${b}--`].join("\r\n"), { status: 200, headers: { "Content-Type": `multipart/mixed; boundary=${b}` } });
+      }
+      if (u.includes("/history?")) {
+        return new Response(JSON.stringify({ historyId: "hist_2", history: [{ id: "h1", messagesAdded: [{ message: { id: "msg_new_1", threadId: "t_new_1" } }] }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("not found", { status: 404 });
+    };
+    await runTick(testEnv(mockEnv), now, mockFetch as unknown as typeof fetch);
+    const row = await env.DB.prepare("SELECT applied_at, last_event_at, source FROM applications WHERE source = 'email'").first<{ applied_at: number; last_event_at: number }>();
+    expect(row, "application should be created from the email").toBeTruthy();
+    expect(row?.applied_at).toBe(emailAt);
+    expect(row?.last_event_at).toBe(emailAt);
+    const ev = await env.DB.prepare("SELECT at FROM events WHERE gmail_id = 'msg_new_1'").first<{ at: number }>();
+    expect(ev?.at).toBe(emailAt);
+  });
+});

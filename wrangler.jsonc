@@ -29,6 +29,10 @@
     }
   ],
 
+  // Workers AI is used only for the natural speaking voice (Aura-1, DECISIONS D-055). The Free plan allows 10,000 Neurons/day
+  // and FAILS (never bills) beyond that; the app also caps itself at TTS_DAILY_CHARS characters/day, well below the allowance.
+  "ai": { "binding": "AI" },
+
   "triggers": { "crons": ["*/15 * * * *"] },
 
   "vars": {

@@ -24,8 +24,8 @@ export function TodayPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const summary = useQuery({ queryKey: ["summary"], queryFn: api.summary });
-  const followUps = useQuery({ queryKey: ["applications", { status: "active", q: "", stale: true }], queryFn: () => api.listApplications({ status: "active", stale: true }) });
-  const recent = useQuery({ queryKey: ["applications", { status: "all", q: "", stale: false }], queryFn: () => api.listApplications({ status: "all" }) });
+  const followUps = useQuery({ queryKey: ["applications", "today", "follow-ups"], queryFn: () => api.listApplications({ status: "active", stale: true }) });
+  const recent = useQuery({ queryKey: ["applications", "today", "recent"], queryFn: () => api.listApplications({ status: "all" }) });
   const recentEvents = useQuery({ queryKey: ["events", "recent"], queryFn: api.recentEvents });
   const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
 

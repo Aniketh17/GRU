@@ -13,6 +13,7 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string | undefined;
   ALLOWED_EMAILS?: string | undefined;
   NTFY_TOPIC?: string | undefined;
+  AI?: Ai | undefined;
 }
 
 export const nowSec = (): number => Math.floor(Date.now() / 1000);

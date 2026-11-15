@@ -8,7 +8,7 @@ import { ChevronLeft, ListIcon, PlusIcon, SearchIcon, TrashIcon } from "../compo
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, ErrorState, PageHeader, SkeletonRows, StatusChip, TextArea, cx } from "../components/ui.tsx";
 import { api, type Application, type Status } from "../lib/api.ts";
-import { STATUS_LABEL, STATUS_ORDER, daysSince, eventLabel, formatRelative, formatShort } from "../lib/format.ts";
+import { STATUS_LABEL, STATUS_ORDER, daysSince, eventLabel, formatDateTime, formatRelative, formatShort } from "../lib/format.ts";
 
 const FILTERS: { value: string; label: string }[] = [
   { value: "active", label: "Active" },
@@ -252,7 +252,8 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
 
           <dl className="m-0 grid grid-cols-2 gap-3 border-b border-line px-5 py-3.5 tabular-nums">
             <div><dt className="text-[12px] text-muted">Next action</dt><dd className="m-0 font-semibold">{a.next_action ?? "None set"}</dd></div>
-            <div><dt className="text-[12px] text-muted">Applied</dt><dd className="m-0 font-semibold">{formatShort(a.applied_at)} · {daysSince(a.applied_at)} days ago</dd></div>
+            <div><dt className="text-[12px] text-muted">Applied</dt><dd className="m-0 font-semibold">{a.applied_at ? (a.source === "manual" ? formatShort(a.applied_at) : formatDateTime(a.applied_at)) : "—"} · {daysSince(a.applied_at)} days ago</dd></div>
+            <div><dt className="text-[12px] text-muted">Last update</dt><dd className="m-0 font-semibold">{a.last_event_at ? formatDateTime(a.last_event_at) : "—"}</dd></div>
           </dl>
           {a.stale && (
             <p className="m-0 border-b border-line bg-amber-soft px-5 py-2.5 text-[13px] font-medium text-amber-text">
@@ -278,7 +279,7 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
                       </span>
                       <div className="pb-3.5">
                         <p className={cx("m-0 font-medium", e.undone === 1 && "text-muted line-through")}>{eventLabel(e.type, e.prev_status)}</p>
-                        <p className="m-0 text-[12.5px] text-muted">{formatRelative(e.at)} · {e.auto_applied ? "automatic, from email" : "by you"}</p>
+                        <p className="m-0 text-[12.5px] text-muted">{formatDateTime(e.at)} · {formatRelative(e.at)} · {e.auto_applied ? "automatic, from email" : "by you"}</p>
                         {canUndo && (
                           <Button size="sm" className="mt-1.5" onClick={() => undo.mutate(e.id)} disabled={undo.isPending}>Undo</Button>
                         )}

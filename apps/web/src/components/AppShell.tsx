@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
 import { BriefcaseIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { VoiceAssistant } from "./VoiceAssistant.tsx";
 import { Banner, cx } from "./ui.tsx";
 
 const NAV = [
@@ -93,6 +94,7 @@ export function AppShell() {
         Skip to content
       </a>
       <Sidebar />
+      <VoiceAssistant />
       <main id="main" className="min-w-0 flex-1 px-4 pt-safe pb-28 sm:px-6 lg:px-9 lg:pt-7 lg:pb-12">
         <div className="mx-auto flex max-w-[1140px] flex-col gap-5">
           {health.data?.paused && (

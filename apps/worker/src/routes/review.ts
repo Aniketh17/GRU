@@ -32,11 +32,13 @@ reviewRoutes.get("/", async (c) => {
     created_at: number;
     company: string | null;
     app_status: string | null;
+    received_at: number | null;
   }>(
     `SELECT r.id, r.kind, r.account_id, r.gmail_id, r.app_id, r.proposal_json, r.context_enc, r.created_at,
-            a.company, a.status as app_status
+            a.company, a.status as app_status, e.internal_date AS received_at
      FROM review_queue r
      LEFT JOIN applications a ON r.app_id = a.id
+     LEFT JOIN emails_seen e ON e.account_id = r.account_id AND e.gmail_id = r.gmail_id
      WHERE r.resolved_at IS NULL
      ORDER BY r.created_at DESC
      LIMIT 50`,
@@ -75,6 +77,7 @@ reviewRoutes.get("/", async (c) => {
         proposal,
         context,
         createdAt: r.created_at,
+        receivedAt: r.received_at,
       };
     }),
   );

@@ -53,7 +53,10 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
       </ul>
       <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
         <span className="text-[12.5px] text-muted">{done ? "Check-in done for today." : skipped ? "Check-in skipped today." : "A 1-minute check-in keeps your pipeline accurate."}</span>
+        <div className="flex flex-none gap-2">
+          <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent("gru:voice", { detail: "brief" }))}>Read aloud</Button>
         {!done && <Button size="sm" variant="primary" onClick={() => setOpen(true)}>{skipped ? "Check in anyway" : "Start check-in"}</Button>}
+        </div>
       </div>
       {open && checkin.data && <CheckinWizard onClose={() => setOpen(false)} onAdd={onAdd} />}
     </Card>

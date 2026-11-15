@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, PageHeader, Pill } from "../components/ui.tsx";
 import { api, type ReviewItem, type Status } from "../lib/api.ts";
-import { formatTime } from "../lib/format.ts";
+import { formatDateTime } from "../lib/format.ts";
 
 export function ReviewPage() {
   const qc = useQueryClient();
@@ -91,7 +91,7 @@ function ReviewCard({
           </Pill>
           <span className="text-[14px] font-semibold text-ink">{company}</span>
         </div>
-        <span className="text-[12px] text-muted">{formatTime(item.createdAt)}</span>
+        <span className="text-[12px] text-muted">Received {formatDateTime(item.receivedAt ?? item.createdAt)}</span>
       </div>
 
       {item.context && (

@@ -22,6 +22,7 @@ import { healthRoutes } from "./routes/health.ts";
 import { mailRoutes } from "./routes/mail.ts";
 import { reviewRoutes } from "./routes/review.ts";
 import { settingsRoutes } from "./routes/settings.ts";
+import { voiceRoutes } from "./routes/voice.ts";
 
 export type AppEnv = { Bindings: Env; Variables: { db: Db } };
 
@@ -53,6 +54,7 @@ app.route("/api/notes", noteRoutes);
 app.route("/api/tasks", taskRoutes);
 app.route("/api/agenda", agendaRoutes);
 app.route("/api/export", exportRoutes);
+app.route("/api/voice", voiceRoutes);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 app.all("/auth/*", (c) => c.json({ error: "not_found" }, 404));

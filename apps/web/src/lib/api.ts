@@ -73,6 +73,7 @@ export interface ReviewItem {
     from?: string;
   } | null;
   createdAt: number;
+  receivedAt: number | null;
 }
 
 export interface RecentEvent {
@@ -248,5 +249,8 @@ export const api = {
   agenda: () => request<Agenda>("/api/agenda"),
   weekly: () => request<Weekly>("/api/agenda/weekly"),
   exportTable: (table: string, after = "") => request<{ items: unknown[]; next: string | null }>(`/api/export?table=${table}${after ? `&after=${encodeURIComponent(after)}` : ""}`),
+  voiceHistory: () => request<{ items: { id: number; role: "user" | "gru"; text: string | null; at: number }[] }>("/api/voice/history"),
+  saveVoiceEntry: (role: "user" | "gru", text: string) => request<{ id: number }>("/api/voice/history", "POST", { role, text }),
+  clearVoiceHistory: () => request<{ deleted: true }>("/api/voice/history", "DELETE"),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };

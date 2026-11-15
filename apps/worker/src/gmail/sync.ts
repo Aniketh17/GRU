@@ -7,6 +7,7 @@ import { BACKFILL_DAYS } from "./constants.ts";
 import { classify } from "../classify/classify.ts";
 import { extractCompanies } from "../classify/company.ts";
 import { decide } from "../classify/decide.ts";
+import { extractRole, sourceForDomain } from "../classify/role.ts";
 import { resolveLink, type AppRef } from "../classify/link.ts";
 import { aadFor, decryptField, encryptField, keyringFromEnv } from "../crypto/envelope.ts";
 import type { Db } from "../db/client.ts";
@@ -153,6 +154,7 @@ async function syncSingleAccount(
   fetchFn: typeof fetch,
 ): Promise<{ processed: number }> {
   const accessToken = await getOrRefreshAccessToken(env, db, ring, account, now, fetchFn);
+  await enrichSeen(db, accessToken, account.id, fetchFn);
 
   // Load active applications for linking
   const appRows = await db.all<{ id: number; company_norm: string; status: Status }>(
@@ -276,6 +278,7 @@ async function syncSingleAccount(
       continue;
     }
 
+    const emailAt = meta.internalDate || now; // dates come from the email, not from when GRU saw it
     const c = classify(meta, [account.email]);
     if (c.cls === "other") {
       // Per spec: other non-job mail is classified in memory and not stored in emails_seen
@@ -286,6 +289,11 @@ async function syncSingleAccount(
     const guesses = extractCompanies(c.sender, meta.subject);
     const link = resolveLink(guesses, apps, threadAppId);
     const decision = decide(c, link);
+    const role = extractRole(meta.subject);
+    if (link.appId && role) {
+      // Fill the position from the email subject when the application has none yet (never overwrites Ani's edits).
+      await db.run("UPDATE applications SET role = ?, role_norm = ? WHERE id = ? AND role IS NULL", role, normalizeName(role), link.appId);
+    }
 
     if (processedCount >= MAX_NEW_EMAILS_PER_TICK) {
       break;
@@ -299,9 +307,9 @@ async function syncSingleAccount(
 
       await db.batch([
         db.stmt(
-          "UPDATE applications SET status = ?, last_event_at = ?, updated_at = ? WHERE id = ?",
+          "UPDATE applications SET status = ?, last_event_at = MAX(COALESCE(last_event_at, 0), ?), updated_at = ? WHERE id = ?",
           decision.to,
-          now,
+          emailAt,
           now,
           appId,
         ),
@@ -309,7 +317,7 @@ async function syncSingleAccount(
           "INSERT INTO events (app_id, type, at, account_id, gmail_id, confidence, auto_applied, prev_status, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
           appId,
           `status:${decision.to}`,
-          now,
+          emailAt,
           account.id,
           meta.id,
           c.confidence,
@@ -337,11 +345,14 @@ async function syncSingleAccount(
       const companyNorm = normalizeName(company);
 
       const createRes = await db.run(
-        "INSERT INTO applications (company, company_norm, status, source, applied_at, last_event_at, created_at, updated_at) VALUES (?, ?, 'applied', 'email', ?, ?, ?, ?)",
+        "INSERT INTO applications (company, company_norm, role, role_norm, status, source, applied_at, last_event_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'applied', ?, ?, ?, ?, ?)",
         company,
         companyNorm,
-        meta.internalDate || now,
-        now,
+        role,
+        role ? normalizeName(role) : null,
+        sourceForDomain(c.sender.domain),
+        emailAt,
+        emailAt,
         now,
         now,
       );
@@ -353,7 +364,7 @@ async function syncSingleAccount(
         db.stmt(
           "INSERT INTO events (app_id, type, at, account_id, gmail_id, confidence, auto_applied, created_at) VALUES (?, 'status_change', ?, ?, ?, ?, 1, ?)",
           newAppId,
-          now,
+          emailAt,
           account.id,
           meta.id,
           c.confidence,
@@ -377,7 +388,7 @@ async function syncSingleAccount(
       const appId = link.appId;
       await db.batch([
         ...(appId
-          ? [db.stmt("UPDATE applications SET last_event_at = ?, updated_at = ? WHERE id = ?", now, now, appId)]
+          ? [db.stmt("UPDATE applications SET last_event_at = MAX(COALESCE(last_event_at, 0), ?), updated_at = ? WHERE id = ?", emailAt, now, appId)]
           : []),
         db.stmt(
           "INSERT INTO emails_seen (account_id, gmail_id, thread_id, internal_date, from_domain, class, confidence, rule_id, app_id, disposition) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'linked')",
@@ -412,6 +423,7 @@ async function syncSingleAccount(
       const reviewContext = JSON.stringify({
         subject: meta.subject,
         from: c.sender.name || c.sender.domain,
+        received_at: emailAt,
       });
       // Pre-insert to obtain review_queue id for AAD
       const insRes = await db.run(
@@ -455,6 +467,14 @@ async function syncSingleAccount(
     }
   }
 
+  if (unseenIds.length > 0) {
+    await db.run(
+      `UPDATE emails_seen SET enriched = 1 WHERE account_id = ? AND gmail_id IN (${unseenIds.map(() => "?").join(",")})`,
+      account.id,
+      ...unseenIds,
+    );
+  }
+
   await db.run(
     "UPDATE mail_accounts SET last_sync_at = ?, backfill_done = ?, backfill_page_token = ?, history_id = ?, messages_scanned = messages_scanned + ?, last_success_at = ? WHERE id = ?",
     now,
@@ -467,4 +487,31 @@ async function syncSingleAccount(
   );
 
   return { processed: processedCount };
+}
+
+/**
+ * One-time (and self-healing) pass over emails imported before role/source extraction existed:
+ * re-reads only their headers (batch GET, 1 subrequest per 50), fills in a missing position, and
+ * corrects the source for applications GRU created automatically. Never touches fields Ani has set.
+ */
+async function enrichSeen(db: Db, accessToken: string, accountId: number, fetchFn: typeof fetch): Promise<void> {
+  const rows = await db.all<{ gmail_id: string; app_id: number }>(
+    "SELECT gmail_id, app_id FROM emails_seen WHERE account_id = ? AND enriched = 0 AND app_id IS NOT NULL ORDER BY internal_date DESC LIMIT 50",
+    accountId,
+  );
+  if (rows.length === 0) return;
+  const appByMsg = new Map(rows.map((r) => [r.gmail_id, r.app_id]));
+  const raw = await batchGetGmailMessages(accessToken, rows.map((r) => r.gmail_id), fetchFn);
+  const stmts: D1PreparedStatement[] = [];
+  for (const msg of raw) {
+    const meta = gmailMessageToMeta(msg);
+    const appId = appByMsg.get(meta.id);
+    if (!appId) continue;
+    const role = extractRole(meta.subject);
+    if (role) stmts.push(db.stmt("UPDATE applications SET role = ?, role_norm = ? WHERE id = ? AND role IS NULL", role, normalizeName(role), appId));
+    const source = sourceForDomain(classify(meta, []).sender.domain);
+    if (source !== "email") stmts.push(db.stmt("UPDATE applications SET source = ? WHERE id = ? AND source = 'email'", source, appId));
+  }
+  stmts.push(db.stmt(`UPDATE emails_seen SET enriched = 1 WHERE account_id = ? AND gmail_id IN (${rows.map(() => "?").join(",")})`, accountId, ...rows.map((r) => r.gmail_id)));
+  await db.batch(stmts);
 }

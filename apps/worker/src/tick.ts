@@ -36,6 +36,8 @@ export function housekeepingStmts(db: Db, now: number): D1PreparedStatement[] {
   return [
     db.stmt("DELETE FROM sessions WHERE expires_at <= ? OR last_seen_at <= ?", now, now - IDLE_TTL),
     db.stmt("DELETE FROM login_attempts WHERE locked_until <= ?1 AND window_start <= ?1 - 86400", now),
+    db.stmt("DELETE FROM voice_log WHERE created_at < ?", now - 30 * 86400),
+    db.stmt("DELETE FROM kv WHERE k LIKE 'tts_chars:%' AND k < ?", `tts_chars:${new Date((now - 2 * 86400) * 1000).toISOString().slice(0, 10)}`),
     db.stmt("DELETE FROM oauth_states WHERE expires_at <= ?", now),
     db.stmt("DELETE FROM sync_runs WHERE started_at < ?", now - 30 * 86400),
     db.stmt("UPDATE emails_seen SET snippet_enc = NULL WHERE snippet_enc IS NOT NULL AND internal_date < ?", now - 90 * 86400),

@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api.ts";
+import { ResumeFileError, extractResumeText } from "../lib/resume-file.ts";
 import { Modal } from "./Dialog.tsx";
 import { useToast } from "./Toast.tsx";
 import { Button, Card, Field, Pill, TextArea } from "./ui.tsx";
@@ -25,6 +26,20 @@ export function ResumeCard() {
   });
   const activate = useMutation({ mutationFn: api.activateResume, onSuccess: () => { refresh(); toast({ text: "Resume activated" }); } });
   const remove = useMutation({ mutationFn: api.deleteResume, onSuccess: refresh });
+  const [reading, setReading] = useState(false);
+  const pickFile = async (file: File | undefined) => {
+    if (!file) return;
+    setReading(true);
+    try {
+      const text = await extractResumeText(file);
+      const label = file.name.replace(/\.[^.]+$/, "").slice(0, 120);
+      setEdit((cur) => ({ ...(cur ?? { label: "", text: "" }), label: cur?.label || label, text }));
+    } catch (e) {
+      toast({ text: e instanceof ResumeFileError ? e.message : "Couldn’t read that file. Try a PDF, DOCX or TXT." });
+    } finally {
+      setReading(false);
+    }
+  };
   const open = async (id: number) => {
     const r = await api.getResume(id);
     setEdit({ id, label: r.label, text: r.text ?? "" });
@@ -34,7 +49,7 @@ export function ResumeCard() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="s-resume" className="m-0 text-[15px] font-semibold">Resume profiles</h2>
-          <p className="m-0 text-[12.5px] text-muted">Paste your resume text. Encrypted at rest; used only to score jobs. Skills are listed only if they appear in your text.</p>
+          <p className="m-0 text-[12.5px] text-muted">Upload a file or paste text. Encrypted at rest; used only to score jobs. Skills are listed only if they appear in your text.</p>
         </div>
         <Button size="sm" variant="primary" onClick={() => setEdit({ label: "", text: "" })}>Add</Button>
       </div>
@@ -56,8 +71,13 @@ export function ResumeCard() {
       </ul>
       {edit && (
         <Modal open onClose={() => setEdit(null)} title={edit.id ? "Edit resume" : "Add resume"} wide>
+          <label className="flex cursor-pointer flex-col gap-1.5 rounded-[10px] border border-dashed border-line-strong px-4 py-3 text-[13px]">
+            <span className="font-semibold">{reading ? "Reading file…" : "Upload your resume (PDF, DOCX or TXT)"}</span>
+            <span className="text-[12px] text-muted">Read on this device. The file is never uploaded; only the text below is saved, encrypted.</span>
+            <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain" className="text-[12.5px]" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
           <Field label="Label" value={edit.label} maxLength={120} placeholder="Resume – AI/Software – Nov 2026" onChange={(e) => setEdit({ ...edit, label: e.target.value })} />
-          <TextArea label="Resume text" rows={12} maxLength={40000} value={edit.text} onChange={(e) => setEdit({ ...edit, text: e.target.value })} />
+          <TextArea label="Resume text (check it looks right)" rows={12} maxLength={40000} value={edit.text} onChange={(e) => setEdit({ ...edit, text: e.target.value })} />
           <Button variant="primary" disabled={!edit.label.trim() || edit.text.length < 50 || save.isPending} onClick={() => save.mutate(edit)}>Save</Button>
         </Modal>
       )}

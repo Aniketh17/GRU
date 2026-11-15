@@ -31,7 +31,7 @@ export async function computeBrief(db: Db, now: number) {
     `SELECT e.id, e.app_id, a.company, e.prev_status, e.type, e.at, e.created_at, e.undone
      FROM events e
      JOIN applications a ON e.app_id = a.id
-     WHERE e.auto_applied = 1 AND e.undone = 0 AND e.at >= ? AND e.type LIKE 'status:%'
+     WHERE e.auto_applied = 1 AND e.undone = 0 AND e.created_at >= ? AND e.type LIKE 'status:%'
      ORDER BY e.at DESC
      LIMIT 20`,
     yesterdaySec,

@@ -526,6 +526,9 @@ ode.exe`. | ✅ done 2026-11-15 |
 | D-052 | **Vacancies are added by the user (paste/URL), not parsed from Gmail alerts.** GRU uses the `gmail.metadata` scope, which cannot read message bodies, so job-alert bodies cannot be parsed without widening to `gmail.readonly` (a forbidden scope, spec §2). Revisit only with Ani's explicit approval. | ⚠️ deviation from §10 flagged |
 | D-053 | Note tags are stored as plaintext short labels (`a-z0-9-`, max 24 chars). Note bodies, task titles, job descriptions, resume text, prep and debrief are encrypted. | ✅ |
 | D-054 | Voice (spec §22) and Workers AI (Phase 8) are **not built**; both need separate approval. | ⏸ |
+| D-055 | **Natural voice (Ani, 2026-11-15: "more natural human voice")** supersedes the device-voices-only rule of D-042 for *speaking*. GRU speaks via Workers AI `@cf/deepgram/aura-1` (binding `AI`). Verified 2026-11-15 in Cloudflare docs: zero data retention, no training on customer content; Free plan = 10,000 Neurons/day, hard failure (never billing) beyond it; Aura-1 = 1,363.64 Neurons per 1,000 characters. GRU caps itself at 5,500 characters/day (about 7,500 Neurons) and falls back to an on-device voice. Ani can switch to the on-device voice in the assistant's settings. Speech *recognition* is unchanged: on-device only. | ✅ |
+| D-056 | The assistant never speaks or listens unprompted: audio and microphone start only from a tap (browsers also forbid autoplay). On the first visit each Auckland day the assistant sheet opens with the brief as text and a "Play my brief" button. | ✅ |
+| D-057 | Mail details: applications created from email get the role (from the subject), the source (seek/linkedin/other/email from the sender domain) and the email's own date. A header-only enrichment pass (`emails_seen.enriched`) repairs earlier imports once. Review items show when the email arrived. Never overwrites fields Ani has edited. | ✅ |
 
 ## Runtime dependencies (rule 6)
 | Package | Version | Where | Why |
@@ -533,6 +536,8 @@ ode.exe`. | ✅ done 2026-11-15 |
 | `hono` | 4.13.16 | Worker | Routing and middleware; small, Workers-native, no transitive deps |
 | `react`, `react-dom`, `react-router`, `@tanstack/react-query`, `@fontsource-variable/inter` | see D-036 | Web app bundle | UI stack per spec §4; self-hosted font |
 | `zod` | 4.6.7 | Worker | Input validation at every API boundary |
+| `pdfjs-dist` | 6.5.438 | Browser only, loaded on demand | Reads a resume PDF on the device (Apache-2.0). The file never leaves the phone |
+| `mammoth` | 1.13.0 | Browser only, loaded on demand | Reads a resume DOCX on the device (BSD-2-Clause) |
 | `hash-wasm` | 4.12.0 | **Browser login page + local scripts only, never the Worker** | Argon2id in WebAssembly (D-018); MIT, no dependencies |
 
 Node 20 lane dev (root, pinned): `typescript` 6.0.3, `@types/node` 26.6.6, `@cloudflare/workers-types` 5.20261031.1.

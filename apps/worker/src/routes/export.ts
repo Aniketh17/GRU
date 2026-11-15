@@ -14,6 +14,7 @@ const TABLES: Record<string, { key: string; enc: string[]; cols: string }> = {
   tasks: { key: "id", enc: ["title_enc"], cols: "id, due_at, priority, kind, done_at, app_id, title_enc" },
   jobs: { key: "id", enc: ["description_enc"], cols: "id, source, title, company, location, canonical_url, status, closing_at, first_seen_at, description_enc" },
   resume_profiles: { key: "id", enc: ["resume_text_enc"], cols: "id, version, label, active, created_at, resume_text_enc" },
+  voice_log: { key: "id", enc: ["text_enc"], cols: "id, role, created_at, text_enc" },
   checkins: { key: "date", enc: ["answers_enc"], cols: "date, status, completed_at, answers_enc" },
 };
 

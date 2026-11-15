@@ -25,7 +25,7 @@ eventRoutes.get("/recent", async (c) => {
             a.company, a.status as current_status
      FROM events e
      JOIN applications a ON e.app_id = a.id
-     WHERE e.at >= ? AND e.type LIKE 'status:%'
+     WHERE e.created_at >= ? AND e.type LIKE 'status:%'
      ORDER BY e.at DESC
      LIMIT 20`,
     since,

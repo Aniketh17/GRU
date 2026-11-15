@@ -40,11 +40,15 @@ describe("wrangler.jsonc stays on the free tier", () => {
 
   it("has no billable or card-requiring bindings", () => {
     const forbidden = [
-      "r2_buckets", "ai", "queues", "durable_objects", "browser", "vectorize", "hyperdrive",
+      "r2_buckets", "queues", "durable_objects", "browser", "vectorize", "hyperdrive",
       "analytics_engine_datasets", "mtls_certificates", "dispatch_namespaces", "workflows",
       "send_email", "images", "containers", "pipelines", "secrets_store_secrets", "tail_consumers",
     ];
     for (const key of forbidden) assert.ok(!has(key), key);
+  });
+
+  it("Workers AI is bound only as AI (natural voice, D-055); the Free plan hard-stops at 10,000 Neurons/day instead of billing", () => {
+    assert.deepEqual(cfg.ai, { binding: "AI" });
   });
 
   it("uses only workers.dev: no routes or custom domains", () => {
@@ -78,7 +82,7 @@ describe("dependencies", () => {
 
   it("ships only justified runtime dependencies (D-036)", () => {
     assert.deepEqual(Object.keys(pkg.dependencies ?? {}).sort(), [
-      "@fontsource-variable/inter", "@tanstack/react-query", "hash-wasm", "hono", "react", "react-dom", "react-router", "zod",
+      "@fontsource-variable/inter", "@tanstack/react-query", "hash-wasm", "hono", "mammoth", "pdfjs-dist", "react", "react-dom", "react-router", "zod",
     ]);
   });
 
