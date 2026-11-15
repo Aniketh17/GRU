@@ -31,6 +31,7 @@ function clean(raw: string): string | null {
     .replace(/\s*[-–—|]\s*(?:ref|req|job id)\b.*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
+  r = r.replace(/\s+(?:at|with|@)\s+[^,]{2,60}$/i, "").trim(); // never keep the company in the title
   r = (r.split(/\s[-–—|]\s/)[0] ?? r).replace(/^(?:the|our)\s+/i, "").trim();
   if (r.length < 3 || r.length > 90 || !/\p{L}/u.test(r) || NOT_A_ROLE.test(r)) return null;
   if (/\b(application|applying|apply|thank|received|submitted|confirmation)\b/i.test(r)) return null;

@@ -247,7 +247,9 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
               </label>
             </div>
             <h2 className="m-0 text-[19px] font-semibold tracking-[-0.01em]">{a.company}</h2>
-            <p className="m-0 text-[13.5px] text-ink-2">{a.role ?? "Role not set"} · via {a.source === "manual" ? "direct" : a.source}</p>
+            <p className="m-0 text-[13.5px] text-ink-2">
+              {a.role ?? <button type="button" onClick={() => setEditing(true)} className="cursor-pointer border-0 bg-transparent p-0 font-medium text-accent-text underline">Add the role you applied for</button>} · via {a.source === "manual" ? "direct" : a.source}
+            </p>
           </div>
 
           <dl className="m-0 grid grid-cols-2 gap-3 border-b border-line px-5 py-3.5 tabular-nums">

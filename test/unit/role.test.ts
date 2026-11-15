@@ -12,6 +12,7 @@ describe("extractRole", () => {
     ["Application received: Backend Engineer - Auckland", "Backend Engineer"],
     ["Interview for Graduate Data Engineer at Northgate Health", "Graduate Data Engineer"],
     ["Re: Your application for the Machine Learning Engineer role", "Machine Learning Engineer"],
+    ["Application received: Lead Data Engineer at Chubb", "Lead Data Engineer"],
     ["Thank you for applying to Acme Robotics", null],
     ["Your application was sent to Acme Robotics", null],
     ["We received your application", null],
