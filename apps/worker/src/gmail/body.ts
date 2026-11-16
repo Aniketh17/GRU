@@ -8,11 +8,15 @@ const MAX_HTML = 50_000;
 const MAX_ENCODED = 90_000; // base64 chars per part
 const decoder = new TextDecoder("utf-8", { fatal: false, ignoreBOM: false });
 
+/** Padding, whitespace and standard-alphabet characters are all accepted. */
+const clean = (d: string): string => d.replace(/[\s=]+/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
 function decodePart(data: string | undefined): string {
   if (!data) return "";
   try {
     // Never decode more than needed (multiple of 4 keeps the base64 valid).
-    return decoder.decode(b64urlDecode((data.length > MAX_ENCODED ? data.slice(0, MAX_ENCODED & ~3) : data)));
+    // Gmail returns base64url WITH "=" padding when the size is not a multiple of 3: normalise before decoding.
+    return decoder.decode(b64urlDecode(clean((data.length > MAX_ENCODED ? data.slice(0, MAX_ENCODED & ~3) : data))));
   } catch {
     return "";
   }

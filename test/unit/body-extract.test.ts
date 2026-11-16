@@ -112,4 +112,23 @@ describe("reading real-world emails", () => {
     const shape = mimeShape({ mimeType: "multipart/mixed", parts: [{ mimeType: "multipart/alternative", parts: [{ mimeType: "text/plain", body: { size: 120 } }, { mimeType: "text/html", body: { size: 9800 } }] }, { mimeType: "application/pdf", body: { size: 5000, attachmentId: "x" } }] });
     assert.equal(shape, "multipart/mixed[multipart/alternative[text/plain:120,text/html:9800],application/pdf:5000*]");
   });
+
+  it("reads bodies whose base64url data carries '=' padding (Gmail does this when the size is not a multiple of 3)", () => {
+    for (const body of ["<p>x</p>", "<p>We chose another candidate.</p>", "<p>We chose another candidate!!</p>"]) {
+      for (const padded of [Buffer.from(body).toString("base64url") + "=".repeat((4 - (Buffer.from(body).toString("base64url").length % 4)) % 4), Buffer.from(body).toString("base64").replace(/\+/g, "-").replace(/\//g, "_")]) {
+        const msg = { id: "1", threadId: "t", internalDate: "0", payload: { mimeType: "text/html", body: { data: padded } } };
+        assert.equal(messageBody(msg).text, body.replace(/<[^>]+>/g, ""), `data ${padded}`);
+      }
+    }
+  });
+  it("padded and unpadded data decode identically for every length", () => {
+    for (let n = 1; n < 40; n++) {
+      const text = "a".repeat(n);
+      const unpadded = Buffer.from(text).toString("base64url");
+      const padded = Buffer.from(text).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+      const mk = (data: string) => messageBody({ id: "1", threadId: "t", internalDate: "0", payload: { mimeType: "text/plain", body: { data } } }).text.trim();
+      assert.equal(mk(padded), text, `padded n=${n}`);
+      assert.equal(mk(unpadded), text, `unpadded n=${n}`);
+    }
+  });
 });
