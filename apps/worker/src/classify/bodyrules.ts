@@ -14,7 +14,7 @@ const RULES: Rule[] = [
   // rejection
   R("rejection", "reject.regret", 0.95, /\bwe regret to (?:inform|advise|let you know)\b|\bwe regret\b/i),
   R("rejection", "reject.decided", 0.95, /\b(?:decided|chosen|opted) (?:not )?to (?:proceed|move forward|go|continue) with (?:other|another|a different|someone)\b/i),
-  R("rejection", "reject.unfortunately", 0.9, /\bunfortunately\b[^.]{0,220}\b(?:not|unable|unsuccessful|regret|decline|proceed|move forward|other candidates|filled|shortlist)/i),
+  R("rejection", "reject.unfortunately", 0.85, /\bunfortunately\b[^.]{0,220}\b(?:not|unable|unsuccessful|regret|decline|proceed|move forward|other candidates|filled|shortlist)/i),
   R("rejection", "reject.notprogress", 0.9, /\b(?:will not|won't|not) be (?:moving|progressing|proceeding|taking your application)\b/i),
   R("rejection", "reject.unsuccessful", 0.92, /\b(?:application|candidacy)\b[^.]{0,40}\b(?:unsuccessful|not successful|declined|not selected|not been successful)\b|\bnot been successful\b/i),
   R("rejection", "reject.filled", 0.9, /\b(?:position|role|vacancy) (?:has )?(?:now )?been filled\b/i),

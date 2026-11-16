@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: DecideSettings = { autoApplyHighImpact: false };
 const AUTO_MIN = 0.9;
 const LINK_MIN = 0.8;
 const CREATE_MIN = 0.85;
-const HIGH_IMPACT_MIN = 0.95;
+const HIGH_IMPACT_MIN = 0.9; // clear text evidence (Ani, 2026-11-16); changes still show on Today with a 24 h Undo
 
 export function decide(c: Classification, link: LinkResult, settings: DecideSettings = DEFAULT_SETTINGS): Decision {
   const { cls, confidence } = c;

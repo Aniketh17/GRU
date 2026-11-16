@@ -99,6 +99,14 @@ export async function processBodies(
 
 type Meta = ReturnType<typeof gmailMessageToMeta>;
 
+function previousClass(proposal: string | null): string | null {
+  try {
+    return (JSON.parse(proposal ?? "{}") as { class?: string }).class ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function understand(
   env: Env, db: Db, accountId: number, row: Row, meta: Meta, text: string, html: string, apps: AppRef[], autoStatus: boolean, now: number, shape: string,
 ): Promise<number> {
@@ -208,10 +216,11 @@ async function understand(
     }
   } else if (decision.action === "review") {
     const proposal = JSON.stringify({ class: cls, confidence, suggested: decision.suggested, reason: `${decision.reason} (from the email text)`, company: link.company?.name ?? null });
-    const existing = await db.first<{ id: number; resolved_at: number | null }>("SELECT id, resolved_at FROM review_queue WHERE account_id = ? AND gmail_id = ? ORDER BY id DESC LIMIT 1", accountId, row.gmail_id);
+    const existing = await db.first<{ id: number; resolved_at: number | null; proposal_json: string | null }>("SELECT id, resolved_at, proposal_json FROM review_queue WHERE account_id = ? AND gmail_id = ? ORDER BY id DESC LIMIT 1", accountId, row.gmail_id);
     if (existing && existing.resolved_at === null) {
       tail.push(db.stmt("UPDATE review_queue SET kind = ?, proposal_json = ?, app_id = COALESCE(app_id, ?) WHERE id = ?", decision.kind, proposal, appId, existing.id));
-    } else if (!existing) {
+    } else if (!existing || previousClass(existing.proposal_json) !== cls) {
+      // New, or a DIFFERENT conclusion from the one Ani dismissed earlier (dismissing a wrong guess must not silence a better one).
       const ins = await db.first<{ id: number }>(
         "INSERT INTO review_queue (kind, account_id, gmail_id, app_id, proposal_json, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
         decision.kind, accountId, row.gmail_id, appId, proposal, now,

@@ -247,3 +247,14 @@ describe("AI second opinion for paraphrased rejections", () => {
     expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
   });
 });
+
+describe("a dismissed wrong guess does not silence a better one", () => {
+  it("re-proposes (and, when clear, applies) a rejection after Ani dismissed an earlier 'application received' guess for the same email", async () => {
+    await seedApp(1, "F&P Healthcare");
+    await env.DB.prepare("INSERT INTO events (app_id, type, at, account_id, gmail_id, confidence, auto_applied, created_at) VALUES (1, 'status_change', ?1, 1, 'm_dis', 0.9, 1, ?1)").bind(now - 3600).run();
+    await seedMail("m_dis", "t_dis", "application_received", "queued", 1);
+    await env.DB.prepare("INSERT INTO review_queue (kind, account_id, gmail_id, app_id, proposal_json, created_at, resolved_at, resolution) SELECT 'classify', id, 'm_dis', 1, '{\"class\":\"application_received\",\"confidence\":0.75}', ?, ?, 'dismissed' FROM mail_accounts").bind(now - 7200, now - 3600).run();
+    await run([{ id: "m_dis", from: "F&P Careers <careers@fp.example.co.nz>", subject: "Thank you for applying to the role", text: "Thank you for applying. We have decided to progress with other candidates whose skills more closely match this role." }]);
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("rejected");
+  });
+});
