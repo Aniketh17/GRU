@@ -29,9 +29,13 @@ export const GOOGLE_REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
 export const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 export const GMAIL_BATCH_ENDPOINT = "https://gmail.googleapis.com/batch/gmail/v1";
 
-/** Message body fields (depth-limited MIME tree; attachments have no inline data and are never fetched). */
-export const GMAIL_FULL_FIELDS =
-  "id,threadId,labelIds,internalDate,payload(headers,mimeType,body(data),parts(mimeType,body(data),parts(mimeType,body(data),parts(mimeType,body(data)))))";
+/**
+ * Message body fields. Real emails nest deeply (mixed > related > alternative > html, or forwards inside forwards), so the MIME tree is
+ * requested 8 levels down. size/attachmentId are only used to describe an email's shape when diagnosing; attachments are never fetched.
+ */
+const PART = "mimeType,body(data,size,attachmentId)";
+const nest = (depth: number): string => (depth === 0 ? `parts(${PART})` : `parts(${PART},${nest(depth - 1)})`);
+export const GMAIL_FULL_FIELDS = `id,threadId,labelIds,internalDate,payload(headers,${PART},${nest(7)})`;
 
 /** Fields mask for header-only messages.get: id, threadId, labelIds, internalDate, headers. No snippet. */
 export const GMAIL_METADATA_FIELDS = "id,threadId,labelIds,internalDate,payload/headers";

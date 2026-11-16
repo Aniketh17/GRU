@@ -5,7 +5,8 @@ import { countJobLinks, extractVacancies } from "../../apps/worker/src/classify/
 import { extractInterviewTimes, extractMeetingLink, extractRoleFromBody } from "../../apps/worker/src/classify/body.ts";
 import { classifyBody } from "../../apps/worker/src/classify/bodyrules.ts";
 import { extractDeadlines } from "../../apps/worker/src/classify/deadlines.ts";
-import { htmlToText, messageBody } from "../../apps/worker/src/gmail/body.ts";
+import { GMAIL_FULL_FIELDS } from "../../apps/worker/src/gmail/constants.ts";
+import { htmlToText, messageBody, mimeShape } from "../../apps/worker/src/gmail/body.ts";
 import { aucklandToEpoch } from "../../apps/worker/src/lib/when.ts";
 import { b64urlEncode, utf8 } from "../../apps/worker/src/crypto/b64.ts";
 
@@ -90,5 +91,25 @@ describe("message body decoding and cost", () => {
     }
     assert.ok(html.length > 50_000, "fixture exceeds the html cap");
     assert.ok(best < 8, `pipeline ${best.toFixed(2)} ms per email`);
+  });
+});
+
+describe("reading real-world emails", () => {
+  const b64 = (t: string) => b64urlEncode(utf8.encode(t));
+  it("asks Gmail for the MIME tree 8 levels deep (mixed > related > alternative > html and forwards need more than 3)", () => {
+    assert.equal((GMAIL_FULL_FIELDS.match(/parts\(/g) ?? []).length, 8);
+  });
+  it("reads text from a deeply nested message", () => {
+    const html = { mimeType: "text/html", body: { data: b64("<p>We chose another candidate.</p>") } };
+    const msg = { id: "1", threadId: "t", internalDate: "0", payload: { mimeType: "multipart/mixed", parts: [{ mimeType: "multipart/mixed", parts: [{ mimeType: "multipart/related", parts: [{ mimeType: "multipart/alternative", parts: [html] }] }] }] } };
+    assert.match(messageBody(msg).text, /We chose another candidate/);
+  });
+  it("does not mistake <header> for <head> and wipe the page", () => {
+    assert.equal(htmlToText("<html><body><header>Hi Ani</header><p>We regret to inform you</p></body></html>"), "Hi Ani We regret to inform you".replace("Hi Ani ", "Hi Ani ") );
+    assert.match(htmlToText("<html><head><title>x</title></head><body>Body text</body></html>"), /^Body text$/);
+  });
+  it("describes an email's shape (types and sizes only) for diagnosis", () => {
+    const shape = mimeShape({ mimeType: "multipart/mixed", parts: [{ mimeType: "multipart/alternative", parts: [{ mimeType: "text/plain", body: { size: 120 } }, { mimeType: "text/html", body: { size: 9800 } }] }, { mimeType: "application/pdf", body: { size: 5000, attachmentId: "x" } }] });
+    assert.equal(shape, "multipart/mixed[multipart/alternative[text/plain:120,text/html:9800],application/pdf:5000*]");
   });
 });

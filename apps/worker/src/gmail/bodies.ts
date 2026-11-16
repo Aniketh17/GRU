@@ -4,7 +4,7 @@
 // the class + rule id, position, vacancies from alerts, deadlines, an interview proposal + encrypted meeting link, a contact.
 import { BACKFILL_DAYS } from "./constants.ts";
 import { batchGetGmailMessages, GmailApiError, gmailMessageToMeta, hasBodyAccess } from "./client.ts";
-import { messageBody } from "./body.ts";
+import { messageBody, mimeShape } from "./body.ts";
 import { countJobLinks, extractVacancies } from "../classify/alerts.ts";
 import { extractInterviewTimes, extractMeetingLink, extractRoleFromBody } from "../classify/body.ts";
 import { classifyBody, type BodyClass } from "../classify/bodyrules.ts";
@@ -90,7 +90,7 @@ export async function processBodies(
     if (chars > BODY_CHAR_BUDGET || db.budget.remaining < MIN_BUDGET_PER_EMAIL + reserve) break; // finish the rest next tick
     const { text, html } = messageBody(msg);
     chars += text.length + html.length;
-    facts += await understand(env, db, account.id, row, gmailMessageToMeta(msg), text, html, apps, settings.auto_status_from_text, now);
+    facts += await understand(env, db, account.id, row, gmailMessageToMeta(msg), text, html, apps, settings.auto_status_from_text, now, mimeShape(msg.payload));
     done.add(row.gmail_id);
   }
   await release(ids.filter((id) => !done.has(id) && msgs.some((m) => m.id === id))); // fetched but out of budget
@@ -100,7 +100,7 @@ export async function processBodies(
 type Meta = ReturnType<typeof gmailMessageToMeta>;
 
 async function understand(
-  env: Env, db: Db, accountId: number, row: Row, meta: Meta, text: string, html: string, apps: AppRef[], autoStatus: boolean, now: number,
+  env: Env, db: Db, accountId: number, row: Row, meta: Meta, text: string, html: string, apps: AppRef[], autoStatus: boolean, now: number, shape: string,
 ): Promise<number> {
   let facts = 0;
   const tail: D1PreparedStatement[] = []; // independent writes, sent as ONE batch (a batch costs one call)
@@ -121,7 +121,7 @@ async function understand(
   const cls: MailClass = bodyC && bodyC.confidence >= 0.8 ? bodyC.cls : headerCls;
   const confidence = bodyC && bodyC.cls === cls ? bodyC.confidence : 0.75;
   // Always record what was read (length only, never the text) so a silent failure to read an email is visible.
-  tail.push(db.stmt("UPDATE emails_seen SET class = ?, body_class = ?, body_chars = ? WHERE account_id = ? AND gmail_id = ?", cls, bodyC?.rule ?? null, text.length, accountId, row.gmail_id));
+  tail.push(db.stmt("UPDATE emails_seen SET class = ?, body_class = ?, body_chars = ?, body_shape = ? WHERE account_id = ? AND gmail_id = ?", cls, bodyC?.rule ?? null, text.length, shape, accountId, row.gmail_id));
 
   // ---- job alert: pull out the individual vacancies
   if (cls === "alert") {

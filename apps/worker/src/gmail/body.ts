@@ -30,7 +30,7 @@ export function decodeEntities(s: string): string {
 export function htmlToText(html: string, opts: { cells?: boolean } = {}): string {
   return decodeEntities(
     html
-      .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<(script|style|head)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
       .replace(opts.cells ? /<\s*\/t[dh]\b[^>]*>/gi : /(?!)/g, "\n")
       .replace(/<\s*(br|\/p|\/div|\/tr|\/li|\/h[1-6]|\/table)\b[^>]*>/gi, "\n")
       .replace(/<[^>]+>/g, " "),
@@ -55,4 +55,14 @@ export function messageBody(msg: GmailMessage): { text: string; html: string } {
   const html = out.html.slice(0, MAX_HTML); // cap BEFORE converting: cost is linear in size
   const text = (out.text.trim() ? out.text : htmlToText(html)).slice(0, MAX_TEXT);
   return { text, html };
+}
+
+/** The MIME structure of a message with sizes, e.g. "multipart/mixed[multipart/alternative[text/plain:1204,text/html:9800],application/pdf*]". No content. */
+export function mimeShape(part: GmailPart | undefined): string {
+  if (!part) return "";
+  const size = part.body?.size ? `:${part.body.size}` : "";
+  const att = part.body?.attachmentId ? "*" : "";
+  const kids = (part.parts ?? []).map((p) => mimeShape(p)).join(",");
+  const head = `${part.mimeType ?? "?"}${size}${att}`;
+  return (kids ? `${head}[${kids}]` : head).slice(0, 300);
 }
