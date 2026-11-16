@@ -75,3 +75,26 @@ function skip(reason: NonNullable<TickResult["reason"]>): TickResult {
   log("tick_skipped", { code: reason });
   return { ran: false, reason };
 }
+
+/**
+ * "Refresh" from the app: checks Gmail now and reads whatever job mail is waiting, using a fresh call budget for this request.
+ * Shares the cron's lock, so it can never overlap a scheduled run. Never sends notifications.
+ */
+export async function runManualSync(env: Env, now: number, fetchFn: typeof fetch = fetch): Promise<{ ran: boolean; reason?: string; pending: number }> {
+  const db = new Db(env.DB, new SubrequestBudget());
+  const pending = async () => (await db.d1.prepare("SELECT COUNT(*) AS n FROM emails_seen WHERE body_checked = 0 AND internal_date >= ?").bind(now - 5 * 86400).first<{ n: number }>())?.n ?? 0;
+  const s = await getSystemState(db);
+  if (s.kill !== "running") return { ran: false, reason: s.kill, pending: 0 };
+  if (s.paused) return { ran: false, reason: "paused", pending: await pending() };
+  const lock = await acquireTickLock(db, now);
+  if (!lock) return { ran: false, reason: "busy", pending: await pending() };
+  try {
+    await syncMailAccounts(env, db, now, fetchFn);
+    await catchUpMail(env, db, now, fetchFn);
+  } catch (err) {
+    log("manual_sync_error", { code: errorCode(err) });
+  } finally {
+    await releaseTickLock(db, lock);
+  }
+  return { ran: true, pending: await pending() };
+}

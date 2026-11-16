@@ -28,6 +28,7 @@ describe("classifyBody", () => {
     ["We are unable to offer you the role at this time.", "rejection"],
     ["Thank you for applying. We've now filled the position.", "rejection"],
     ["We went with someone else whose experience more closely matches the role.", "rejection"],
+    ["We’ve chosen to move forward with another candidate. Thank you for applying.", "rejection"],
     ["Join our weekly newsletter for tips and tricks.", null],
   ];
   for (const [text, want] of cases) it(want ?? "no match", () => assert.equal(classifyBody(text)?.cls ?? null, want));

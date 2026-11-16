@@ -258,3 +258,38 @@ test("each status has its own colour, and the banner changes when the status cha
   }
   expect(new Set(Object.values(colours)).size).toBe(Object.keys(colours).length); // all eight differ
 });
+
+test("Refresh: the button and pulling down both check Gmail now and reload what's on screen", async ({ page }) => {
+  let syncs = 0;
+  await page.route("**/api/sync", async (route) => {
+    syncs++;
+    await route.fulfill({ json: { ran: true, pending: 3 } });
+  });
+  await login(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /, Ani$/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "Refresh" }).first().click();
+  await expect(page.getByText("Checked Gmail. 3 older emails are still being read in the background.")).toBeVisible();
+  expect(syncs).toBe(1);
+
+  const touch = (type: string, y: number) =>
+    page.evaluate(([t, yy]) => {
+      const touches = t === "touchend" ? [] : [new Touch({ identifier: 1, target: document.body, clientX: 120, clientY: yy as number })];
+      window.dispatchEvent(new TouchEvent(t as string, { touches, bubbles: true, cancelable: true }));
+    }, [type, y] as const);
+  await touch("touchstart", 100);
+  await touch("touchmove", 150);
+  await expect(page.getByText("Pull to refresh")).toBeVisible();
+  await touch("touchmove", 280);
+  await expect(page.getByText("Release to refresh")).toBeVisible();
+  await touch("touchend", 280);
+  await expect.poll(() => syncs).toBe(2);
+
+  // A short pull does nothing.
+  await touch("touchstart", 100);
+  await touch("touchmove", 140);
+  await touch("touchend", 140);
+  await page.waitForTimeout(400);
+  expect(syncs).toBe(2);
+});

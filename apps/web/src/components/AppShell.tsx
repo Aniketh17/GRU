@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
 import { CalendarIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { PullToRefresh, RefreshButton, useRefresh } from "./Refresh.tsx";
 import { VoiceAssistant } from "./VoiceAssistant.tsx";
 import { Banner, cx } from "./ui.tsx";
 
@@ -38,7 +39,7 @@ function SideLink({ to, end, icon: Icon, children }: { to: string; end: boolean;
   );
 }
 
-function Sidebar() {
+function Sidebar({ refresh, busy }: { refresh: () => void; busy: boolean }) {
   return (
     <nav aria-label="Primary" className="hidden w-[248px] flex-none flex-col gap-5 border-r border-line bg-side px-3.5 py-5 lg:flex">
       <div className="flex items-center gap-2.5 px-2">
@@ -54,6 +55,7 @@ function Sidebar() {
         ))}
       </div>
       <div className="mt-auto flex flex-col gap-0.5">
+        <RefreshButton onClick={refresh} busy={busy} className="h-9 px-2.5 font-medium text-ink-2 hover:bg-surface/60 hover:text-ink" />
         <SideLink to="/settings" end={false} icon={SettingsIcon}>Settings</SideLink>
       </div>
     </nav>
@@ -89,15 +91,21 @@ function TabBar() {
 
 export function AppShell() {
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, staleTime: 60_000 });
+  const { refresh, busy } = useRefresh();
   return (
     <div className="flex min-h-dvh bg-bg text-ink">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2">
         Skip to content
       </a>
-      <Sidebar />
+      <Sidebar refresh={() => void refresh()} busy={busy} />
       <VoiceAssistant />
+      <PullToRefresh onRefresh={() => void refresh()} busy={busy} />
       <main id="main" className="min-w-0 flex-1 px-4 pt-safe pb-28 sm:px-6 lg:px-9 lg:pt-7 lg:pb-12">
         <div className="mx-auto flex max-w-[1140px] flex-col gap-5">
+          <div className="-mb-2 flex items-center justify-between lg:hidden">
+            <span className="text-[12px] font-bold tracking-[0.1em] text-muted">GRU</span>
+            <RefreshButton onClick={() => void refresh()} busy={busy} className="h-8 px-2.5 text-[12.5px] font-medium text-ink-2 hover:bg-sunken" />
+          </div>
           {health.data?.paused && (
             <Banner tone="amber" title="GRU is paused.">Syncing and reminders are stopped. Resume it in Settings.</Banner>
           )}

@@ -130,6 +130,9 @@
 }
 
 html,
+/* No browser pull-to-refresh or rubber-banding: GRU has its own Refresh (it also checks Gmail). */
+html, body { overscroll-behavior-y: contain; }
+
 body {
   background: var(--bg);
   color: var(--ink);

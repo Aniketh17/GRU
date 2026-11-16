@@ -61,3 +61,5 @@ export const MicIcon = (p: IconProps) => <Icon {...p}><rect x="9" y="3" width="6
 export const PeopleIcon = (p: IconProps) => <Icon {...p}><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.2A6.5 6.5 0 0 1 21.5 20" /></Icon>;
 
 export const CalendarIcon = (p: IconProps) => <Icon {...p}><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></Icon>;
+
+export const RefreshIcon = (p: IconProps) => <Icon {...p}><path d="M20 11a8 8 0 0 0-14.3-4.6L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.6l1.7-2.1M20 20v-4.5h-4.5" /></Icon>;

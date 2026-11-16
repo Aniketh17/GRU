@@ -7,7 +7,7 @@ import { batchGetGmailMessages, GmailApiError, gmailMessageToMeta, hasBodyAccess
 import { messageBody } from "./body.ts";
 import { countJobLinks, extractVacancies } from "../classify/alerts.ts";
 import { extractInterviewTimes, extractMeetingLink, extractRoleFromBody } from "../classify/body.ts";
-import { classifyBody } from "../classify/bodyrules.ts";
+import { classifyBody, type BodyClass } from "../classify/bodyrules.ts";
 import { parseFrom } from "../classify/classify.ts";
 import { extractCompanies } from "../classify/company.ts";
 import { extractDeadlines } from "../classify/deadlines.ts";
@@ -20,6 +20,7 @@ import type { Db } from "../db/client.ts";
 import type { Status } from "../domain/applications.ts";
 import { normalizeName } from "../domain/normalize.ts";
 import type { Env } from "../env.ts";
+import { classifyWithAi } from "../lib/aiclassify.ts";
 import { encJson } from "../lib/enc.ts";
 import { log } from "../log/index.ts";
 import { getSettings } from "../routes/settings.ts";
@@ -106,14 +107,20 @@ async function understand(
   const emailAt = row.internal_date;
   const sender = parseFrom(meta.from);
   const jobLinks = countJobLinks(html);
-  const bodyC = classifyBody(text, jobLinks);
+  let bodyC: BodyClass | null = classifyBody(text, jobLinks);
   const headerCls = (row.class ?? "other") as MailClass;
   // Words win when they are clear; otherwise keep what the headers said.
+  // "Thank you for applying" often comes before bad news in different words: when the rules only see a generic acknowledgement
+  // (or nothing) in job mail, ask the AI for a second opinion. It must quote the proving sentence, which is verified (lib/aiclassify.ts).
+  const generic = !bodyC || bodyC.cls === "application_received" || bodyC.cls === "application_update";
+  if (generic && (headerCls === "application_received" || headerCls === "application_update" || headerCls === "other")) {
+    const ai = await classifyWithAi(env, db, text, now);
+    if (ai && ai.cls !== (bodyC?.cls ?? headerCls)) bodyC = ai;
+  }
   const cls: MailClass = bodyC && bodyC.confidence >= 0.8 ? bodyC.cls : headerCls;
   const confidence = bodyC && bodyC.cls === cls ? bodyC.confidence : 0.75;
-  if (cls !== headerCls || bodyC) {
-    tail.push(db.stmt("UPDATE emails_seen SET class = ?, body_class = ? WHERE account_id = ? AND gmail_id = ?", cls, bodyC?.rule ?? null, accountId, row.gmail_id));
-  }
+  // Always record what was read (length only, never the text) so a silent failure to read an email is visible.
+  tail.push(db.stmt("UPDATE emails_seen SET class = ?, body_class = ?, body_chars = ? WHERE account_id = ? AND gmail_id = ?", cls, bodyC?.rule ?? null, text.length, accountId, row.gmail_id));
 
   // ---- job alert: pull out the individual vacancies
   if (cls === "alert") {

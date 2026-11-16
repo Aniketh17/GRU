@@ -25,6 +25,7 @@ import { healthRoutes } from "./routes/health.ts";
 import { mailRoutes } from "./routes/mail.ts";
 import { reviewRoutes } from "./routes/review.ts";
 import { settingsRoutes } from "./routes/settings.ts";
+import { syncRoutes } from "./routes/sync.ts";
 import { voiceRoutes } from "./routes/voice.ts";
 
 export type AppEnv = { Bindings: Env; Variables: { db: Db } };
@@ -61,6 +62,7 @@ app.route("/api/voice", voiceRoutes);
 app.route("/api/contacts", contactRoutes);
 app.route("/api/calendar", calendarRoutes);
 app.route("/api/chat", chatRoutes);
+app.route("/api/sync", syncRoutes);
 app.route("/cal", calendarFeedRoutes); // token-protected, read-only, no session (calendar apps fetch it)
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));

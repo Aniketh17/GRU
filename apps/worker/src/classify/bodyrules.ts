@@ -68,7 +68,7 @@ export interface BodyClass { cls: MailClass; confidence: number; rule: string }
  * @param jobLinks number of distinct job-posting links found in the email (a digest has several)
  */
 export function classifyBody(text: string, jobLinks = 0): BodyClass | null {
-  const head = text.replace(/\s+/g, " ").slice(0, 4000);
+  const head = text.replace(/[’‘`´]/g, "'").replace(/\s+/g, " ").slice(0, 4000);
   const hits: BodyClass[] = [];
   for (const r of RULES) if (r.re.test(head)) hits.push({ cls: r.cls, confidence: r.w, rule: r.rule });
   if (jobLinks >= 3) hits.push({ cls: "alert", confidence: 0.9, rule: "alert.links" });

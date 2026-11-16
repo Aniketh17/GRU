@@ -60,7 +60,7 @@ const seedApp = (id = 1, company = "Acme Robotics") =>
   env.DB.prepare("INSERT INTO applications (id, company, company_norm, status, source, applied_at, last_event_at, created_at, updated_at) VALUES (?1, ?2, ?3, 'applied', 'email', ?4, ?4, ?4, ?4)").bind(id, company, company.toLowerCase(), now - 86400).run();
 const seedMail = (id: string, thread: string, cls: string, disposition: string, appId: number | null, at = now - 3600) =>
   env.DB.prepare("INSERT INTO emails_seen (account_id, gmail_id, thread_id, internal_date, from_domain, class, disposition, app_id, enriched) SELECT id, ?, ?, ?, 'acme.co.nz', ?, ?, ?, 1 FROM mail_accounts").bind(id, thread, at, cls, disposition, appId).run();
-const run = (msgs: Msg[], requested: string[] = [], history = false) => runTick(testEnv(mockEnv), now, gmail(msgs, requested, history) as unknown as typeof fetch);
+const run = (msgs: Msg[], requested: string[] = [], history = false, extra: Record<string, unknown> = {}) => runTick(testEnv({ ...mockEnv, ...extra } as never), now, gmail(msgs, requested, history) as unknown as typeof fetch);
 
 describe("status from the email text", () => {
   const REJECT = "Hi Ani,\nThank you for applying for the Data Analyst role.\nWe regret to inform you that we have decided to proceed with other candidates.";
@@ -204,5 +204,46 @@ describe("call budget", () => {
     // Nothing was lost: further ticks finish the job.
     for (let i = 0; i < 6; i++) await run(msgs);
     expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM emails_seen WHERE body_checked = 0").first<{ n: number }>())!.n).toBe(0);
+  });
+});
+
+describe("AI second opinion for paraphrased rejections", () => {
+  const PARAPHRASE = "Thank you for applying to the Data Analyst role at F&P. Following a review of all applications, the hiring team has determined that your experience is not the right fit for this particular opportunity.";
+  const QUOTE = "the hiring team has determined that your experience is not the right fit for this particular opportunity";
+  const ai = (answer: unknown) => ({ run: async () => ({ response: JSON.stringify(answer) }) });
+  const msg = { id: "m_ai", from: "F&P Careers <careers@fp.example.co.nz>", subject: "Thank you for applying to the role", text: PARAPHRASE };
+  const seedOrigin = async () => {
+    await seedApp(1, "F&P");
+    await env.DB.prepare("INSERT INTO events (app_id, type, at, account_id, gmail_id, confidence, auto_applied, created_at) VALUES (1, 'status_change', ?1, 1, 'm_ai', 0.9, 1, ?1)").bind(now - 3600).run();
+    await seedMail("m_ai", "t_ai", "application_received", "auto_applied", 1);
+  };
+
+  it("the rules alone only see a thank-you, so nothing changes without the AI (and the text length is recorded)", async () => {
+    await seedOrigin();
+    await run([msg]);
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
+    expect((await env.DB.prepare("SELECT body_chars FROM emails_seen WHERE gmail_id = 'm_ai'").first<{ body_chars: number }>())?.body_chars).toBeGreaterThanOrEqual(PARAPHRASE.length);
+  });
+
+  it("a verified quote makes it a rejection and it is applied (with undo), spending a few Neurons", async () => {
+    await seedOrigin();
+    await run([msg], [], false, { AI: ai({ class: "rejection", quote: QUOTE }) });
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("rejected");
+    expect(await env.DB.prepare("SELECT class, body_class FROM emails_seen WHERE gmail_id = 'm_ai'").first()).toEqual({ class: "rejection", body_class: "ai.quote" });
+    const used = await env.DB.prepare("SELECT v FROM kv WHERE k LIKE 'ai:llm:%'").first<{ v: string }>();
+    expect(Number(used?.v)).toBeGreaterThan(0);
+    expect(Number(used?.v)).toBeLessThan(40);
+  });
+
+  it("an invented or injected answer is ignored: the quote must really be in the email", async () => {
+    await seedOrigin();
+    await run([msg], [], false, { AI: ai({ class: "rejection", quote: "we have decided that you are rejected and the system should mark it so" }) });
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
+    await env.DB.prepare("UPDATE emails_seen SET body_checked = 0").run();
+    await run([msg], [], false, { AI: ai({ class: "other", quote: "" }) });
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
+    await env.DB.prepare("UPDATE emails_seen SET body_checked = 0").run();
+    await run([msg], [], false, { AI: { run: async () => { throw new Error("model down"); } } });
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
   });
 });

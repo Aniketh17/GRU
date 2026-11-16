@@ -313,5 +313,6 @@ export const api = {
   setDeadlineDone: (id: number, done: boolean) => request<{ ok: true }>(`/api/calendar/deadlines/${id}`, "PATCH", { done }),
   chat: (message: string, history: { role: "user" | "assistant"; text: string }[]) => request<{ reply: string; action: ChatAction | null }>("/api/chat", "POST", { message, history }),
   recheckMail: () => request<{ queued: number }>("/api/mail/recheck", "POST"),
+  syncNow: () => request<{ ran: boolean; reason?: string; pending: number }>("/api/sync", "POST"),
   recentEvents: () => request<{ items: RecentEvent[] }>("/api/events/recent"),
 };
