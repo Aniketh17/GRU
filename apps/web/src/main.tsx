@@ -3,7 +3,7 @@ import "./styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider, createBrowserRouter, useNavigate } from "react-router";
+import { Navigate, RouterProvider, createBrowserRouter, useNavigate, useSearchParams } from "react-router";
 import { AppShell } from "./components/AppShell.tsx";
 import { ThemeProvider } from "./components/ThemeContext.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
@@ -12,7 +12,6 @@ import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
 import { AgendaPage } from "./pages/Agenda.tsx";
 import { CalendarPage } from "./pages/Calendar.tsx";
-import { JobsPage } from "./pages/Jobs.tsx";
 import { MorePage } from "./pages/More.tsx";
 import { NotesPage } from "./pages/Notes.tsx";
 import { PeoplePage } from "./pages/People.tsx";
@@ -50,6 +49,13 @@ function Root() {
   );
 }
 
+/** Jobs now live inside Applications ("Apply today" / "Other jobs"); old links keep working. */
+function JobsRedirect() {
+  const [p] = useSearchParams();
+  const open = p.get("open");
+  return <Navigate to={open ? `/applications?open=${open}` : "/applications?tab=other"} replace />;
+}
+
 const router = createBrowserRouter([
   { path: "/locked", element: <LockedPage /> },
   {
@@ -59,7 +65,7 @@ const router = createBrowserRouter([
       { path: "applications", element: <ApplicationsPage /> },
       { path: "applications/:id", element: <ApplicationsPage /> },
       { path: "review", element: <ReviewPage /> },
-      { path: "jobs", element: <JobsPage /> },
+      { path: "jobs", element: <JobsRedirect /> },
       { path: "agenda", element: <AgendaPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },

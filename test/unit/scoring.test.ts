@@ -61,3 +61,17 @@ describe("bandFor", () => {
     assert.deepEqual([100, 80, 79, 65, 64, 50, 49, 0].map(bandFor), ["strong", "strong", "good", "good", "possible", "possible", "low", "low"]);
   });
 });
+
+describe("provisional (title-only) scores, e.g. vacancies from job-alert emails", () => {
+  it("are scaled to 100 from what can be judged, so a genuinely suitable role can reach 'good' while staying labelled provisional", () => {
+    const good = scoreJob(RESUME, facts, { title: "Graduate Software Engineer", location: "Auckland" });
+    assert.equal(good.provisional, true);
+    assert.equal(good.confidence, "low");
+    assert.equal(good.components.skills, 0); // skills were not assessed, and not invented
+    assert.ok(good.score >= 65, `score ${good.score}`);
+  });
+  it("still rank an unsuitable title low", () => {
+    const bad = scoreJob(RESUME, facts, { title: "Senior Truck Driver", location: "London" });
+    assert.ok(bad.score < 50, `score ${bad.score}`);
+  });
+});

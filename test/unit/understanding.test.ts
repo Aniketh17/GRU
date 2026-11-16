@@ -22,6 +22,12 @@ describe("classifyBody", () => {
     ["Your application is currently under review by the hiring team.", "application_update"],
     ["Hi Ani, 12 new jobs matching your search are waiting for you.", "alert"],
     ["I came across your profile and think you'd be a great fit for a role we have.", "recruiter_outreach"],
+    ["Thank you for applying to the Data Analyst role at F&P. After careful consideration we chose another candidate for this position.", "rejection"],
+    ["Thanks for your application. We have decided to progress with other applicants at this time.", "rejection"],
+    ["The successful candidate has been selected and we will not be taking your application further.", "rejection"],
+    ["We are unable to offer you the role at this time.", "rejection"],
+    ["Thank you for applying. We've now filled the position.", "rejection"],
+    ["We went with someone else whose experience more closely matches the role.", "rejection"],
     ["Join our weekly newsletter for tips and tricks.", null],
   ];
   for (const [text, want] of cases) it(want ?? "no match", () => assert.equal(classifyBody(text)?.cls ?? null, want));
@@ -33,7 +39,7 @@ describe("classifyBody", () => {
     assert.equal(classifyBody("Thank you for applying to jobs with us", 5)?.cls, "alert");
   });
   it("a negated offer is not an offer", () => {
-    assert.notEqual(classifyBody("We are unable to offer you the role at this time.")?.cls, "offer");
+    assert.equal(classifyBody("We are unable to offer you the role at this time.")?.cls, "rejection");
   });
 });
 

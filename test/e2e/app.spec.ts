@@ -48,7 +48,7 @@ test("Today shows a helpful empty state with zero data", async ({ page }) => {
 test("add, find, update, undo and annotate an application", async ({ page }) => {
   await login(page);
   const company = `Harbourline ${test.info().project.name}`;
-  await page.goto("/applications");
+  await page.goto("/applications?tab=tracked");
   await page.getByRole("button", { name: "Add application", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Company").fill(company);
@@ -68,7 +68,7 @@ test("add, find, update, undo and annotate an application", async ({ page }) => 
   await expect(page.getByText("Notes saved")).toBeVisible();
 
   // Search finds it from the list.
-  await page.goto("/applications");
+  await page.goto("/applications?tab=tracked");
   await page.getByRole("searchbox", { name: "Search company or role" }).fill("harbourline");
   await expect(page.getByRole("link", { name: new RegExp(company) })).toBeVisible();
   await expectNoHorizontalScroll(page);

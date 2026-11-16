@@ -145,10 +145,13 @@ export function scoreJob(resume: string, facts: ResumeFacts, job: JobInput): Mat
   const domain = jobDomains.length ? Math.round((WEIGHTS.domain * domHit) / jobDomains.length) : 2;
 
   const components = { skills, role, experience, education, location, work_type, domain };
-  const score = Object.values(components).reduce((a, b) => a + b, 0);
+  const raw = Object.values(components).reduce((a, b) => a + b, 0);
+  // With only a title (e.g. from a job-alert email) skills cannot be judged, so the score is based on the dimensions that CAN be
+  // (title, level, education, location, type, domain), scaled to 100 and clearly labelled provisional. Never mistaken for a full match.
+  const score = provisional ? Math.min(100, Math.round(((raw - skills) * 100) / (100 - WEIGHTS.skills))) : raw;
   const confidence: MatchResult["confidence"] = provisional ? "low" : reqSkills.length >= 3 ? "high" : "medium";
   const explanation = provisional
-    ? "Provisional score: only a title/short teaser was available, so the full description has not been assessed."
+    ? "Provisional score: only a title and basic details were available, so it is based on role, level, location and domain. Skills have not been assessed. Open the posting to check the requirements."
     : `Matched ${reqHit.length + prefHit.length} of ${reqSkills.length + prefSkills.length} named skills; ${gaps.length} gap${gaps.length === 1 ? "" : "s"} noted.`;
   return { score, band: bandFor(score), components, matched, gaps: gaps.slice(0, 8), explanation, confidence, provisional };
 }

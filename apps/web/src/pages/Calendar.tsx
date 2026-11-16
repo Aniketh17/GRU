@@ -105,7 +105,7 @@ export function CalendarPage() {
                 <div className="flex flex-wrap gap-2">
                   {it.link && <a href={it.link.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center rounded-[10px] bg-accent px-3 text-[12.5px] font-semibold text-accent-ink no-underline">Join {it.link.kind} ↗</a>}
                   {it.app_id && <Link to={`/applications/${it.app_id}`} className="inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken">Open application</Link>}
-                  {it.job_id && <Link to="/jobs" className="inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken">Open jobs</Link>}
+                  {it.job_id && <Link to="/applications?tab=other" className="inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken">Open jobs</Link>}
                   {it.kind === "deadline" && <Button size="sm" onClick={() => doneDeadline.mutate({ id: it.ref_id, done: it.state !== "done" })}>{it.state === "done" ? "Undo done" : "Mark done"}</Button>}
                   {it.kind === "task" && it.state !== "done" && <Button size="sm" onClick={() => doneTask.mutate(it.ref_id)}>Done</Button>}
                 </div>

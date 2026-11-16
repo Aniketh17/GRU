@@ -7,7 +7,7 @@ import { BriefCard } from "../components/DailyLoop.tsx";
 import { ListIcon, PlusIcon } from "../components/Icons.tsx";
 import { ThemeToggle } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
-import { Button, Card, EmptyState, ErrorState, SectionTitle, SkeletonRows, StatusChip } from "../components/ui.tsx";
+import { Button, Card, EmptyState, ErrorState, STATUS_THEME, SectionTitle, SkeletonRows, StatusChip } from "../components/ui.tsx";
 import { api, type Status } from "../lib/api.ts";
 import { daysSince, formatLong, formatRelative, greeting } from "../lib/format.ts";
 
@@ -149,7 +149,7 @@ export function TodayPage() {
                 <ul className="m-0 list-none p-0">
                   {recent.data.items.slice(0, 6).map((a) => (
                     <li key={a.id} className="border-t border-line">
-                      <Link to={`/applications/${a.id}?status=all`} className="flex items-center gap-3 px-5 py-3 text-ink no-underline hover:bg-sunken">
+                      <Link to={`/applications/${a.id}?status=all`} className={`flex items-center gap-3 border-l-4 px-5 py-3 text-ink no-underline transition-colors hover:bg-sunken ${STATUS_THEME[a.status].stripe}`}>
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate font-medium">{a.company}</span>
                           <span className="truncate text-[12.5px] text-muted">{a.role ?? "Role not set"} · {formatRelative(a.last_event_at ?? a.created_at)}</span>

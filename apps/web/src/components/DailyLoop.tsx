@@ -53,7 +53,7 @@ export function BriefCard({ onAdd }: { onAdd: () => void }) {
         ))}
         {b.jobs.queue_count > 0 && (
           <li>
-            <Link to="/jobs" className="font-medium text-accent-text">
+            <Link to="/applications" className="font-medium text-accent-text">
               {b.jobs.queue_count} job{b.jobs.queue_count === 1 ? "" : "s"} to apply for{b.jobs.new_count > 0 ? ` (${b.jobs.new_count} new)` : ""} →
             </Link>
             {b.jobs.top[0] && <span className="text-muted"> · top: {b.jobs.top[0].title} ({b.jobs.top[0].score})</span>}

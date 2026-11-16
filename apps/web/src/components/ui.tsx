@@ -54,20 +54,33 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
   );
 }
 
-const STATUS_STYLE: Record<Status, string> = {
-  applied: "bg-neutral-soft text-ink-2 [--dot:var(--line-strong)]",
-  assessment: "bg-blue-soft text-blue-text [--dot:var(--blue)]",
-  interview: "bg-accent-soft text-accent-text [--dot:var(--accent)]",
-  offer: "bg-accent-soft text-accent-text [--dot:var(--accent)]",
-  accepted: "bg-accent text-accent-ink [--dot:var(--accent-ink)]",
-  declined: "bg-neutral-soft text-muted [--dot:var(--muted)]",
-  rejected: "bg-neutral-soft text-muted [--dot:var(--muted)]",
-  withdrawn: "bg-neutral-soft text-muted [--dot:var(--muted)]",
+/** One colour per status, so a glance tells you where each application stands (and it changes when the status does). */
+export const STATUS_THEME: Record<Status, { chip: string; banner: string; stripe: string; hint: string }> = {
+  applied: { chip: "bg-blue-soft text-blue-text [--dot:var(--blue)]", banner: "bg-blue-soft text-blue-text border-blue", stripe: "border-l-blue", hint: "Applied, waiting to hear back" },
+  assessment: { chip: "bg-accent-soft text-accent-text [--dot:var(--accent)]", banner: "bg-accent-soft text-accent-text border-accent", stripe: "border-l-accent", hint: "An assessment to complete" },
+  interview: { chip: "bg-purple-soft text-purple-text [--dot:var(--purple)]", banner: "bg-purple-soft text-purple-text border-purple", stripe: "border-l-purple", hint: "In the interview stage" },
+  offer: { chip: "bg-green-soft text-green-text [--dot:var(--green)]", banner: "bg-green-soft text-green-text border-green", stripe: "border-l-green", hint: "You have an offer" },
+  accepted: { chip: "bg-green text-green-ink [--dot:var(--green-ink)]", banner: "bg-green text-green-ink border-green", stripe: "border-l-green", hint: "You accepted. Congratulations" },
+  declined: { chip: "bg-amber-soft text-amber-text [--dot:var(--amber)]", banner: "bg-amber-soft text-amber-text border-amber", stripe: "border-l-amber", hint: "You declined this one" },
+  rejected: { chip: "bg-red-soft text-red-text [--dot:var(--red)]", banner: "bg-red-soft text-red-text border-red", stripe: "border-l-red", hint: "Not moving forward" },
+  withdrawn: { chip: "bg-neutral-soft text-muted [--dot:var(--muted)]", banner: "bg-neutral-soft text-muted border-line-strong", stripe: "border-l-line-strong", hint: "You withdrew" },
 };
+
+/** A full-width coloured band for the top of an application: colour and wording follow the current status. */
+export function StatusBanner({ status }: { status: Status }) {
+  const t = STATUS_THEME[status];
+  return (
+    <div data-status={status} role="status" className={cx("flex items-center gap-2.5 border-b-2 px-5 py-2.5 text-[13.5px] transition-colors duration-500", t.banner)}>
+      <span className="size-2.5 flex-none rounded-full bg-current" aria-hidden="true" />
+      <span className="font-semibold">{STATUS_LABEL[status]}</span>
+      <span className="opacity-80">· {t.hint}</span>
+    </div>
+  );
+}
 
 export function StatusChip({ status }: { status: Status }) {
   return (
-    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold", STATUS_STYLE[status])}>
+    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold transition-colors duration-500", STATUS_THEME[status].chip)}>
       <span className="size-1.5 rounded-full bg-[var(--dot)]" aria-hidden="true" />
       {STATUS_LABEL[status]}
     </span>

@@ -153,7 +153,7 @@ const LIST_SQL = `SELECT ${JOB_COLS.split(", ").map((c) => `j.${c}`).join(", ")}
   FROM jobs j LEFT JOIN job_matches m ON m.job_id = j.id AND m.resume_profile_id = (SELECT id FROM resume_profiles WHERE active = 1 LIMIT 1)`;
 
 /** Apply Tomorrow: suitable, open, not applied/dismissed, has a URL. Ranked by score, then closing date, then newest. */
-export async function applyTomorrow(db: Db, now: number, threshold: number, limit = 20): Promise<ReturnType<typeof present>[]> {
+export async function applyTomorrow(db: Db, now: number, threshold: number, limit = 50): Promise<ReturnType<typeof present>[]> {
   const rows = await db.all<ListRow>(
     `${LIST_SQL} WHERE j.status IN ('new','shortlisted','saved') AND m.score >= ? AND j.canonical_url IS NOT NULL
        AND (j.closing_at IS NULL OR j.closing_at > ?)

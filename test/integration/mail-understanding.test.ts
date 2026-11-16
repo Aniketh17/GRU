@@ -85,6 +85,23 @@ describe("status from the email text", () => {
     expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied");
   });
 
+  it("a rejection in the very email that created the application (subject said 'thank you for applying') is applied automatically, and an undo is respected on re-read", async () => {
+    await seedApp(1, "F&P");
+    await env.DB.prepare("INSERT INTO events (app_id, type, at, account_id, gmail_id, confidence, auto_applied, created_at) VALUES (1, 'status_change', ?1, 1, 'm_origin', 0.9, 1, ?1)").bind(now - 3600).run();
+    await seedMail("m_origin", "t_origin", "application_received", "auto_applied", 1);
+    const msg = { id: "m_origin", from: "F&P Careers <careers@fp.example.co.nz>", subject: "Thank you for applying to the role", text: "Thank you for applying to the Data Analyst role at F&P. After careful consideration we chose another candidate for this position." };
+    await run([msg]);
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("rejected");
+    expect((await env.DB.prepare("SELECT class FROM emails_seen WHERE gmail_id = 'm_origin'").first<{ class: string }>())?.class).toBe("rejection");
+
+    const ev = await env.DB.prepare("SELECT id FROM events WHERE type = 'status:rejected'").first<{ id: number }>();
+    expect((await call(`/api/events/${ev!.id}/undo`, { json: {}, cookie })).status).toBe(200);
+    const queued = (await (await call("/api/mail/recheck", { json: {}, cookie })).json()) as { queued: number };
+    expect(queued.queued).toBeGreaterThan(0);
+    await run([msg]);
+    expect((await env.DB.prepare("SELECT status FROM applications WHERE id = 1").first<{ status: string }>())?.status).toBe("applied"); // Ani's undo stands
+  });
+
   it("asks first when the setting is off, or when the rejection is not in a thread GRU already linked", async () => {
     await seedApp();
     await seedMail("m_applied", "thread1", "application_received", "auto_applied", 1, now - 86400);
@@ -169,5 +186,23 @@ describe("the read boundary", () => {
     expect(await env.DB.prepare("SELECT disposition, class FROM emails_seen WHERE gmail_id = 'cand1'").first()).toEqual({ disposition: "candidate", class: "other" });
     await run([{ id: "cand1", from: "SEEK <noreply@seek.co.nz>", subject: "Your weekly update", text: "Hi Ani, your Seek profile is looking great." }], requested);
     expect(requested.filter((r) => r.includes("format=full")).every((r) => r.includes("cand1"))).toBe(true);
+  });
+});
+
+describe("call budget", () => {
+  it("reads only as many bodies as the budget allows, finishes cleanly, releases the lock, and leaves the rest for the next tick", async () => {
+    await seedApp();
+    const ids = ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8"];
+    for (const [i, id] of ids.entries()) await seedMail(id, `t${id}`, "application_update", "queued", 1, now - 3600 - i * 60);
+    const msgs = ids.map((id) => ({ id, text: "Thank you for applying. Unfortunately we have decided to proceed with other candidates.", threadId: `t${id}` }));
+    const r = await runTick(testEnv(mockEnv), now, gmail(msgs, []) as unknown as typeof fetch);
+    expect(r.ran).toBe(true);
+    expect(await env.DB.prepare("SELECT v FROM kv WHERE k = 'tick_lock'").first()).toBeNull();
+    const done = (await env.DB.prepare("SELECT COUNT(*) AS n FROM emails_seen WHERE body_checked = 1").first<{ n: number }>())!.n;
+    expect(done).toBeGreaterThan(0);
+    expect(done).toBeLessThan(ids.length); // not everything fits in one tick's budget
+    // Nothing was lost: further ticks finish the job.
+    for (let i = 0; i < 6; i++) await run(msgs);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM emails_seen WHERE body_checked = 0").first<{ n: number }>())!.n).toBe(0);
   });
 });

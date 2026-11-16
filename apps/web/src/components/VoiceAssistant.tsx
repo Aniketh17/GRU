@@ -70,7 +70,8 @@ export function VoiceAssistant() {
   useEffect(() => {
     if (!open || loaded.current) return;
     loaded.current = true;
-    void api.voiceHistory().then((h) => setMsgs(h.items.filter((i) => i.text).map((i) => ({ id: nextId++, role: i.role, text: i.text as string })))).catch(() => undefined);
+    // Merge in front: a reply may already have arrived while history was loading, and must not be overwritten.
+    void api.voiceHistory().then((h) => setMsgs((cur) => [...h.items.filter((i) => i.text).map((i) => ({ id: nextId++, role: i.role, text: i.text as string })), ...cur])).catch(() => undefined);
     setStt(sttMaybe() ? "unknown" : "unsupported");
     void voicesReady().then(setVoices);
   }, [open]);
@@ -101,7 +102,7 @@ export function VoiceAssistant() {
     if (o.kind === "mail") return void setViewMail({ accountId: o.accountId, gmailId: o.gmailId });
     setOpen(false);
     stopSpeaking();
-    navigate(o.kind === "job" ? `/jobs?open=${o.id}` : `/applications/${o.id}?status=all`);
+    navigate(o.kind === "job" ? `/applications?open=${o.id}` : `/applications/${o.id}?status=all`);
   }
 
   const readBrief = useCallback(async () => {
@@ -275,8 +276,8 @@ export function VoiceAssistant() {
       case "jobs": {
         const q = await api.jobQueue();
         if (!q.has_resume) return say("Add your resume in Settings and I can score jobs for you.");
-        if (!q.items.length) return say("No jobs are queued for tomorrow yet.");
-        return say([`${q.items.length} ${q.items.length === 1 ? "job" : "jobs"} in your apply list.`, ...q.items.slice(0, 3).map((j) => `${j.title}${j.company ? ` at ${j.company}` : ""}, ${j.score} out of 100.`)]);
+        if (!q.items.length) return say("No good matches are waiting for you right now.");
+        return say([`${q.items.length} ${q.items.length === 1 ? "job" : "jobs"} ready to apply today.`, ...q.items.slice(0, 3).map((j) => `${j.title}${j.company ? ` at ${j.company}` : ""}, ${j.score} out of 100.`)]);
       }
       case "search_notes": {
         if (intent.q.replace(/[^a-z0-9]/gi, "").length < 3) return say("Give me a word of at least three letters to search for.");

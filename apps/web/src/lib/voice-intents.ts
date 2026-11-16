@@ -191,7 +191,7 @@ export function parseIntent(raw: string, nowSec: number): Intent {
   if (/\b(brief|briefing|catch me up|morning update|what'?s (on|happening)( today)?|what is (on|happening)( today)?|my day|start my day)\b/.test(s)) return { kind: "brief" };
   if (/\b(tasks?|to-?dos?|reminders?)\b/.test(s) && /\b(what|show|list|read|any|my|do i have)\b/.test(s)) return { kind: "tasks" };
   if (/\binterviews?\b/.test(s) && /\b(what|when|any|upcoming|next|do i have|show|list)\b/.test(s)) return { kind: "interviews" };
-  if (/\b(jobs?|vacancies|matches|apply tomorrow)\b/.test(s)) return { kind: "jobs" };
+  if (/\b(jobs?|vacancies|matches|apply today|apply tomorrow)\b/.test(s)) return { kind: "jobs" };
   return { kind: "unknown", heard: original };
 }
 

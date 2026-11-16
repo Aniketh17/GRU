@@ -4,14 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
-import { BriefcaseIcon, CalendarIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { CalendarIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
 import { VoiceAssistant } from "./VoiceAssistant.tsx";
 import { Banner, cx } from "./ui.tsx";
 
 const NAV = [
   { to: "/", label: "Today", icon: SunIcon, end: true },
   { to: "/applications", label: "Applications", icon: ListIcon, end: false },
-  { to: "/jobs", label: "Jobs", icon: BriefcaseIcon, end: false },
   { to: "/calendar", label: "Calendar", icon: CalendarIcon, end: false },
   { to: "/agenda", label: "Tasks", icon: CheckIcon, end: false },
   { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
@@ -19,7 +18,7 @@ const NAV = [
   { to: "/review", label: "Review", icon: InboxIcon, end: false },
 ] as const;
 
-const TABS = (["/", "/jobs", "/applications", "/calendar"] as const).map((to) => NAV.find((n) => n.to === to)!); // Today, Jobs, Applications, Calendar
+const TABS = (["/", "/applications", "/calendar", "/agenda"] as const).map((to) => NAV.find((n) => n.to === to)!); // Today, Applications, Calendar, Tasks
 
 function SideLink({ to, end, icon: Icon, children }: { to: string; end: boolean; icon: typeof SunIcon; children: ReactNode }) {
   return (

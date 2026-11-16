@@ -5,7 +5,7 @@ import { IDLE_TTL } from "./auth/session.ts";
 import { SubrequestBudget } from "./db/budget.ts";
 import { Db } from "./db/client.ts";
 import { getSystemState } from "./db/kv.ts";
-import { syncMailAccounts } from "./gmail/sync.ts";
+import { catchUpMail, syncMailAccounts } from "./gmail/sync.ts";
 import { errorCode, log } from "./log/index.ts";
 import { runDailyLoopScheduler } from "./notify/scheduler.ts";
 
@@ -29,7 +29,8 @@ export async function acquireTickLock(db: Db, now: number): Promise<string | nul
 }
 
 export async function releaseTickLock(db: Db, value: string): Promise<void> {
-  await db.run("DELETE FROM kv WHERE k = 'tick_lock' AND v = ?", value);
+  // Deliberately NOT charged to the call budget: releasing the lock must work even when the tick used every call it had.
+  await db.d1.prepare("DELETE FROM kv WHERE k = 'tick_lock' AND v = ?").bind(value).run();
 }
 
 export function housekeepingStmts(db: Db, now: number): D1PreparedStatement[] {
@@ -57,6 +58,7 @@ export async function runTick(env: Env, now: number, fetchFn: typeof fetch = fet
       await db.batch(housekeepingStmts(db, now));
       await syncMailAccounts(env, db, now, fetchFn);
       await runDailyLoopScheduler(env, db, now, fetchFn);
+      await catchUpMail(env, db, now, fetchFn); // last: uses whatever call budget is left
       log("tick_done", { budget_used_count: db.budget.usedCount });
       return { ran: true };
     } finally {

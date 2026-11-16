@@ -7,7 +7,8 @@ import { ApplicationForm } from "../components/ApplicationForm.tsx";
 import { ConfirmDialog } from "../components/Dialog.tsx";
 import { ChevronLeft, ListIcon, PlusIcon, SearchIcon, TrashIcon } from "../components/Icons.tsx";
 import { useToast } from "../components/Toast.tsx";
-import { Button, Card, EmptyState, ErrorState, PageHeader, SkeletonRows, StatusChip, TextArea, cx } from "../components/ui.tsx";
+import { Button, Card, EmptyState, ErrorState, PageHeader, STATUS_THEME, SkeletonRows, StatusBanner, StatusChip, TextArea, cx } from "../components/ui.tsx";
+import { JobsPanel } from "./Jobs.tsx";
 import { api, type Application, type Status } from "../lib/api.ts";
 import { STATUS_LABEL, STATUS_ORDER, daysSince, eventLabel, formatDateTime, formatRelative, formatShort } from "../lib/format.ts";
 
@@ -30,7 +31,7 @@ function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
-export function ApplicationsPage() {
+function TrackedApplications() {
   const { id } = useParams();
   const selected = id && /^\d+$/.test(id) ? Number(id) : null;
   const [params, setParams] = useSearchParams();
@@ -128,7 +129,7 @@ export function ApplicationsPage() {
                   <Link
                     to={`/applications/${a.id}${qs}`}
                     aria-current={selected === a.id ? "true" : undefined}
-                    className={cx("flex items-center gap-3 px-4 py-3 text-ink no-underline hover:bg-sunken sm:px-5", selected === a.id && "bg-accent-wash")}
+                    className={cx("flex items-center gap-3 border-l-4 px-4 py-3 text-ink no-underline transition-colors hover:bg-sunken sm:px-5", STATUS_THEME[a.status].stripe, selected === a.id && "bg-accent-wash")}
                   >
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-semibold">{a.company}</span>
@@ -232,6 +233,7 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
         <ErrorState onRetry={() => app.refetch()} message="This application couldn’t be loaded. It may have been deleted." />
       ) : (
         <div className="fade-in">
+          <StatusBanner status={a.status} />
           <div className="flex flex-col gap-2 border-b border-line px-5 pt-4 pb-3.5">
             <div className="flex items-center justify-between gap-2">
               <StatusChip status={a.status} />
@@ -332,5 +334,41 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
         </div>
       )}
     </Card>
+  );
+}
+
+const TABS = [
+  { key: "apply", label: "Apply today" },
+  { key: "other", label: "Other jobs" },
+  { key: "tracked", label: "My applications" },
+] as const;
+
+/** Applications: opens on "Apply today" (good matches ready to apply); the rest keep their filters on the other tabs. */
+export function ApplicationsPage() {
+  const { id } = useParams();
+  const [params] = useSearchParams();
+  const asked = params.get("tab");
+  const filtered = ["status", "stale", "q"].some((k) => params.has(k));
+  const tab: "apply" | "other" | "tracked" = id ? "tracked" : asked === "other" || asked === "tracked" || asked === "apply" ? asked : filtered ? "tracked" : "apply";
+  const queue = useQuery({ queryKey: ["jobs", "queue", ""], queryFn: api.jobQueue, staleTime: 30_000 });
+  const ready = queue.data?.items.length ?? 0;
+  return (
+    <>
+      <div role="tablist" aria-label="Applications" className="flex gap-1.5 overflow-x-auto pb-0.5">
+        {TABS.map((t) => (
+          <Link
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            to={t.key === "apply" ? "/applications" : `/applications?tab=${t.key}`}
+            className={cx("inline-flex h-9 flex-none items-center gap-2 rounded-full border px-4 text-[13.5px] font-medium no-underline", tab === t.key ? "border-ink bg-ink text-bg" : "border-line bg-surface text-ink-2 hover:text-ink")}
+          >
+            {t.label}
+            {t.key === "apply" && ready > 0 && <span className={cx("grid min-w-5 place-items-center rounded-full px-1.5 text-[11.5px] font-semibold tabular-nums", tab === "apply" ? "bg-bg text-ink" : "bg-accent text-accent-ink")}>{ready}</span>}
+          </Link>
+        ))}
+      </div>
+      {tab === "tracked" ? <TrackedApplications /> : <JobsPanel key={tab} mode={tab} />}
+    </>
   );
 }

@@ -19,6 +19,15 @@ const RULES: Rule[] = [
   R("rejection", "reject.unsuccessful", 0.92, /\b(?:application|candidacy)\b[^.]{0,40}\b(?:unsuccessful|not successful|declined|not selected|not been successful)\b|\bnot been successful\b/i),
   R("rejection", "reject.filled", 0.9, /\b(?:position|role|vacancy) (?:has )?(?:now )?been filled\b/i),
   R("rejection", "reject.notshortlisted", 0.88, /\bnot (?:been )?(?:selected|shortlisted)\b/i),
+  // "we chose another candidate", "we have selected someone else", "decided to progress with other applicants"
+  R("rejection", "reject.chose", 0.95, /\bwe (?:have |'ve |had )?(?:chosen|chose|selected|decided on|gone with|went with|opted for|picked|appointed|offered the (?:role|position) to)\b[^.]{0,40}\b(?:another|other|a different|someone else|different|a stronger|a more experienced|an internal)\b/i),
+  R("rejection", "reject.progress", 0.93, /\b(?:decided|chosen|chose|opted|elected) to (?:progress|proceed|move forward|go ahead|continue) with (?:other|another|different|a different|fewer|one of)\b/i),
+  R("rejection", "reject.others", 0.9, /\b(?:other|another|different) (?:candidates?|applicants?)\b[^.]{0,80}\b(?:chosen|selected|progress|proceed|move forward|match|suit|fit|stronger|closely)/i),
+  R("rejection", "reject.match", 0.9, /\bcandidates? (?:whose|who|with)\b[^.]{0,60}\b(?:more closely|better|closer)\b/i),
+  R("rejection", "reject.successful", 0.92, /\b(?:successful|preferred) (?:candidate|applicant) (?:has been |was |is |have been )?(?:selected|chosen|appointed|identified|found|confirmed)\b/i),
+  R("rejection", "reject.unable", 0.9, /\b(?:we are |we're |we will be |we'll be |i am |i'm )?(?:unable|not able) to (?:offer you|progress|proceed|move forward|take your application|continue)\b/i),
+  R("rejection", "reject.wontprogress", 0.92, /\b(?:will not|won't|are not|aren't|cannot|can't) be (?:able to )?(?:progress|continu|proceed|mov|taking)\w* (?:with |forward with )?your (?:application|candidacy)\b/i),
+  R("rejection", "reject.filled2", 0.9, /(?:\b(?:have|has)|['’]ve) (?:now )?(?:filled|appointed)\b/i),
   // interviews
   R("interview_update", "interview.changed", 0.88, /\binterview\b[^.]{0,80}\b(?:rescheduled|cancel+ed|postponed|moved to|new time|has changed)\b|\b(?:rescheduled|cancel+ed)\b[^.]{0,60}\binterview\b/i),
   R("interview_invite", "interview.invite", 0.92, /\b(?:invite|inviting|like to invite) you (?:to|for) (?:an? )?(?:\w+ ){0,2}(?:interview|chat|call|meeting|conversation|screen)/i),

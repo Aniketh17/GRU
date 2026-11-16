@@ -158,9 +158,18 @@ async function syncSingleAccount(
   fetchFn: typeof fetch,
 ): Promise<{ processed: number }> {
   const accessToken = await getOrRefreshAccessToken(env, db, ring, account, now, fetchFn);
-  await enrichSeen(db, accessToken, account.id, fetchFn);
-  await processBodies(env, db, account, accessToken, now, fetchFn);
+  return syncCore(env, db, ring, account, accessToken, now, fetchFn);
+}
 
+async function syncCore(
+  env: Env,
+  db: Db,
+  ring: ReturnType<typeof keyringFromEnv>,
+  account: MailAccountRow,
+  accessToken: string,
+  now: number,
+  fetchFn: typeof fetch,
+): Promise<{ processed: number }> {
   // Load active applications for linking
   const appRows = await db.all<{ id: number; company_norm: string; status: Status }>(
     "SELECT id, company_norm, status FROM applications",
@@ -533,4 +542,26 @@ async function enrichSeen(db: Db, accessToken: string, accountId: number, fetchF
   }
   stmts.push(db.stmt(`UPDATE emails_seen SET enriched = 1 WHERE account_id = ? AND gmail_id IN (${rows.map(() => "?").join(",")})`, accountId, ...rows.map((r) => r.gmail_id)));
   await db.batch(stmts);
+}
+
+/**
+ * Catch-up work, run LAST in a tick with whatever call budget is left (new mail and notifications come first): repairs older
+ * imports and reads the bodies of job mail. Allowed to stop early; it simply continues on the next tick.
+ */
+export async function catchUpMail(env: Env, db: Db, now: number, fetchFn: typeof fetch = fetch): Promise<void> {
+  if (db.budget.remaining < 12) return;
+  const ring = keyringFromEnv(env);
+  const accounts = await db.all<MailAccountRow>(
+    "SELECT id, email, status, refresh_token_enc, access_token_enc, access_expires_at, history_id, backfill_page_token, backfill_floor, backfill_done, messages_scanned, granted_scope FROM mail_accounts WHERE status = 'active'",
+  );
+  for (const account of accounts) {
+    if (db.budget.remaining < 12) return;
+    try {
+      const accessToken = await getOrRefreshAccessToken(env, db, ring, account, now, fetchFn);
+      await enrichSeen(db, accessToken, account.id, fetchFn);
+      await processBodies(env, db, account, accessToken, now, fetchFn);
+    } catch {
+      log("sync_catchup_stopped", { id: account.id });
+    }
+  }
 }

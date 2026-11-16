@@ -1,4 +1,4 @@
-// Phase 5: vacancies, 100-point resume match with evidence and gaps, Apply Tomorrow queue.
+// Vacancies with a 100-point resume match (evidence and gaps). "Apply today" = good matches ready to apply; "Other jobs" = the rest, with filters.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -13,17 +13,22 @@ import { dateInputToEpoch, formatShort } from "../lib/format.ts";
 const BAND_TONE = { strong: "accent", good: "accent", possible: "amber", low: "neutral" } as const;
 const DIM_LABEL: Record<string, string> = { skills: "Skills (35)", role: "Role (20)", experience: "Experience (15)", education: "Education (10)", location: "Location (10)", work_type: "Employment type (5)", domain: "Domain (5)" };
 
-export function JobsPage() {
+export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const [view, setView] = useState("queue");
+  const [view, setView] = useState(mode === "apply" ? "queue" : "open");
   const [band, setBand] = useState("");
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
   const [params, setParams] = useSearchParams();
   useEffect(() => {
     const o = Number(params.get("open"));
-    if (o > 0) { setOpenId(o); setParams({}, { replace: true }); }
+    if (o > 0) {
+      setOpenId(o);
+      const rest = new URLSearchParams(params);
+      rest.delete("open");
+      setParams(rest, { replace: true });
+    }
   }, [params, setParams]);
   const [alertMail, setAlertMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const [ambiguous, setAmbiguous] = useState<{ job: Job; candidates: { id: number; company: string; role: string | null }[] } | null>(null);
@@ -39,7 +44,7 @@ export function JobsPage() {
   };
   const decide = useMutation({
     mutationFn: (v: { id: number; d: "shortlist" | "save" | "dismiss" | "reopen" }) => api.jobDecision(v.id, v.d),
-    onSuccess: (_r, v) => { refresh(); toast({ text: v.d === "dismiss" ? "Dismissed" : v.d === "shortlist" ? "Marked for tomorrow" : "Saved" }); },
+    onSuccess: (_r, v) => { refresh(); toast({ text: v.d === "dismiss" ? "Dismissed" : v.d === "shortlist" ? "Shortlisted" : "Saved" }); },
   });
   const tryApply = async (job: Job) => {
     try {
@@ -58,8 +63,10 @@ export function JobsPage() {
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col gap-4">
       <PageHeader
-        title="Jobs"
-        subtitle="Scored against your active resume. A score is a decision aid, not a guarantee. You always apply yourself."
+        title={mode === "apply" ? "Apply today" : "Other jobs"}
+        subtitle={mode === "apply"
+          ? `${items.length} good match${items.length === 1 ? "" : "es"} ready to apply (score ${(q.data as { threshold?: number } | undefined)?.threshold ?? 65}+, with a link), best first. A score is a decision aid; you always apply yourself.`
+          : "Everything else GRU has found. Filter by status and match."}
         actions={<Button variant="primary" size="sm" className="rounded-full" onClick={() => setAdding(true)}><PlusIcon size={14} />Add vacancy</Button>}
       />
       {!hasResume && (
@@ -67,18 +74,20 @@ export function JobsPage() {
           Paste your resume in Settings to see match scores. GRU never invents a score.
         </Banner>
       )}
-      <div className="flex flex-wrap gap-2">
-        <div className="w-44"><Select label="View" value={view} onChange={(e) => setView(e.target.value)}>
-          <option value="queue">Apply tomorrow</option><option value="open">All open</option><option value="dismissed">Dismissed</option><option value="applied">Applied</option>
-        </Select></div>
-        {view !== "queue" && <div className="w-40"><Select label="Band" value={band} onChange={(e) => setBand(e.target.value)}>
-          <option value="">Any</option><option value="strong">Strong 80+</option><option value="good">Good 65+</option><option value="possible">Possible 50+</option><option value="low">Low</option>
-        </Select></div>}
-      </div>
+      {mode === "other" && (
+        <div className="flex flex-wrap gap-2">
+          <div className="w-44"><Select label="Show" value={view} onChange={(e) => setView(e.target.value)}>
+            <option value="open">All open</option><option value="dismissed">Dismissed</option><option value="applied">Applied</option>
+          </Select></div>
+          <div className="w-40"><Select label="Match" value={band} onChange={(e) => setBand(e.target.value)}>
+            <option value="">Any</option><option value="strong">Strong 80+</option><option value="good">Good 65+</option><option value="possible">Possible 50+</option><option value="low">Low</option>
+          </Select></div>
+        </div>
+      )}
 
       {q.isPending ? <SkeletonRows rows={3} label="Loading jobs" /> : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : items.length === 0 ? (
-        <Card><EmptyState title={view === "queue" ? "Nothing queued for tomorrow" : "No vacancies here"}>
-          {view === "queue" ? `Jobs scoring ${(q.data as { threshold?: number })?.threshold ?? 65}+ with an application link appear here, best first. Add a vacancy to get started.` : "Add a vacancy by pasting its details."}
+        <Card><EmptyState title={view === "queue" ? "Nothing to apply for right now" : "No vacancies here"}>
+          {view === "queue" ? `Jobs scoring ${(q.data as { threshold?: number })?.threshold ?? 65}+ with an application link appear here, best first, as soon as they arrive in your job alerts. You can also add a vacancy yourself.` : "Add a vacancy by pasting its details."}
         </EmptyState></Card>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -100,11 +109,11 @@ export function JobsPage() {
                 <p className="m-0 text-[12px] text-muted">Found {formatShort(j.first_seen_at)}{j.closing_at ? ` · closes ${formatShort(j.closing_at)}` : ""} · {j.source}{j.status !== "new" ? ` · ${j.status}` : ""}</p>
                 <div className="flex flex-wrap gap-2">
                   {j.alert && <Button size="sm" onClick={() => setAlertMail({ accountId: j.alert!.account_id, gmailId: j.alert!.gmail_id })}>From alert email</Button>}
-                  {j.url && <a href={j.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken">Open link ↗</a>}
+                  {j.url && <a href={j.url} target="_blank" rel="noopener noreferrer" className={mode === "apply" && j.status !== "applied" ? "inline-flex h-8 items-center rounded-[10px] bg-accent px-3.5 text-[12.5px] font-semibold text-accent-ink no-underline hover:brightness-95" : "inline-flex h-8 items-center rounded-[10px] border border-line px-3 text-[12.5px] font-medium text-ink no-underline hover:bg-sunken"}>{mode === "apply" && j.status !== "applied" ? "Apply" : "Open link"} ↗</a>}
                   {j.status !== "applied" && <>
-                    <Button size="sm" onClick={() => decide.mutate({ id: j.id, d: "shortlist" })}>Mark for tomorrow</Button>
-                    <Button size="sm" onClick={() => tryApply(j)}>Already applied</Button>
-                    {j.status === "dismissed" ? <Button size="sm" variant="quiet" onClick={() => decide.mutate({ id: j.id, d: "reopen" })}>Reopen</Button> : <Button size="sm" variant="quiet" onClick={() => decide.mutate({ id: j.id, d: "dismiss" })}>Dismiss</Button>}
+                    <Button size="sm" onClick={() => decide.mutate({ id: j.id, d: "shortlist" })}>Shortlist</Button>
+                    <Button size="sm" onClick={() => tryApply(j)}>I applied</Button>
+                    {j.status === "dismissed" ? <Button size="sm" variant="quiet" onClick={() => decide.mutate({ id: j.id, d: "reopen" })}>Reopen</Button> : <Button size="sm" variant="quiet" onClick={() => decide.mutate({ id: j.id, d: "dismiss" })}>Not interested</Button>}
                   </>}
                 </div>
               </Card>

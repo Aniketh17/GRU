@@ -201,3 +201,9 @@ mailRoutes.get("/view", async (c) => {
     return c.json({ error: "gmail_unavailable" }, 502);
   }
 });
+
+// Re-read the last few days of job mail (after GRU's understanding improves, or if something looks wrong).
+mailRoutes.post("/recheck", async (c) => {
+  const r = await c.get("db").run("UPDATE emails_seen SET body_checked = 0 WHERE internal_date >= ?", nowSec() - 5 * 86400);
+  return c.json({ queued: r.meta.changes });
+});

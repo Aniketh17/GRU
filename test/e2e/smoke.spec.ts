@@ -46,14 +46,14 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
   for (const [path, text] of [
-    ["/jobs", "Jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"],
+    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: text, exact: true }).first()).toBeVisible();
     await expect(page.getByText("Unexpected Application Error")).toHaveCount(0);
   }
 
-  await page.goto("/jobs");
+  await page.goto("/applications?tab=other");
   await expect(page.getByText("Graduate Backend Engineer").first()).toBeVisible();
   await page.goto("/notes");
   await page.getByLabel("Search notes").fill("wellington");
@@ -217,4 +217,44 @@ test("assistant: lists emails to review, opens one inside GRU, and chats about a
   expect(chatBody?.message).toBe("tell me something interesting");
   await sheet.getByRole("button", { name: "Open calendar" }).click();
   await expect(page).toHaveURL(/\/calendar$/);
+});
+
+test("Applications opens on 'Apply today' with good matches ready to apply; the rest keep their tabs and filters", async ({ page }) => {
+  await login(page);
+  await api(page, "/api/resume-profiles", { label: "Apply", text: "Graduate engineer in Auckland. BSc Computer Science. Python, SQL, PostgreSQL, Docker, Git and testing projects. Interested in data analysis and backend roles." });
+  await api(page, "/api/jobs", { title: "Graduate Data Analyst Apply Today", company: "Acme Robotics", location: "Auckland", url: "https://www.seek.co.nz/job/99887766", description: "Graduate role in Auckland. Requirements: Python, SQL, PostgreSQL. Nice to have: Docker. Degree in computer science. ".repeat(3) });
+  await api(page, "/api/jobs", { title: "Senior Truck Driver Not A Match", company: "Haulage", location: "London", url: "https://www.seek.co.nz/job/99887755", description: "Requirements: forklift licence, 10+ years driving. ".repeat(4) });
+  await page.goto("/applications");
+  await expect(page.getByRole("tab", { name: /Apply today/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "Apply today", exact: true })).toBeVisible();
+  const card = page.getByText("Graduate Data Analyst Apply Today").first();
+  await expect(card).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Apply ↗$/ }).first()).toHaveAttribute("href", /seek\.co\.nz\/job\/99887766/);
+  await expect(page.getByText("Senior Truck Driver Not A Match")).toHaveCount(0); // not a good match: not on today's list
+
+  await page.getByRole("tab", { name: "Other jobs" }).click();
+  await expect(page.getByText("Senior Truck Driver Not A Match").first()).toBeVisible(); // the rest, with filters
+  await expect(page.getByLabel("Match")).toBeVisible();
+  await page.getByRole("tab", { name: "My applications" }).click();
+  await expect(page.getByRole("button", { name: "Add application", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Filter by status" })).toBeVisible();
+});
+
+test("each status has its own colour, and the banner changes when the status changes", async ({ page }) => {
+  await login(page);
+  const app = (await api(page, "/api/applications", { company: "Banner Test Ltd", role: "Engineer", status: "applied" })) as { id: number };
+  await page.goto(`/applications/${app.id}?tab=tracked&status=all`);
+  const banner = page.getByRole("status").filter({ hasText: "Applied" }).first();
+  await expect(banner).toHaveAttribute("data-status", "applied");
+  const colours: Record<string, string> = {};
+  const read = (status: string) => page.locator(`[data-status="${status}"]`).first().evaluate((el) => getComputedStyle(el).backgroundColor);
+  colours.applied = await read("applied");
+  for (const status of ["assessment", "interview", "offer", "rejected", "declined", "withdrawn", "accepted"]) {
+    await page.getByLabel("Change status").selectOption(status);
+    await expect(page.locator(`[data-status="${status}"]`).first()).toBeVisible();
+    await expect.poll(async () => (await read(status)) !== colours[Object.keys(colours).at(-1)!], { timeout: 5000 }).toBe(true); // the colour actually changed
+    await page.waitForTimeout(650); // let the colour transition finish before reading
+    colours[status] = await read(status);
+  }
+  expect(new Set(Object.values(colours)).size).toBe(Object.keys(colours).length); // all eight differ
 });

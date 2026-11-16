@@ -126,3 +126,28 @@ export function ExportCard() {
     </Card>
   );
 }
+
+export function MailToolsCard() {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const r = await api.recheckMail();
+      toast({ text: r.queued ? `Re-reading ${r.queued} recent emails. This continues over the next few minutes.` : "No recent job mail to re-read." });
+    } catch {
+      toast({ text: "Couldn’t start that" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card className="flex flex-wrap items-center justify-between gap-3 p-5" aria-labelledby="s-recheck">
+      <div className="min-w-0 flex-[1_1_320px]">
+        <h2 id="s-recheck" className="m-0 text-[15px] font-semibold">Re-read recent job mail</h2>
+        <p className="m-0 text-[12.5px] text-muted">Runs GRU’s understanding again over the last 5 days of job email (status, role, interview details, vacancies). Your own edits and undone changes are kept.</p>
+      </div>
+      <Button onClick={() => void run()} disabled={busy}>{busy ? "Starting…" : "Re-read now"}</Button>
+    </Card>
+  );
+}
