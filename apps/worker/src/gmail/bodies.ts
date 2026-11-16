@@ -49,7 +49,7 @@ export async function processBodies(
   const rows = await db.all<Row>(
     `SELECT gmail_id, app_id, class, internal_date, thread_id, disposition FROM emails_seen
      WHERE account_id = ? AND body_checked = 0 AND internal_date >= ?
-     ORDER BY internal_date DESC LIMIT ${BODIES_PER_TICK}`,
+     ORDER BY (app_id IS NOT NULL) DESC, internal_date DESC LIMIT ${BODIES_PER_TICK}`, // mail tied to an application first: status changes matter most
     account.id,
     now - BACKFILL_DAYS * 86400,
   );
