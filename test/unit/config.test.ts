@@ -61,7 +61,7 @@ describe("wrangler.jsonc stays on the free tier", () => {
   });
 
   it("uses exactly one cron trigger (Free allows 5 per account)", () => {
-    assert.deepEqual((cfg.triggers as { crons: string[] }).crons, ["*/15 * * * *"]);
+    assert.deepEqual((cfg.triggers as { crons: string[] }).crons, ["*/5 * * * *"]);
   });
 
   it("binds only D1 and static assets", () => {

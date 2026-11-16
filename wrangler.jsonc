@@ -33,7 +33,7 @@
   // and FAILS (never bills) beyond that; the app also caps itself at TTS_DAILY_CHARS characters/day, well below the allowance.
   "ai": { "binding": "AI" },
 
-  "triggers": { "crons": ["*/15 * * * *"] },
+  "triggers": { "crons": ["*/5 * * * *"] },
 
   "vars": {
     // Set to https://gru.<subdomain>.workers.dev before deploying (SETUP step 3).

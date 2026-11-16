@@ -176,7 +176,7 @@ export function SettingsPage() {
           <div>
             <h2 id="s-acc" className="m-0 text-[15px] font-semibold">Gmail accounts</h2>
             <p className="m-0 text-[12.5px] text-muted">
-              Metadata-only sync every 15 minutes. GRU cannot read email bodies, send, or delete mail.
+              Checks Gmail every 5 minutes (and whenever you tap Refresh). Reads only job-related mail; GRU cannot send, change or delete mail.
             </p>
           </div>
           <Button variant="secondary" onClick={() => setConnectOpen(true)}>

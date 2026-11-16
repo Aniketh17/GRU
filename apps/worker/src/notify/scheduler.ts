@@ -15,11 +15,14 @@ export async function runDailyLoopScheduler(
   const today = aucklandDate(now);
   const minutes = aucklandMinutes(now);
   const settings = await getSettings(db);
+  // One query for everything already sent recently, instead of one claim attempt per notification per run (calls are scarce).
+  const sentKeys = new Set((await db.all<{ key: string }>("SELECT key FROM notifications_sent WHERE sent_at >= ?", now - 3 * 86400)).map((r) => r.key));
+  const sendOnce: typeof sendNotification = async (d, topic, origin, kind, key, n, f) => (sentKeys.has(key) ? false : sendNotification(d, topic, origin, kind, key, n, f));
 
   // 1. Morning brief notification (default 08:30 Auckland time)
   const briefMinutes = parseTimeToMinutes(settings.brief_time);
   if (minutes >= briefMinutes) {
-    await sendNotification(
+    await sendOnce(
       db,
       env.NTFY_TOPIC,
       env.APP_ORIGIN,
@@ -37,7 +40,7 @@ export async function runDailyLoopScheduler(
       today,
     );
     if (!checkin || checkin.status !== "completed") {
-      await sendNotification(
+      await sendOnce(
         db,
         env.NTFY_TOPIC,
         env.APP_ORIGIN,
@@ -50,7 +53,7 @@ export async function runDailyLoopScheduler(
   }
 
   const send = (kind: "interview" | "debrief" | "task_due" | "jobs" | "weekly", key: string) =>
-    sendNotification(db, env.NTFY_TOPIC, env.APP_ORIGIN, kind, key, now, fetchFn);
+    sendOnce(db, env.NTFY_TOPIC, env.APP_ORIGIN, kind, key, now, fetchFn);
 
   // 2b. Interview reminders: 24 h and 2 h before (generic text), debrief nudge the morning after
   const upcoming = await db.all<{ id: number; start_utc: number }>(
@@ -90,7 +93,7 @@ export async function runDailyLoopScheduler(
     const isStale = accounts.some((a) => (a.last_sync_at ?? 0) < sixHoursAgo);
 
     if (hasReauth || isStale) {
-      await sendNotification(
+      await sendOnce(
         db,
         env.NTFY_TOPIC,
         env.APP_ORIGIN,

@@ -8,7 +8,7 @@ GRU is a single-user, phone-first PWA that addresses its user as **Ani**. One Cl
  ┌──────────────────────────┐   HTTPS        ┌──────────────────────────────────────────────┐
  │ login.html               │──────────────▶ │ Worker "gru"  (workers.dev, no custom domain) │
  │  └ Argon2id (WASM) ──P──▶│  /auth/*       │  headers → kill guard → auth → hygiene → route│
- │ SPA (Phase 1+)           │  /api/*        │  scheduled(): */15 tick (lock, sync, scheduler)│
+ │ SPA (Phase 1+)           │  /api/*        │  scheduled(): */5 tick (lock, sync, scheduler)│
  └──────────────────────────┘                │        │ D1 binding "DB"        │ assets      │
         ▲ ntfy app                           │        ▼                         ▼            │
         │ (content-free ping)                │   D1 (SQLite, 500 MB/DB)   apps/web/dist      │
@@ -24,7 +24,7 @@ GRU is a single-user, phone-first PWA that addresses its user as **Ani**. One Cl
 | API + scheduler | Cloudflare Worker, TypeScript strict, Hono, Zod | Workers Free |
 | Web app | Vite + React 19 + Tailwind 4 + TanStack Query + React Router, self-hosted Inter; PWA (manifest, asset-only service worker) | Static assets: free, unlimited |
 | Database | D1, numbered SQL migrations, no ORM | D1 Free |
-| Scheduling | 1 Cron Trigger `*/15 * * * *` | Free (1 of 5) |
+| Scheduling | 1 Cron Trigger `*/5 * * * *` | Free (1 of 5) |
 | Notifications | ntfy.sh behind a `Notifier` interface (fixed enum → constant strings) | Free, no account |
 | Mail source | Gmail API, `gmail.readonly`, OAuth web client (Phase 2) | Google Cloud project with **no billing account** |
 | Local tooling | Node 24 LTS via fnm; one package: TypeScript, node:test, Vitest + workerd, Playwright, Vite, ESLint (DEVELOPMENT.md) | Free |

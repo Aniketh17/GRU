@@ -1,5 +1,5 @@
 // Gmail sync engine (spec §8, Phase 2 rev 2 §5, §6).
-// 15-minute cron sync: 5-day backfill then incremental history, batch GETs,
+// 5-minute cron sync: 5-day backfill then incremental history, batch GETs,
 // max 12 new processed emails per account per tick, forward-only auto-transitions,
 // and isolated account failure handling.
 
@@ -170,26 +170,6 @@ async function syncCore(
   now: number,
   fetchFn: typeof fetch,
 ): Promise<{ processed: number }> {
-  // Load active applications for linking
-  const appRows = await db.all<{ id: number; company_norm: string; status: Status }>(
-    "SELECT id, company_norm, status FROM applications",
-  );
-  const apps: AppRef[] = appRows.map((a) => ({
-    id: a.id,
-    company_norm: a.company_norm,
-    status: a.status,
-  }));
-
-  // Fetch thread linking cache
-  const linkedThreads = await db.all<{ thread_id: string; app_id: number }>(
-    "SELECT thread_id, app_id FROM emails_seen WHERE account_id = ? AND app_id IS NOT NULL",
-    account.id,
-  );
-  const threadMap = new Map<string, number>();
-  for (const t of linkedThreads) {
-    threadMap.set(t.thread_id, t.app_id);
-  }
-
   let candidateIds: string[] = [];
   const isBackfill = account.backfill_done === 0;
   let nextBackfillToken: string | null = account.backfill_page_token;
@@ -278,6 +258,27 @@ async function syncCore(
       account.id,
     );
     return { processed: 0 };
+  }
+
+  // Load active applications for linking
+  // Only now (there is new mail) load what linking needs: an idle run must stay cheap, because the free plan caps calls per run.
+  const appRows = await db.all<{ id: number; company_norm: string; status: Status }>(
+    "SELECT id, company_norm, status FROM applications",
+  );
+  const apps: AppRef[] = appRows.map((a) => ({
+    id: a.id,
+    company_norm: a.company_norm,
+    status: a.status,
+  }));
+
+  // Fetch thread linking cache
+  const linkedThreads = await db.all<{ thread_id: string; app_id: number }>(
+    "SELECT thread_id, app_id FROM emails_seen WHERE account_id = ? AND app_id IS NOT NULL",
+    account.id,
+  );
+  const threadMap = new Map<string, number>();
+  for (const t of linkedThreads) {
+    threadMap.set(t.thread_id, t.app_id);
   }
 
   // Batch GET metadata for unseen messages (1 HTTP subrequest for up to 50 messages!)
