@@ -10,6 +10,7 @@ import { errorCode, log } from "./log/index.ts";
 import { runDailyLoopScheduler } from "./notify/scheduler.ts";
 
 export const TICK_LOCK_TTL = 300;
+const SCHEDULER_RESERVE = 14;
 
 export interface TickResult {
   ran: boolean;
@@ -57,8 +58,10 @@ export async function runTick(env: Env, now: number, fetchFn: typeof fetch = fet
     try {
       await db.batch(housekeepingStmts(db, now));
       await syncMailAccounts(env, db, now, fetchFn);
+      // Reading job mail comes before notifications (they are idempotent and a 5-minute delay is harmless), but it leaves
+      // enough of the call budget for the scheduler (about 12 calls).
+      await catchUpMail(env, db, now, fetchFn, SCHEDULER_RESERVE);
       await runDailyLoopScheduler(env, db, now, fetchFn);
-      await catchUpMail(env, db, now, fetchFn); // last: uses whatever call budget is left
       log("tick_done", { budget_used_count: db.budget.usedCount });
       return { ran: true };
     } finally {

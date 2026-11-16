@@ -44,9 +44,10 @@ export async function processBodies(
   accessToken: string,
   now: number,
   fetchFn: typeof fetch,
+  reserve = 0, // call budget to leave untouched for whatever runs after (the notification scheduler)
 ): Promise<number> {
   if (!hasBodyAccess(account.granted_scope)) return 0;
-  if (db.budget.remaining < MIN_BUDGET_TO_START) return 0;
+  if (db.budget.remaining < MIN_BUDGET_TO_START + reserve) return 0;
   const rows = await db.all<Row>(
     `SELECT gmail_id, app_id, class, internal_date, thread_id, disposition FROM emails_seen
      WHERE account_id = ? AND body_checked = 0 AND internal_date >= ?
@@ -86,7 +87,7 @@ export async function processBodies(
   for (const msg of msgs) {
     const row = byId.get(msg.id);
     if (!row) continue;
-    if (chars > BODY_CHAR_BUDGET || db.budget.remaining < MIN_BUDGET_PER_EMAIL) break; // finish the rest next tick
+    if (chars > BODY_CHAR_BUDGET || db.budget.remaining < MIN_BUDGET_PER_EMAIL + reserve) break; // finish the rest next tick
     const { text, html } = messageBody(msg);
     chars += text.length + html.length;
     facts += await understand(env, db, account.id, row, gmailMessageToMeta(msg), text, html, apps, settings.auto_status_from_text, now);

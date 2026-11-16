@@ -202,7 +202,7 @@ describe("call budget", () => {
     expect(done).toBeGreaterThan(0);
     expect(done).toBeLessThan(ids.length); // not everything fits in one tick's budget
     // Nothing was lost: further ticks finish the job.
-    for (let i = 0; i < 6; i++) await run(msgs);
+    for (let i = 0; i < 14; i++) await run(msgs);
     expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM emails_seen WHERE body_checked = 0").first<{ n: number }>())!.n).toBe(0);
   });
 });

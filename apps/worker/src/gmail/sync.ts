@@ -549,18 +549,18 @@ async function enrichSeen(db: Db, accessToken: string, accountId: number, fetchF
  * Catch-up work, run LAST in a tick with whatever call budget is left (new mail and notifications come first): repairs older
  * imports and reads the bodies of job mail. Allowed to stop early; it simply continues on the next tick.
  */
-export async function catchUpMail(env: Env, db: Db, now: number, fetchFn: typeof fetch = fetch): Promise<void> {
-  if (db.budget.remaining < 12) return;
+export async function catchUpMail(env: Env, db: Db, now: number, fetchFn: typeof fetch = fetch, reserve = 0): Promise<void> {
+  if (db.budget.remaining < 12 + reserve) return;
   const ring = keyringFromEnv(env);
   const accounts = await db.all<MailAccountRow>(
     "SELECT id, email, status, refresh_token_enc, access_token_enc, access_expires_at, history_id, backfill_page_token, backfill_floor, backfill_done, messages_scanned, granted_scope FROM mail_accounts WHERE status = 'active'",
   );
   for (const account of accounts) {
-    if (db.budget.remaining < 12) return;
+    if (db.budget.remaining < 12 + reserve) return;
     try {
       const accessToken = await getOrRefreshAccessToken(env, db, ring, account, now, fetchFn);
       await enrichSeen(db, accessToken, account.id, fetchFn);
-      await processBodies(env, db, account, accessToken, now, fetchFn);
+      await processBodies(env, db, account, accessToken, now, fetchFn, reserve);
     } catch {
       log("sync_catchup_stopped", { id: account.id });
     }

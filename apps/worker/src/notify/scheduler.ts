@@ -4,7 +4,7 @@ import type { Db } from "../db/client.ts";
 import type { Env } from "../env.ts";
 import { aucklandDate, aucklandMinutes, parseTimeToMinutes } from "../lib/timezone.ts";
 import { getSettings } from "../routes/settings.ts";
-import { sendNotification } from "./ntfy.ts";
+import { NTFY_BACKOFF_KEY, sendNotification } from "./ntfy.ts";
 
 export async function runDailyLoopScheduler(
   env: Env,
@@ -15,9 +15,11 @@ export async function runDailyLoopScheduler(
   const today = aucklandDate(now);
   const minutes = aucklandMinutes(now);
   const settings = await getSettings(db);
-  // One query for everything already sent recently, instead of one claim attempt per notification per run (calls are scarce).
-  const sentKeys = new Set((await db.all<{ key: string }>("SELECT key FROM notifications_sent WHERE sent_at >= ?", now - 3 * 86400)).map((r) => r.key));
-  const sendOnce: typeof sendNotification = async (d, topic, origin, kind, key, n, f) => (sentKeys.has(key) ? false : sendNotification(d, topic, origin, kind, key, n, f));
+  // One query for everything already sent recently (and any ntfy back-off), instead of a claim attempt per notification per run.
+  const sentRows = await db.all<{ key: string; sent_at: number }>("SELECT key, sent_at FROM notifications_sent WHERE sent_at >= ?", now - 3 * 86400);
+  const sentKeys = new Set(sentRows.map((r) => r.key));
+  const backingOff = sentRows.some((r) => r.key === NTFY_BACKOFF_KEY && r.sent_at > now);
+  const sendOnce: typeof sendNotification = async (d, topic, origin, kind, key, n, f) => (backingOff || sentKeys.has(key) ? false : sendNotification(d, topic, origin, kind, key, n, f));
 
   // 1. Morning brief notification (default 08:30 Auckland time)
   const briefMinutes = parseTimeToMinutes(settings.brief_time);

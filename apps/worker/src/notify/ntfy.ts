@@ -31,6 +31,9 @@ export const NOTIFICATION_MESSAGES: Record<NotificationKind, { title: string; me
   },
 };
 
+/** A row whose sent_at lies in the FUTURE means: do not call ntfy until then (set after a 429). */
+export const NTFY_BACKOFF_KEY = "backoff:ntfy";
+
 export async function sendNotification(
   db: Db,
   topic: string | undefined,
@@ -66,6 +69,8 @@ export async function sendNotification(
     if (!res.ok) {
       log("ntfy_error", { status: res.status, kind });
       await release();
+      // Rate limited (the worker shares an outbound address with others): stop trying for 30 minutes rather than every run.
+      if (res.status === 429) await db.run("INSERT OR REPLACE INTO notifications_sent (key, sent_at) VALUES (?, ?)", NTFY_BACKOFF_KEY, now + 1800);
       return false;
     }
 

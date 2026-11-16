@@ -157,3 +157,19 @@ describe("notification scheduler", () => {
     expect(sent.filter((s) => s.body === NOTIFICATION_MESSAGES.brief.message)).toHaveLength(1);
   });
 });
+
+describe("ntfy rate limiting", () => {
+  it("backs off for 30 minutes after a 429 instead of retrying on every run, then tries again", async () => {
+    let calls = 0;
+    const limited = (async () => { calls++; return new Response("slow down", { status: 429 }); }) as unknown as typeof fetch;
+    const e = testEnv({ NTFY_TOPIC: "gru-test-topic" });
+    const t0 = Math.floor(Date.parse("2026-12-14T19:31:00Z") / 1000); // 08:31 NZDT
+    await runDailyLoopScheduler(e, new Db(env.DB), t0, limited);
+    expect(calls).toBe(1);
+    await runDailyLoopScheduler(e, new Db(env.DB), t0 + 300, limited);
+    await runDailyLoopScheduler(e, new Db(env.DB), t0 + 900, limited);
+    expect(calls).toBe(1); // still backing off
+    await runDailyLoopScheduler(e, new Db(env.DB), t0 + 1900, limited);
+    expect(calls).toBe(2); // the back-off has passed
+  });
+});
