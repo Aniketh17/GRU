@@ -81,3 +81,15 @@ When voice ships (ROADMAP V1), speech is recognised on the device; audio is neve
 | Everything else | Stays in your Cloudflare Worker and D1 database, encrypted as listed above | |
 
 Switch the natural voice to the on-device voice in the assistant's settings to keep spoken text on the phone. Chat and cloud transcription need the AI, but the assistant still works for commands without them.
+
+## 11. The revamp: what is new, and what it keeps (added 2026-11-25, D-065 to D-068)
+
+| New data | Where | Protection and retention |
+|---|---|---|
+| Subject and sender of job mail GRU could not classify | `emails_seen.subject_enc`, `from_enc` | AES-GCM encrypted; deleted the moment you classify or ignore the mail, and in any case after 30 days. Email bodies are still never stored |
+| "Never read this sender" rules | `sender_rules` (domain only) | Plain domain names, no message content. Blocked senders are skipped before anything about a message is stored |
+| Tailored resume rewrites | `job_kits.kit_enc` | Encrypted; per job and resume version; removed by wipe and export. Rewrites are checked against your resume, so they cannot contain claims you did not make |
+| Network: target companies, people (name, role, profile link, how you met), conversation notes | `net_companies`, `net_people`, `net_touches` | Free text encrypted. GRU never reads LinkedIn and never contacts anyone: it opens search links in your browser, and you do the contacting. Included in wipe and export |
+| Talk to GRU conversations | `voice_log` | Not stored by default (the chat is deleted when closed). Stored encrypted for 30 days only if you turn on "Remember conversations" |
+
+What leaves GRU for Workers AI in the new features: your resume's bullets and the job's title and keywords (tailoring); a person's first name, role, company and your top skills (optional message polishing). Both are marked as untrusted data, never retained by Cloudflare for training, and each has a no-AI fallback. Phone alerts for follow-ups say only "a networking follow-up is due".

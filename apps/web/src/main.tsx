@@ -10,17 +10,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { ApiError } from "./lib/api.ts";
 import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
-import { AgendaPage } from "./pages/Agenda.tsx";
-import { InboxPage } from "./pages/Inbox.tsx";
-import { InsightsPage } from "./pages/Insights.tsx";
-import { NetworkPage } from "./pages/Network.tsx";
-import { JobWorkspacePage } from "./pages/JobWorkspace.tsx";
-import { CalendarPage } from "./pages/Calendar.tsx";
 import { MorePage } from "./pages/More.tsx";
-import { NotesPage } from "./pages/Notes.tsx";
-import { PeoplePage } from "./pages/People.tsx";
-import { ReviewPage } from "./pages/Review.tsx";
-import { SettingsPage } from "./pages/Settings.tsx";
 import { TodayPage } from "./pages/Today.tsx";
 
 const queryClient = new QueryClient({
@@ -68,18 +58,18 @@ const router = createBrowserRouter([
       { index: true, element: <TodayPage /> },
       { path: "applications", element: <ApplicationsPage /> },
       { path: "applications/:id", element: <ApplicationsPage /> },
-      { path: "review", element: <ReviewPage /> },
+      { path: "review", lazy: async () => ({ Component: (await import("./pages/Review.tsx")).ReviewPage }) },
       { path: "jobs", element: <JobsRedirect /> },
-      { path: "jobs/:id", element: <JobWorkspacePage /> },
-      { path: "inbox", element: <InboxPage /> },
-      { path: "network", element: <NetworkPage /> },
-      { path: "insights", element: <InsightsPage /> },
-      { path: "agenda", element: <AgendaPage /> },
-      { path: "calendar", element: <CalendarPage /> },
-      { path: "notes", element: <NotesPage /> },
-      { path: "people", element: <PeoplePage /> },
+      { path: "jobs/:id", lazy: async () => ({ Component: (await import("./pages/JobWorkspace.tsx")).JobWorkspacePage }) },
+      { path: "inbox", lazy: async () => ({ Component: (await import("./pages/Inbox.tsx")).InboxPage }) },
+      { path: "network", lazy: async () => ({ Component: (await import("./pages/Network.tsx")).NetworkPage }) },
+      { path: "insights", lazy: async () => ({ Component: (await import("./pages/Insights.tsx")).InsightsPage }) },
+      { path: "agenda", lazy: async () => ({ Component: (await import("./pages/Agenda.tsx")).AgendaPage }) },
+      { path: "calendar", lazy: async () => ({ Component: (await import("./pages/Calendar.tsx")).CalendarPage }) },
+      { path: "notes", lazy: async () => ({ Component: (await import("./pages/Notes.tsx")).NotesPage }) },
+      { path: "people", lazy: async () => ({ Component: (await import("./pages/People.tsx")).PeoplePage }) },
       { path: "more", element: <MorePage /> },
-      { path: "settings", element: <SettingsPage /> },
+      { path: "settings", lazy: async () => ({ Component: (await import("./pages/Settings.tsx")).SettingsPage }) },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

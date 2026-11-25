@@ -1,6 +1,6 @@
-# GRU Revamp: a premium personal job-search workspace (plan, awaiting approval)
+# GRU Revamp: a premium personal job-search workspace (approved 2026-11-25; R1 to R5 shipped, see D-065 to D-068)
 
-Written for Ani. Nothing in this plan is built yet. On approval it is built and deployed in the phases at the end.
+Written for Ani. Built and deployed in the phases at the end. Differences from the plan: the Documents page was folded into each job's Tailor tab (copy as notes) rather than a separate page; the navigation keeps Jobs, Board and My applications as tabs inside one Jobs section instead of separate Jobs and Pipeline sections; the AI starter list for companies became a fixed, labelled ideas list so nothing is invented.
 
 ## 1. What you asked for, and where it lands
 

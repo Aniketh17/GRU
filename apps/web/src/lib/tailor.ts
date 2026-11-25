@@ -23,7 +23,11 @@ export interface TailorAnalysis {
 /** Resume lines that read like bullets or accomplishments. */
 export function resumeBullets(resume: string): string[] {
   const lines = resume.split(/\r?\n/).map((l) => l.replace(/^[\s\-*•·▪●–]+/, "").replace(/\s+/g, " ").trim());
-  const bullets = lines.filter((l) => l.length >= 25 && l.length <= 350 && /[a-z]/.test(l) && /\s/.test(l) && !/^(?:email|phone|linkedin|github|www\.)/i.test(l));
+  // Achievements are sentences about what you did: not contact lines, skills lists, education or section headings.
+  const EDU = /\b(?:university|bsc|b\.sc|bachelor|master|diploma|gpa|high school)\b/i;
+  const HEAD = /^(?:email|phone|linkedin|github|www\.|skills?\b|technologies|languages|tools)/i;
+  const notBullet = (l: string): boolean => HEAD.test(l) || EDU.test(l) || ((l.match(/,/g) ?? []).length >= 4 && l.length < 120);
+  const bullets = lines.filter((l) => l.length >= 25 && l.length <= 350 && /[a-z]/.test(l) && /\s/.test(l) && !notBullet(l) && l.split(/\s+/).length >= 5);
   return [...new Set(bullets)];
 }
 

@@ -45,6 +45,12 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Smoke Test Ltd" })).toBeVisible();
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
+  // Command palette: Ctrl+K finds a job by name and opens its workspace.
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: /Search pages/ }).fill("graduate backend");
+  await page.getByRole("option", { name: /Graduate Backend Engineer/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Graduate Backend Engineer" })).toBeVisible();
+
   for (const [path, text] of [
     ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"], ["/network", "Network"], ["/insights", "Insights"],
   ] as const) {
@@ -79,6 +85,22 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByLabel("Assessment column").locator("article", { has: page.locator(`a[href^="/applications/${app.id}?"]`) })).toBeVisible();
   await page.goto("/insights");
   await expect(page.getByText("Application funnel")).toBeVisible();
+
+  // Accessibility basics on every page: every button, link and form field has an accessible name.
+  for (const path of ["/", "/applications", "/network", "/insights", "/inbox", "/calendar", "/settings"]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const unnamed = await page.evaluate(() => {
+      const bad: string[] = [];
+      for (const el of Array.from(document.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea"))) {
+        if (el instanceof HTMLInputElement && (el.type === "hidden" || el.type === "checkbox" && el.closest("label"))) continue;
+        const name = el.getAttribute("aria-label") || el.getAttribute("aria-labelledby") || (el as HTMLInputElement).labels?.[0]?.textContent || el.textContent || el.getAttribute("title") || el.getAttribute("placeholder");
+        if (!name || !name.trim()) bad.push(`${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}`);
+      }
+      return bad;
+    });
+    expect(unnamed, `${path}: ${unnamed.join(", ")}`).toEqual([]);
+  }
 
   await page.goto("/applications?tab=other");
   await expect(page.getByText("Graduate Backend Engineer").first()).toBeVisible();

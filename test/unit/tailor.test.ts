@@ -55,3 +55,10 @@ describe("grounding: no invented claims", () => {
     assert.equal(checkGrounded("Reached 92% accuracy with PyTorch", RESUME).ok, true);
   });
 });
+
+describe("resume bullets", () => {
+  it("ignores skills lists, education lines and headings", () => {
+    const lines = resumeBullets("Skills: Python, TypeScript, SQL, Docker, Git\nBSc Computer Science, University of Auckland\nProjects\n- Built a tool that saved the team five hours every week");
+    assert.deepEqual(lines, ["Built a tool that saved the team five hours every week"]);
+  });
+});

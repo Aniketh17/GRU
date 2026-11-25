@@ -1,7 +1,8 @@
 // Network (Revamp 3E): build relationships before you need them. Companies to learn about, people to ask about their work,
 // curiosity-first drafts, follow-up reminders and weekly goals. GRU never contacts anyone: you do, GRU keeps track.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Modal } from "../components/Dialog.tsx";
 import { PlusIcon } from "../components/Icons.tsx";
 import { useToast } from "../components/Toast.tsx";
@@ -18,6 +19,11 @@ type Tab = (typeof TABS)[number][0];
 export function NetworkPage() {
   const [tab, setTab] = useState<Tab>("week");
   const [personId, setPersonId] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const p = Number(params.get("person"));
+    if (p > 0) { setPersonId(p); setTab("people"); const rest = new URLSearchParams(params); rest.delete("person"); setParams(rest, { replace: true }); }
+  }, [params, setParams]);
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col gap-4">
       <PageHeader title="Network" subtitle="Most internships come from people, not job boards. Learn about 100 companies, talk to the people doing the work, and ask about their work, never for a job. GRU keeps track; you do the reaching out." />
