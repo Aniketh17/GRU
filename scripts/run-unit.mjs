@@ -11,5 +11,5 @@ if (files.length === 0) {
   process.exit(1);
 }
 const extra = process.argv.slice(2);
-const r = spawnSync(process.execPath, ["--test", ...extra, ...files], { stdio: "inherit" });
+const r = spawnSync(process.execPath, ["--test", "--test-concurrency=1", ...extra, ...files], { stdio: "inherit" });
 process.exit(r.status ?? 1);

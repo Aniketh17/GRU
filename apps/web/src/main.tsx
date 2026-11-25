@@ -11,6 +11,8 @@ import { ApiError } from "./lib/api.ts";
 import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
 import { AgendaPage } from "./pages/Agenda.tsx";
+import { InboxPage } from "./pages/Inbox.tsx";
+import { JobWorkspacePage } from "./pages/JobWorkspace.tsx";
 import { CalendarPage } from "./pages/Calendar.tsx";
 import { MorePage } from "./pages/More.tsx";
 import { NotesPage } from "./pages/Notes.tsx";
@@ -53,7 +55,7 @@ function Root() {
 function JobsRedirect() {
   const [p] = useSearchParams();
   const open = p.get("open");
-  return <Navigate to={open ? `/applications?open=${open}` : "/applications?tab=other"} replace />;
+  return <Navigate to={open ? `/jobs/${open}` : "/applications?tab=other"} replace />;
 }
 
 const router = createBrowserRouter([
@@ -66,6 +68,8 @@ const router = createBrowserRouter([
       { path: "applications/:id", element: <ApplicationsPage /> },
       { path: "review", element: <ReviewPage /> },
       { path: "jobs", element: <JobsRedirect /> },
+      { path: "jobs/:id", element: <JobWorkspacePage /> },
+      { path: "inbox", element: <InboxPage /> },
       { path: "agenda", element: <AgendaPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },

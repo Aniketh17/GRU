@@ -7,6 +7,10 @@ import { aucklandToEpoch } from "../../apps/worker/src/lib/when.ts";
 import { runTick } from "../../apps/worker/src/tick.ts";
 import { call, clearAuthState, login, testEnv } from "./helpers.ts";
 
+// Dates in fixtures are relative to today: the reader only accepts times in the next ~90 days.
+const future = (days: number) => { const d = new Date(Date.now() + days * 86400_000); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), month: d.toLocaleString("en-US", { month: "long", timeZone: "UTC" }) }; };
+
+
 const EMAIL = "ani.primary@gmail.com";
 const mockEnv = { GOOGLE_CLIENT_ID: "id", GOOGLE_CLIENT_SECRET: "secret", ALLOWED_EMAILS: EMAIL };
 const READONLY = "openid email https://www.googleapis.com/auth/gmail.readonly";
@@ -148,14 +152,16 @@ describe("deadlines, interviews and contacts", () => {
     await seedApp();
     await seedMail("m_a", "ta", "assessment", "auto_applied", 1);
     await seedMail("m_i", "ti", "interview_invite", "queued", 1);
+    const a = future(12);
+    const i = future(10);
     await run([
-      { id: "m_a", text: "Please complete the online coding assessment by 25 November 2026." },
-      { id: "m_i", text: "We would like to invite you to an interview on 24 November 2026 at 10:30 AM NZDT. Join: https://acme.zoom.us/j/12345678" },
+      { id: "m_a", text: `Please complete the online coding assessment by ${a.d} ${a.month} ${a.y}.` },
+      { id: "m_i", text: `We would like to invite you to an interview on ${i.d} ${i.month} ${i.y} at 10:30 AM NZDT. Join: https://acme.zoom.us/j/12345678` },
     ]);
     const due = await env.DB.prepare("SELECT kind, due_at FROM deadlines").first<{ kind: string; due_at: number }>();
-    expect(due).toEqual({ kind: "assessment", due_at: aucklandToEpoch(2026, 11, 25, 17, 0) });
+    expect(due).toEqual({ kind: "assessment", due_at: aucklandToEpoch(a.y, a.m, a.d, 17, 0) });
     const iv = await env.DB.prepare("SELECT state, start_utc FROM interviews WHERE app_id = 1").first<{ state: string; start_utc: number }>();
-    expect(iv).toEqual({ state: "proposed", start_utc: aucklandToEpoch(2026, 11, 24, 10, 30) });
+    expect(iv).toEqual({ state: "proposed", start_utc: aucklandToEpoch(i.y, i.m, i.d, 10, 30) });
   });
 
   it("builds a recruiter contact from a person's email (encrypted, no no-reply senders)", async () => {

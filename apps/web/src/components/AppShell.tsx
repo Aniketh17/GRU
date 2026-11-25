@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { api } from "../lib/api.ts";
-import { CalendarIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon } from "./Icons.tsx";
+import { CalendarIcon, CheckIcon, InboxIcon, ListIcon, MoreIcon, NoteIcon, PeopleIcon, SettingsIcon, SunIcon, WarningIcon } from "./Icons.tsx";
 import { PullToRefresh, RefreshButton, useRefresh } from "./Refresh.tsx";
 import { VoiceAssistant } from "./VoiceAssistant.tsx";
 import { Banner, cx } from "./ui.tsx";
@@ -16,7 +16,8 @@ const NAV = [
   { to: "/agenda", label: "Tasks", icon: CheckIcon, end: false },
   { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
   { to: "/people", label: "People", icon: PeopleIcon, end: false },
-  { to: "/review", label: "Review", icon: InboxIcon, end: false },
+  { to: "/inbox", label: "Inbox", icon: InboxIcon, end: false },
+  { to: "/review", label: "Review", icon: WarningIcon, end: false },
 ] as const;
 
 const TABS = (["/", "/applications", "/calendar", "/agenda"] as const).map((to) => NAV.find((n) => n.to === to)!); // Today, Applications, Calendar, Tasks

@@ -16,6 +16,7 @@ import { aadFor, decryptField, encryptField, keyringFromEnv } from "../crypto/en
 import type { Db } from "../db/client.ts";
 import type { Status } from "../domain/applications.ts";
 import { normalizeName } from "../domain/normalize.ts";
+import { encText } from "../lib/enc.ts";
 import type { Env } from "../env.ts";
 import { log } from "../log/index.ts";
 import {
@@ -271,6 +272,9 @@ async function syncCore(
     status: a.status,
   }));
 
+  // Senders Ani said never to read (Inbox "not job related, block sender").
+  const blocked = new Set((await db.all<{ domain: string }>("SELECT domain FROM sender_rules")).map((r) => r.domain));
+
   // Fetch thread linking cache
   const linkedThreads = await db.all<{ thread_id: string; app_id: number }>(
     "SELECT thread_id, app_id FROM emails_seen WHERE account_id = ? AND app_id IS NOT NULL",
@@ -284,6 +288,7 @@ async function syncCore(
   // Batch GET metadata for unseen messages (1 HTTP subrequest for up to 50 messages!)
   const rawMessages = await batchGetGmailMessages(accessToken, unseenIds, fetchFn);
   let processedCount = 0;
+  const stash: { id: string; subject: string; from: string }[] = [];
   const floor = Math.max(account.backfill_floor ?? 0, now - BACKFILL_DAYS * 86400);
 
   for (const rawMsg of rawMessages) {
@@ -300,6 +305,8 @@ async function syncCore(
     // it is stored as a 'candidate' so its text can be read to see whether it matters (D-058, D-059).
     const candidate = c.cls === "other" && c.ruleId !== "self" && (isJobSender(c.sender.domain) || threadMap.has(meta.threadId));
     if (c.cls === "other" && !candidate) continue;
+    if (blocked.has(c.sender.domain)) continue;
+    if (candidate) stash.push({ id: meta.id, subject: meta.subject, from: c.sender.name ? `${c.sender.name} <${c.sender.address}>` : c.sender.address });
 
     const threadAppId = threadMap.get(meta.threadId) ?? null;
     const guesses = extractCompanies(c.sender, meta.subject);
@@ -494,6 +501,16 @@ async function syncCore(
       ]);
       processedCount++;
     }
+  }
+
+  // Encrypted subject + sender (30 days) so the Inbox can show mail that needs Ani. Rows that were not stored are simply not updated.
+  if (stash.length > 0) {
+    const sub = await Promise.all(stash.map(async (m) => db.stmt(
+      "UPDATE emails_seen SET subject_enc = ?, from_enc = ? WHERE account_id = ? AND gmail_id = ? AND ignored = 0",
+      await encText(env, "emails_seen", "subject_enc", `${account.id}:${m.id}`, m.subject.slice(0, 300)),
+      await encText(env, "emails_seen", "from_enc", `${account.id}:${m.id}`, m.from.slice(0, 200)),
+      account.id, m.id)));
+    await db.batch(sub);
   }
 
   if (unseenIds.length > 0) {

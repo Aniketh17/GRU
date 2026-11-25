@@ -11,6 +11,7 @@ import { extractResumeFacts, scoreJob, type MatchResult, type ResumeFacts } from
 import { normalizeName } from "../domain/normalize.ts";
 import { log } from "../log/index.ts";
 import { getSettings } from "./settings.ts";
+import { refreshDedupe, titleNorm } from "../lib/dedupe.ts";
 
 export const resumeRoutes = new Hono<AppEnv>();
 export const jobRoutes = new Hono<AppEnv>();
@@ -102,8 +103,9 @@ interface JobRow {
   id: number; source: string; title: string; company: string | null; location: string | null; work_arrangement: string | null;
   employment_type: string | null; canonical_url: string | null; closing_at: number | null; description_enc: string | null;
   status: string; first_seen_at: number; source_account_id: number | null; source_gmail_id: string | null;
+  dedupe_status: string; dedupe_reason: string | null; applied_app_id: number | null;
 }
-const JOB_COLS = "id, source, title, company, location, work_arrangement, employment_type, canonical_url, closing_at, description_enc, status, first_seen_at, source_account_id, source_gmail_id";
+const JOB_COLS = "id, source, title, company, location, work_arrangement, employment_type, canonical_url, closing_at, description_enc, status, first_seen_at, source_account_id, source_gmail_id, dedupe_status, dedupe_reason, applied_app_id";
 
 async function scoreAndSave(env: Env, db: Db, resume: ActiveResume, j: JobRow, now: number): Promise<MatchResult> {
   const description = await decText(env, "jobs", "description_enc", j.id, j.description_enc);
@@ -146,6 +148,7 @@ const present = (r: ListRow) => ({
   id: r.id, title: r.title, company: r.company, location: r.location, work_arrangement: r.work_arrangement, employment_type: r.employment_type,
   source: r.source, url: r.canonical_url, closing_at: r.closing_at, status: r.status, first_seen_at: r.first_seen_at,
   score: r.score, band: r.band, confidence: r.confidence,
+  dedupe: r.dedupe_status === "likely_applied" || r.dedupe_status === "confirmed" ? { status: r.dedupe_status, reason: r.dedupe_reason, app_id: r.applied_app_id } : null,
   alert: r.source_account_id && r.source_gmail_id ? { account_id: r.source_account_id, gmail_id: r.source_gmail_id } : null,
 });
 
@@ -155,7 +158,7 @@ const LIST_SQL = `SELECT ${JOB_COLS.split(", ").map((c) => `j.${c}`).join(", ")}
 /** Apply Tomorrow: suitable, open, not applied/dismissed, has a URL. Ranked by score, then closing date, then newest. */
 export async function applyTomorrow(db: Db, now: number, threshold: number, limit = 50): Promise<ReturnType<typeof present>[]> {
   const rows = await db.all<ListRow>(
-    `${LIST_SQL} WHERE j.status IN ('new','shortlisted','saved') AND m.score >= ? AND j.canonical_url IS NOT NULL
+    `${LIST_SQL} WHERE j.status IN ('new','shortlisted','saved') AND j.dedupe_status IN ('none','not_same') AND m.score >= ? AND j.canonical_url IS NOT NULL
        AND (j.closing_at IS NULL OR j.closing_at > ?)
      ORDER BY m.score DESC, COALESCE(j.closing_at, 9999999999) ASC, j.first_seen_at DESC LIMIT ?`,
     threshold, now, limit,
@@ -168,8 +171,10 @@ jobRoutes.get("/queue", async (c) => {
   const now = nowSec();
   const resume = await activeResume(c.env, db);
   if (resume) await scorePending(c.env, db, resume, now);
+  await refreshDedupe(db);
   const s = await getSettings(db);
-  return c.json({ has_resume: Boolean(resume), threshold: s.shortlist_threshold, items: await applyTomorrow(db, now, s.shortlist_threshold) });
+  const likely = await db.all<ListRow>(`${LIST_SQL} WHERE j.status IN ('new','shortlisted','saved') AND j.dedupe_status IN ('likely_applied','confirmed') ORDER BY j.first_seen_at DESC LIMIT 30`);
+  return c.json({ has_resume: Boolean(resume), threshold: s.shortlist_threshold, items: await applyTomorrow(db, now, s.shortlist_threshold), likely_applied: likely.map(present) });
 });
 
 jobRoutes.get("/", async (c) => {
@@ -179,9 +184,10 @@ jobRoutes.get("/", async (c) => {
   const band = c.req.query("band");
   const resume = await activeResume(c.env, db);
   if (resume) await scorePending(c.env, db, resume, now);
+  await refreshDedupe(db);
   const where: string[] = [];
   const params: (string | number)[] = [];
-  if (status === "open") where.push("j.status IN ('new','shortlisted','saved')");
+  if (status === "open") where.push("j.status IN ('new','shortlisted','saved') AND j.dedupe_status IN ('none','not_same')");
   else if (status !== "all") { where.push("j.status = ?"); params.push(status); }
   if (band) { where.push("m.band = ?"); params.push(band); }
   const rows = await db.all<ListRow>(`${LIST_SQL} ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY COALESCE(m.score, -1) DESC, j.first_seen_at DESC LIMIT 50`, ...params);
@@ -222,9 +228,9 @@ jobRoutes.post("/", async (c) => {
       : null;
   if (dup) return c.json({ id: dup.id, duplicate: true }, 200);
   const ins = await db.first<{ id: number }>(
-    `INSERT INTO jobs (source, title, company, company_norm, location, work_arrangement, employment_type, canonical_url, closing_at, status, first_seen_at, last_seen_at, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?, 'new', ?,?,?,?) RETURNING id`,
-    v.source, v.title, v.company ?? null, norm, v.location ?? null, v.work_arrangement ?? null, v.employment_type ?? null, url, v.closing_at ?? null, now, now, now, now,
+    `INSERT INTO jobs (source, title, title_norm, company, company_norm, location, work_arrangement, employment_type, canonical_url, closing_at, status, first_seen_at, last_seen_at, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?, 'new', ?,?,?,?) RETURNING id`,
+    v.source, v.title, titleNorm(v.title), v.company ?? null, norm, v.location ?? null, v.work_arrangement ?? null, v.employment_type ?? null, url, v.closing_at ?? null, now, now, now, now,
   );
   const id = (ins as { id: number }).id;
   if (v.description) await db.run("UPDATE jobs SET description_enc = ? WHERE id = ?", await encText(c.env, "jobs", "description_enc", id, v.description), id);
@@ -268,6 +274,21 @@ jobRoutes.get("/:id", async (c) => {
   });
 });
 
+// Paste the real posting text: stored encrypted, and the score is recomputed from it (no longer provisional).
+jobRoutes.put("/:id/description", async (c) => {
+  const id = Number(c.req.param("id"));
+  const body = z.object({ description: z.string().trim().min(20).max(30_000) }).safeParse(await safeJson(c.req));
+  if (!body.success || !Number.isInteger(id)) return c.json({ error: "bad_request" }, 400);
+  const db = c.get("db");
+  const j = await db.first<JobRow>(`SELECT ${JOB_COLS} FROM jobs WHERE id = ?`, id);
+  if (!j) return c.json({ error: "not_found" }, 404);
+  const enc = await encText(c.env, "jobs", "description_enc", id, body.data.description);
+  await db.run("UPDATE jobs SET description_enc = ?, updated_at = ? WHERE id = ?", enc, nowSec(), id);
+  const resume = await activeResume(c.env, db);
+  if (resume) await scoreAndSave(c.env, db, resume, { ...j, description_enc: enc }, nowSec());
+  return c.json({ ok: true });
+});
+
 const Decision = z.object({ decision: z.enum(["shortlist", "save", "dismiss", "reopen"]) });
 const DECISION_STATUS = { shortlist: "shortlisted", save: "saved", dismiss: "dismissed", reopen: "new" } as const;
 
@@ -305,7 +326,7 @@ jobRoutes.post("/:id/mark-applied", async (c) => {
     appId = (ins as { id: number }).id;
     await db.run("INSERT INTO events (app_id, type, at, created_at) VALUES (?, 'created', ?, ?)", appId, now, now);
   }
-  await db.run("UPDATE jobs SET status = 'applied', updated_at = ? WHERE id = ?", now, id);
+  await db.run("UPDATE jobs SET status = 'applied', applied_app_id = ?, dedupe_status = 'confirmed', updated_at = ? WHERE id = ?", appId, now, id);
   return c.json({ ok: true, app_id: appId });
 });
 

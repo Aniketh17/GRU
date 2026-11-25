@@ -43,6 +43,7 @@ export function housekeepingStmts(db: Db, now: number): D1PreparedStatement[] {
     db.stmt("DELETE FROM oauth_states WHERE expires_at <= ?", now),
     db.stmt("DELETE FROM sync_runs WHERE started_at < ?", now - 30 * 86400),
     db.stmt("UPDATE emails_seen SET snippet_enc = NULL WHERE snippet_enc IS NOT NULL AND internal_date < ?", now - 90 * 86400),
+    db.stmt("UPDATE emails_seen SET subject_enc = NULL, from_enc = NULL WHERE subject_enc IS NOT NULL AND internal_date < ?", now - 30 * 86400),
     db.stmt("UPDATE review_queue SET context_enc = NULL WHERE context_enc IS NOT NULL AND created_at < ?", now - 30 * 86400),
   ];
 }

@@ -11,7 +11,6 @@ import { ApiError, api, type Job, type JobInput } from "../lib/api.ts";
 import { dateInputToEpoch, formatShort } from "../lib/format.ts";
 
 const BAND_TONE = { strong: "accent", good: "accent", possible: "amber", low: "neutral" } as const;
-const DIM_LABEL: Record<string, string> = { skills: "Skills (35)", role: "Role (20)", experience: "Experience (15)", education: "Education (10)", location: "Location (10)", work_type: "Employment type (5)", domain: "Domain (5)" };
 
 export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
   const qc = useQueryClient();
@@ -19,20 +18,14 @@ export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
   const [view, setView] = useState(mode === "apply" ? "queue" : "open");
   const [band, setBand] = useState("");
   const [adding, setAdding] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(null);
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
+  const nav = useNavigate();
   useEffect(() => {
     const o = Number(params.get("open"));
-    if (o > 0) {
-      setOpenId(o);
-      const rest = new URLSearchParams(params);
-      rest.delete("open");
-      setParams(rest, { replace: true });
-    }
-  }, [params, setParams]);
+    if (o > 0) nav(`/jobs/${o}`, { replace: true });
+  }, [params, nav]);
   const [alertMail, setAlertMail] = useState<{ accountId: number; gmailId: string } | null>(null);
   const [ambiguous, setAmbiguous] = useState<{ job: Job; candidates: { id: number; company: string; role: string | null }[] } | null>(null);
-  const nav = useNavigate();
 
   const q = useQuery({
     queryKey: ["jobs", view, band],
@@ -58,6 +51,7 @@ export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
   };
 
   const items = q.data?.items ?? [];
+  const likely = (q.data as { likely_applied?: Job[] } | undefined)?.likely_applied ?? [];
   const hasResume = q.data?.has_resume ?? true;
 
   return (
@@ -95,7 +89,7 @@ export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
             <li key={j.id}>
               <Card className="flex flex-col gap-2.5 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <button type="button" onClick={() => setOpenId(j.id)} className="min-w-0 cursor-pointer text-left">
+                  <button type="button" onClick={() => nav(`/jobs/${j.id}`)} className="min-w-0 cursor-pointer text-left">
                     <p className="m-0 truncate text-[15px] font-semibold">{j.title}</p>
                     <p className="m-0 truncate text-[13px] text-muted">{[j.company, j.location, j.work_arrangement].filter(Boolean).join(" · ") || "Details not set"}</p>
                   </button>
@@ -122,9 +116,26 @@ export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
         </ul>
       )}
 
+      {mode === "apply" && likely.length > 0 && (
+        <details className="rounded-xl border border-line bg-surface p-3">
+          <summary className="cursor-pointer text-[13.5px] font-semibold">Likely already applied ({likely.length})</summary>
+          <p className="m-0 mt-1 text-[12.5px] text-muted">Hidden from Apply today so you don’t apply twice. If GRU got it wrong, open the job and tap “Not the same job”.</p>
+          <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
+            {likely.map((j) => (
+              <li key={j.id} className="flex items-start justify-between gap-3 rounded-lg bg-sunken px-3 py-2">
+                <button type="button" onClick={() => nav(`/jobs/${j.id}`)} className="min-w-0 cursor-pointer text-left">
+                  <span className="block truncate text-[13.5px] font-medium">{j.title}{j.company ? ` · ${j.company}` : ""}</span>
+                  <span className="block text-[12px] text-muted">{j.dedupe?.reason}</span>
+                </button>
+                <Button size="sm" variant="quiet" onClick={() => api.jobNotSame(j.id).then(refresh)}>Not the same</Button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {alertMail && <MailViewer accountId={alertMail.accountId} gmailId={alertMail.gmailId} onClose={() => setAlertMail(null)} />}
       {adding && <AddJob onClose={() => setAdding(false)} onDone={refresh} />}
-      {openId !== null && <JobDetailModal id={openId} onClose={() => setOpenId(null)} />}
       {ambiguous && (
         <Modal open onClose={() => setAmbiguous(null)} title="Link to an existing application?">
           <p className="m-0 text-ink-2">You already have applications with {ambiguous.job.company}. Link this vacancy to one, or create a new application.</p>
@@ -173,45 +184,6 @@ function AddJob({ onClose, onDone }: { onClose: () => void; onDone: () => void }
       <Field label="Application link" type="url" placeholder="https://" value={f.url} onChange={(e) => set("url", e.target.value)} />
       <TextArea label="Description / requirements (paste for an accurate score)" rows={7} maxLength={30000} value={f.description} onChange={(e) => set("description", e.target.value)} />
       <Button variant="primary" disabled={!f.title.trim() || save.isPending} onClick={() => save.mutate()}>Save vacancy</Button>
-    </Modal>
-  );
-}
-
-function JobDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
-  const q = useQuery({ queryKey: ["job", id], queryFn: () => api.job(id) });
-  const j = q.data;
-  return (
-    <Modal open onClose={onClose} title={j?.title ?? "Vacancy"} wide>
-      {!j ? <SkeletonRows rows={3} label="Loading" /> : (
-        <>
-          <p className="m-0 text-[13px] text-muted">{[j.company, j.location].filter(Boolean).join(" · ")}</p>
-          {j.match ? (
-            <>
-              <p className="m-0 text-[13.5px] text-ink-2">{j.match.evidence?.explanation} Confidence: <strong>{j.confidence}</strong>.</p>
-              <div className="grid gap-1.5">
-                {Object.entries(j.match.components).map(([k, v]) => {
-                  const max = Number((DIM_LABEL[k] ?? "").match(/\((\d+)\)/)?.[1] ?? 10);
-                  return (
-                    <div key={k} className="flex items-center gap-2 text-[12.5px]">
-                      <span className="w-40 text-muted">{DIM_LABEL[k] ?? k}</span>
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-sm bg-track"><span className="block h-1.5 bg-accent" style={{ width: `${Math.round((v / max) * 100)}%` }} /></span>
-                      <span className="w-8 text-right tabular-nums">{v}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {j.match.evidence && j.match.evidence.matched.length > 0 && (
-                <div><h3 className="m-0 mb-1 text-[13px] font-semibold">Matched strengths (from your resume)</h3>
-                  <ul className="m-0 pl-5 text-[12.5px] text-ink-2">{j.match.evidence.matched.map((m) => <li key={m.skill}><strong>{m.skill}</strong>{m.evidence ? ` — “…${m.evidence}…”` : ""}</li>)}</ul></div>
-              )}
-              {j.match.gaps.length > 0 && (
-                <div><h3 className="m-0 mb-1 text-[13px] font-semibold">Gaps</h3><ul className="m-0 pl-5 text-[12.5px] text-ink-2">{j.match.gaps.map((g) => <li key={g}>{g}</li>)}</ul></div>
-              )}
-            </>
-          ) : <p className="m-0 text-[13px] text-muted">Not scored – add a resume in Settings.</p>}
-          {j.description && <details><summary className="cursor-pointer text-[13px] font-medium">Description</summary><p className="whitespace-pre-wrap text-[12.5px] text-ink-2">{j.description}</p></details>}
-        </>
-      )}
     </Modal>
   );
 }

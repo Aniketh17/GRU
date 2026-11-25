@@ -7,6 +7,10 @@ import { aucklandToEpoch } from "../../apps/worker/src/lib/when.ts";
 import { runTick } from "../../apps/worker/src/tick.ts";
 import { call, clearAuthState, login, testEnv } from "./helpers.ts";
 
+// Dates in fixtures are relative to today: the reader only accepts times in the next ~90 days.
+const future = (days: number) => { const d = new Date(Date.now() + days * 86400_000); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), month: d.toLocaleString("en-US", { month: "long", timeZone: "UTC" }) }; };
+
+
 const EMAIL = "ani.primary@gmail.com";
 const READONLY = "openid email https://www.googleapis.com/auth/gmail.readonly";
 const mockEnv = { GOOGLE_CLIENT_ID: "id", GOOGLE_CLIENT_SECRET: "secret", ALLOWED_EMAILS: EMAIL };
@@ -64,14 +68,15 @@ describe("body reading", () => {
     await addAccount(READONLY);
     await seedApp(1);
     await seed("m_interview", 1, "interview_invite", now - 3600);
-    const text = "Kia ora Ani,\nThank you for applying for the position of Data Analyst at Abano Healthcare.\nWe would like to invite you to an interview on 20 November 2026 at 2:30 PM NZDT.\nJoin: https://abano.zoom.us/j/987654321?pwd=xyz\nNgā mihi";
+    const f = future(10);
+    const text = `Kia ora Ani,\nThank you for applying for the position of Data Analyst at Abano Healthcare.\nWe would like to invite you to an interview on ${f.d} ${f.month} ${f.y} at 2:30 PM NZDT.\nJoin: https://abano.zoom.us/j/987654321?pwd=xyz\nNgā mihi`;
     const requested: string[] = [];
     await runTick(testEnv(mockEnv), now, gmail({ m_interview: text }, requested) as unknown as typeof fetch);
 
     expect(await env.DB.prepare("SELECT role FROM applications WHERE id = 1").first()).toEqual({ role: "Data Analyst" });
     const iv = await env.DB.prepare("SELECT state, start_utc, link_enc FROM interviews WHERE app_id = 1").first<{ state: string; start_utc: number; link_enc: string }>();
     expect(iv?.state).toBe("proposed");
-    expect(iv?.start_utc).toBe(aucklandToEpoch(2026, 11, 20, 14, 30));
+    expect(iv?.start_utc).toBe(aucklandToEpoch(f.y, f.m, f.d, 14, 30));
     expect(iv?.link_enc).not.toContain("zoom"); // encrypted at rest
 
     const list = (await (await call("/api/interviews?app_id=1", { cookie })).json()) as { items: { state: string; link: { url: string; kind: string } | null }[] };
@@ -142,7 +147,7 @@ describe("body reading", () => {
         return Response.json({
           id: "view_1", threadId: "thread_view_1", internalDate: String((now - 3600) * 1000),
           payload: { mimeType: "text/plain", headers: [{ name: "From", value: "HR <hr@acme.co.nz>" }, { name: "Subject", value: "Interview invitation" }],
-            body: { data: b64("Kia ora Ani, please join: https://acme.zoom.us/j/555?pwd=a on 20 Nov 2026 at 2pm.") } },
+            body: { data: b64("Kia ora Ani, please join: https://acme.zoom.us/j/555?pwd=a on 20 Nov 2027 at 2pm.") } },
         });
       }
       return original(input, init);

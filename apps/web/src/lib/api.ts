@@ -165,6 +165,7 @@ export interface Settings {
   interview_stale_days: number;
   shortlist_threshold: number;
   auto_status_from_text: boolean;
+  remember_chat: boolean;
   ntfy_configured?: boolean;
 }
 
@@ -178,10 +179,26 @@ export interface Job {
   source: string; url: string | null; closing_at: number | null; status: string; first_seen_at: number;
   alert: { account_id: number; gmail_id: string } | null;
   score: number | null; band: "strong" | "good" | "possible" | "low" | null; confidence: string | null;
+  dedupe: { status: string; reason: string | null; app_id: number | null } | null;
 }
 export interface JobDetail extends Job {
   description: string | null;
   match: { components: Record<string, number>; evidence: { matched: { skill: string; evidence: string }[]; explanation: string; provisional: boolean } | null; gaps: string[] } | null;
+}
+export interface JobInsights {
+  applied: { status: string; reason: string | null; app_id: number | null } | null;
+  company_history: { id: number; role: string | null; status: string; applied_at: number | null; source: string }[];
+  company_summary: string | null;
+  same_role_elsewhere: { id: number; source: string; status: string; url: string | null }[];
+  other_roles_here: { id: number; title: string }[];
+  known_contacts: number;
+  closing: { at: number; days_left: number } | null;
+  first_seen_days: number;
+}
+export interface InboxItem { account_id: number; gmail_id: string; at: number; domain: string | null; subject: string | null; from: string | null; app_id: number | null; unreadable: boolean }
+export interface InboxData {
+  items: InboxItem[]; blocked: string[]; classes: string[];
+  applications: { id: number; company: string; role: string | null; status: string }[];
 }
 export interface JobInput {
   title: string; company?: string; location?: string; work_arrangement?: "remote" | "hybrid" | "onsite"; url?: string;
@@ -276,7 +293,15 @@ export const api = {
   debrief: (id: number, d: DebriefInput) => request<{ ok: true }>(`/api/interviews/${id}/debrief`, "POST", d),
   deleteInterview: (id: number) => request<{ deleted: true }>(`/api/interviews/${id}`, "DELETE"),
   jobs: (status = "open", band = "") => request<{ has_resume: boolean; items: Job[] }>(`/api/jobs?status=${status}${band ? `&band=${band}` : ""}`),
-  jobQueue: () => request<{ has_resume: boolean; threshold: number; items: Job[] }>("/api/jobs/queue"),
+  jobQueue: () => request<{ has_resume: boolean; threshold: number; items: Job[]; likely_applied: Job[] }>("/api/jobs/queue"),
+  jobInsights: (id: number) => request<JobInsights>(`/api/jobs/${id}/insights`),
+  jobDescription: (id: number, description: string) => request<{ ok: true }>(`/api/jobs/${id}/description`, "PUT", { description }),
+  jobNotSame: (id: number) => request<{ ok: true }>(`/api/jobs/${id}/not-same`, "POST", {}),
+  inbox: () => request<InboxData>("/api/inbox"),
+  inboxCount: () => request<{ count: number }>("/api/inbox/count"),
+  inboxClassify: (d: { account_id: number; gmail_id: string; class: string; app_id?: number; create?: { company: string; role?: string } }) => request<{ ok: true; app_id: number | null }>("/api/inbox/classify", "POST", d),
+  inboxIgnore: (d: { account_id: number; gmail_id: string; block_sender?: boolean }) => request<{ ok: true; blocked: string | null }>("/api/inbox/ignore", "POST", d),
+  inboxUnblock: (domain: string) => request<{ deleted: true }>(`/api/inbox/rules/${encodeURIComponent(domain)}`, "DELETE"),
   job: (id: number) => request<JobDetail>(`/api/jobs/${id}`),
   createJob: (d: JobInput) => request<{ id: number; duplicate: boolean }>("/api/jobs", "POST", d),
   jobDecision: (id: number, decision: "shortlist" | "save" | "dismiss" | "reopen") => request<{ ok: true }>(`/api/jobs/${id}/decision`, "POST", { decision }),

@@ -46,7 +46,7 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
   for (const [path, text] of [
-    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"],
+    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: text, exact: true }).first()).toBeVisible();
@@ -55,6 +55,14 @@ test("every page renders with data and no browser errors", async ({ page }) => {
 
   await page.goto("/applications?tab=other");
   await expect(page.getByText("Graduate Backend Engineer").first()).toBeVisible();
+  // The job workspace: a card opens its own page with Fit and Insights tabs.
+  await page.getByText("Graduate Backend Engineer").first().click();
+  await expect(page.getByRole("heading", { name: "Graduate Backend Engineer" })).toBeVisible();
+  await page.getByRole("tab", { name: "Fit" }).click();
+  await expect(page.getByText(/Strengths from your resume|Gaps/).first()).toBeVisible();
+  await page.getByRole("tab", { name: "Insights" }).click();
+  await expect(page.getByText("Have I applied already?")).toBeVisible();
+  await expect(page.getByText("No match found among your applications.")).toBeVisible();
   await page.goto("/notes");
   await page.getByLabel("Search notes").fill("wellington");
   await expect(page.getByText("Smoke note about Wellington").first()).toBeVisible();

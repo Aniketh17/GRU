@@ -6,7 +6,7 @@ import { useTheme } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { ExportCard, MailToolsCard, ResumeCard } from "../components/SettingsCards.tsx";
 import { Banner, Button, Card, Field, PageHeader, Pill, cx } from "../components/ui.tsx";
-import { api } from "../lib/api.ts";
+import { api, type Settings } from "../lib/api.ts";
 import { formatTime } from "../lib/format.ts";
 import { SCHEDULE, localMinutes, type ThemePref } from "../lib/theme.ts";
 
@@ -25,8 +25,9 @@ export function SettingsPage() {
   const accountsQuery = useQuery({ queryKey: ["mailAccounts"], queryFn: api.mailAccounts });
 
   const settingsQ = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const [draft, setDraft] = useState<{ brief_time: string; stale_days: number; interview_stale_days: number; shortlist_threshold: number; auto_status_from_text: boolean } | null>(null);
+  const [draft, setDraft] = useState<Omit<Settings, "ntfy_configured"> | null>(null);
   const loop = draft ?? settingsQ.data;
+  const upd = (p: Partial<Omit<Settings, "ntfy_configured">>) => loop && setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text, remember_chat: loop.remember_chat, ...p });
   const saveLoop = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: () => {
@@ -152,16 +153,22 @@ export function SettingsPage() {
         </div>
         {loop && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => setDraft({ brief_time: e.target.value, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
-            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: Number(e.target.value), interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
-            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: Number(e.target.value), shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: loop.auto_status_from_text })} />
-            <Field label="Job shortlist score (min)" type="number" min={30} max={95} value={loop.shortlist_threshold} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: Number(e.target.value), auto_status_from_text: loop.auto_status_from_text })} />
+            <Field label="Brief time (Auckland)" type="time" value={loop.brief_time} onChange={(e) => upd({ brief_time: e.target.value })} />
+            <Field label="Follow up after (days)" type="number" min={1} max={90} value={loop.stale_days} onChange={(e) => upd({ stale_days: Number(e.target.value) })} />
+            <Field label="After interview (days)" type="number" min={1} max={90} value={loop.interview_stale_days} onChange={(e) => upd({ interview_stale_days: Number(e.target.value) })} />
+            <Field label="Job shortlist score (min)" type="number" min={30} max={95} value={loop.shortlist_threshold} onChange={(e) => upd({ shortlist_threshold: Number(e.target.value) })} />
           </div>
         )}
         {loop && (
           <label className="flex items-start gap-2 text-[13px]">
-            <input type="checkbox" className="mt-1" checked={loop.auto_status_from_text} onChange={(e) => setDraft({ brief_time: loop.brief_time, stale_days: loop.stale_days, interview_stale_days: loop.interview_stale_days, shortlist_threshold: loop.shortlist_threshold, auto_status_from_text: e.target.checked })} />
+            <input type="checkbox" className="mt-1" checked={loop.auto_status_from_text} onChange={(e) => upd({ auto_status_from_text: e.target.checked })} />
             <span>Update application status automatically when the email clearly says so (rejection, offer, interview). Always shown on Today with Undo for 24 hours. If off, GRU asks you first.</span>
+          </label>
+        )}
+        {loop && (
+          <label className="flex items-start gap-2 text-[13px]">
+            <input type="checkbox" className="mt-1" checked={loop.remember_chat} onChange={(e) => upd({ remember_chat: e.target.checked })} />
+            <span>Remember Talk to GRU conversations for 30 days. Off by default: the conversation is deleted from GRU as soon as you close the chat.</span>
           </label>
         )}
         <div><Button variant="primary" disabled={!draft || saveLoop.isPending} onClick={() => draft && saveLoop.mutate(draft)}>Save</Button></div>

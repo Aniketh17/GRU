@@ -6,6 +6,7 @@ import { nowSec } from "../env.ts";
 import { safeJson } from "../http/hygiene.ts";
 import { AI_CAPS, NEURONS_PER_STT_MINUTE, NEURONS_PER_TTS_CHAR, releaseNeurons, reserveNeurons } from "../lib/aibudget.ts";
 import { decText, encText } from "../lib/enc.ts";
+import { getSettings } from "./settings.ts";
 
 export const voiceRoutes = new Hono<AppEnv>();
 export const VOICE_RETENTION_SECONDS = 30 * 86400;
@@ -19,6 +20,8 @@ const MAX_STT_SECONDS = 35;
 const Entry = z.object({ role: z.enum(["user", "gru"]), text: z.string().min(1).max(1500) });
 
 voiceRoutes.get("/history", async (c) => {
+  // Conversations are deleted when the chat closes unless Ani turned "remember" on (Revamp 3F).
+  if (!(await getSettings(c.get("db"))).remember_chat) return c.json({ items: [] });
   const rows = await c.get("db").all<{ id: number; role: string; text_enc: string; created_at: number }>(
     "SELECT id, role, text_enc, created_at FROM voice_log ORDER BY id DESC LIMIT 40",
   );
@@ -30,6 +33,7 @@ voiceRoutes.post("/history", async (c) => {
   const b = Entry.safeParse(await safeJson(c.req));
   if (!b.success) return c.json({ error: "bad_request" }, 400);
   const db = c.get("db");
+  if (!(await getSettings(db)).remember_chat) return c.json({ id: null, stored: false }, 200);
   const ins = await db.first<{ id: number }>("INSERT INTO voice_log (role, text_enc, created_at) VALUES (?, 'pending', ?) RETURNING id", b.data.role, nowSec());
   const id = (ins as { id: number }).id;
   await db.run("UPDATE voice_log SET text_enc = ? WHERE id = ?", await encText(c.env, "voice_log", "text_enc", id, b.data.text), id);

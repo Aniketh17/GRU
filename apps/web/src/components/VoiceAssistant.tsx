@@ -1,6 +1,6 @@
 // Voice V1: talk to GRU. An extra interface to the same backend (ROADMAP "Voice", D-042).
 // Deterministic grammar, no AI. Changes need a tap on a confirm card. Audio is never stored; transcripts are encrypted.
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { api, type Application, type ChatAction } from "../lib/api.ts";
@@ -75,6 +75,19 @@ export function VoiceAssistant() {
     setStt(sttMaybe() ? "unknown" : "unsupported");
     void voicesReady().then(setVoices);
   }, [open]);
+  // A conversation ends when the chat closes: it is wiped here and on the server, unless Ani turned "remember" on (Revamp 3F).
+  const remember = useQuery({ queryKey: ["settings"], queryFn: api.settings, staleTime: 60_000 }).data?.remember_chat === true;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) { wasOpen.current = true; return; }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    if (remember) return;
+    setMsgs([]);
+    setPending(null);
+    loaded.current = false;
+    void api.clearVoiceHistory().catch(() => undefined);
+  }, [open, remember]);
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }); }, [msgs, pending, interim]);
   useEffect(() => () => stopSpeaking(), []);
 

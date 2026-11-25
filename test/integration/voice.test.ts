@@ -47,7 +47,8 @@ describe("natural voice (Workers AI, capped)", () => {
 });
 
 describe("voice history", () => {
-  it("stores encrypted transcripts, returns them in order, and can be cleared", async () => {
+  it("stores encrypted transcripts, returns them in order, and can be cleared (only when remember is on)", async () => {
+    await env.DB.prepare("INSERT INTO kv (k, v) VALUES ('settings', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify({ brief_time: "08:30", stale_days: 14, interview_stale_days: 7, shortlist_threshold: 65, auto_status_from_text: true, remember_chat: true })).run();
     await call("/api/voice/history", { json: { role: "user", text: "read my brief" }, cookie });
     await call("/api/voice/history", { json: { role: "gru", text: "Good morning, Ani." }, cookie });
     const raw = await env.DB.prepare("SELECT text_enc FROM voice_log").first<{ text_enc: string }>();
@@ -91,5 +92,15 @@ describe("speech to text (Whisper, capped)", () => {
     expect((await stt(wav(5), failing)).status).toBe(502);
     const used = await env.DB.prepare("SELECT v FROM kv WHERE k LIKE 'ai:stt:%'").first<{ v: string }>();
     expect(Number(used?.v)).toBe(0);
+  });
+});
+
+describe("chat history is deleted unless remembered", () => {
+  it("does not store anything by default and returns an empty history", async () => {
+    await env.DB.prepare("DELETE FROM kv WHERE k = 'settings'").run();
+    const r = await call("/api/voice/history", { json: { role: "user", text: "secret question" }, cookie });
+    expect(((await r.json()) as { stored: boolean }).stored).toBe(false);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM voice_log").first<{ n: number }>())?.n).toBe(0);
+    expect(((await (await call("/api/voice/history", { cookie })).json()) as { items: unknown[] }).items).toHaveLength(0);
   });
 });
