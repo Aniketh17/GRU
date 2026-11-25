@@ -9,6 +9,7 @@ import { ChevronLeft, ListIcon, PlusIcon, SearchIcon, TrashIcon } from "../compo
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, ErrorState, PageHeader, STATUS_THEME, SkeletonRows, StatusBanner, StatusChip, TextArea, cx } from "../components/ui.tsx";
 import { JobsPanel } from "./Jobs.tsx";
+import { PipelineBoard } from "../components/PipelineBoard.tsx";
 import { api, type Application, type Status } from "../lib/api.ts";
 import { STATUS_LABEL, STATUS_ORDER, daysSince, eventLabel, formatDateTime, formatRelative, formatShort } from "../lib/format.ts";
 
@@ -341,6 +342,7 @@ const TABS = [
   { key: "apply", label: "Apply today" },
   { key: "other", label: "Other jobs" },
   { key: "tracked", label: "My applications" },
+  { key: "board", label: "Board" },
 ] as const;
 
 /** Applications: opens on "Apply today" (good matches ready to apply); the rest keep their filters on the other tabs. */
@@ -349,7 +351,7 @@ export function ApplicationsPage() {
   const [params] = useSearchParams();
   const asked = params.get("tab");
   const filtered = ["status", "stale", "q"].some((k) => params.has(k));
-  const tab: "apply" | "other" | "tracked" = id ? "tracked" : asked === "other" || asked === "tracked" || asked === "apply" ? asked : filtered ? "tracked" : "apply";
+  const tab: "apply" | "other" | "tracked" | "board" = id ? "tracked" : asked === "other" || asked === "tracked" || asked === "apply" || asked === "board" ? asked : filtered ? "tracked" : "apply";
   const queue = useQuery({ queryKey: ["jobs", "queue", ""], queryFn: api.jobQueue, staleTime: 30_000 });
   const ready = queue.data?.items.length ?? 0;
   return (
@@ -368,7 +370,7 @@ export function ApplicationsPage() {
           </Link>
         ))}
       </div>
-      {tab === "tracked" ? <TrackedApplications /> : <JobsPanel key={tab} mode={tab} />}
+      {tab === "tracked" ? <TrackedApplications /> : tab === "board" ? <PipelineBoard /> : <JobsPanel key={tab} mode={tab} />}
     </>
   );
 }

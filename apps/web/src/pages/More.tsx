@@ -9,6 +9,7 @@ export function MorePage() {
   const brief = useQuery({ queryKey: ["brief"], queryFn: api.brief });
   const inbox = useQuery({ queryKey: ["inboxCount"], queryFn: api.inboxCount });
   const items = [
+    { to: "/insights", label: "Insights", note: "Funnel, replies, skills in demand", icon: NoteIcon },
     { to: "/network", label: "Network", note: "Companies and people to learn from", icon: PeopleIcon },
     { to: "/inbox", label: "Inbox", note: inbox.data?.count ? `${inbox.data.count} to sort` : "Mail GRU couldn’t classify", icon: InboxIcon },
     { to: "/review", label: "Review", note: brief.data?.review_count ? `${brief.data.review_count} waiting` : "Emails GRU wasn’t sure about", icon: InboxIcon },

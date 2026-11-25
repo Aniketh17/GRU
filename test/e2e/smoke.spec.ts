@@ -46,7 +46,7 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
   for (const [path, text] of [
-    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"], ["/network", "Network"],
+    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"], ["/network", "Network"], ["/insights", "Insights"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: text, exact: true }).first()).toBeVisible();
@@ -70,6 +70,15 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await page.getByRole("button", { name: "Draft it" }).click();
   await expect(page.getByLabel(/Draft \(edit freely\)/)).toHaveValue(/Hi Priya/);
   await page.keyboard.press("Escape");
+
+  // Pipeline board: this test's application appears in a column and can be moved with the menu (the e2e database is shared across projects).
+  await page.goto("/applications?tab=board");
+  const card = page.locator("article", { has: page.locator(`a[href^="/applications/${app.id}?"]`) });
+  await expect(page.getByLabel("Interview column").locator("article", { has: page.locator(`a[href^="/applications/${app.id}?"]`) })).toBeVisible();
+  await card.getByRole("combobox").selectOption("assessment");
+  await expect(page.getByLabel("Assessment column").locator("article", { has: page.locator(`a[href^="/applications/${app.id}?"]`) })).toBeVisible();
+  await page.goto("/insights");
+  await expect(page.getByText("Application funnel")).toBeVisible();
 
   await page.goto("/applications?tab=other");
   await expect(page.getByText("Graduate Backend Engineer").first()).toBeVisible();

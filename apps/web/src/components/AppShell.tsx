@@ -17,6 +17,7 @@ const NAV = [
   { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
   { to: "/network", label: "Network", icon: PeopleIcon, end: false },
   { to: "/people", label: "Recruiters", icon: PeopleIcon, end: false },
+  { to: "/insights", label: "Insights", icon: ListIcon, end: false },
   { to: "/inbox", label: "Inbox", icon: InboxIcon, end: false },
   { to: "/review", label: "Review", icon: WarningIcon, end: false },
 ] as const;

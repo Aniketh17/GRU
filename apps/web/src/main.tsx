@@ -12,6 +12,7 @@ import { ApplicationsPage } from "./pages/Applications.tsx";
 import { LockedPage, NotFoundPage } from "./pages/Locked.tsx";
 import { AgendaPage } from "./pages/Agenda.tsx";
 import { InboxPage } from "./pages/Inbox.tsx";
+import { InsightsPage } from "./pages/Insights.tsx";
 import { NetworkPage } from "./pages/Network.tsx";
 import { JobWorkspacePage } from "./pages/JobWorkspace.tsx";
 import { CalendarPage } from "./pages/Calendar.tsx";
@@ -72,6 +73,7 @@ const router = createBrowserRouter([
       { path: "jobs/:id", element: <JobWorkspacePage /> },
       { path: "inbox", element: <InboxPage /> },
       { path: "network", element: <NetworkPage /> },
+      { path: "insights", element: <InsightsPage /> },
       { path: "agenda", element: <AgendaPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },

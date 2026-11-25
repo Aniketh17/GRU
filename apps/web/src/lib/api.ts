@@ -215,6 +215,16 @@ export interface NetOverview {
   due: NetPerson[];
 }
 export interface NetDraft { text: string; limit: number | null; source: "template" | "ai"; note: string | null }
+export interface Insights {
+  funnel: { applied: number; replied: number; assessment: number; interview: number; offer: number };
+  by_source: { source: string; total: number; replied: number }[];
+  weekly: { week_start: number; applied: number }[];
+  median_days_to_reply: number | null;
+  demand: { skill: string; asked: number; have: number }[];
+  sample: number;
+  network: { tracked: number; contacted: number; replied: number; talked: number };
+}
+export interface Prefs { roles: string[]; location: string }
 export interface JobInput {
   title: string; company?: string; location?: string; work_arrangement?: "remote" | "hybrid" | "onsite"; url?: string;
   description?: string; closing_at?: number;
@@ -330,6 +340,9 @@ export const api = {
   netTouch: (id: number, d: { kind: string; note?: string; followup_days?: number }) => request<{ ok: true; stage: string }>(`/api/network/people/${id}/touch`, "POST", d),
   netDraft: (id: number, d: { kind: string; polish?: boolean }) => request<NetDraft>(`/api/network/people/${id}/draft`, "POST", d),
   netGoals: (d: { outreach: number; conversations: number }) => request<{ outreach: number; conversations: number }>("/api/network/goals", "PUT", d),
+  insights: () => request<Insights>("/api/insights"),
+  prefs: () => request<Prefs>("/api/insights/prefs"),
+  savePrefs: (d: Prefs) => request<Prefs>("/api/insights/prefs", "PUT", d),
   jobNotSame: (id: number) => request<{ ok: true }>(`/api/jobs/${id}/not-same`, "POST", {}),
   inbox: () => request<InboxData>("/api/inbox"),
   inboxCount: () => request<{ count: number }>("/api/inbox/count"),

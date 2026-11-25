@@ -182,3 +182,45 @@ export function AllowanceCard() {
     </Card>
   );
 }
+
+const slug = (s: string): string => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/** Saved searches: one tap opens the job boards with your roles and place already filled in (you search, GRU never scrapes). */
+export function SearchShortcutsCard() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const q = useQuery({ queryKey: ["prefs"], queryFn: api.prefs });
+  const [draft, setDraft] = useState<{ roles: string; location: string } | null>(null);
+  const roles = draft ? draft.roles : (q.data?.roles ?? []).join(", ");
+  const location = draft ? draft.location : (q.data?.location ?? "");
+  const save = useMutation({
+    mutationFn: () => api.savePrefs({ roles: roles.split(",").map((r) => r.trim()).filter((r) => r.length > 1).slice(0, 6), location: location.trim() }),
+    onSuccess: () => { setDraft(null); qc.invalidateQueries({ queryKey: ["prefs"] }); toast({ text: "Search shortcuts saved" }); },
+    onError: () => toast({ text: "Couldn’t save" }),
+  });
+  const saved = q.data?.roles ?? [];
+  const loc = q.data?.location ?? "";
+  return (
+    <Card className="flex flex-col gap-3 p-5" aria-labelledby="s-search">
+      <div>
+        <h2 id="s-search" className="m-0 text-[15px] font-semibold">Job search shortcuts</h2>
+        <p className="m-0 text-[12.5px] text-muted">The roles and place you’re after. Each shortcut opens the job board with your search already filled in.</p>
+      </div>
+      <Field label="Roles (comma-separated)" value={roles} placeholder="graduate data analyst, junior software engineer" onChange={(e) => setDraft({ roles: e.target.value, location })} />
+      <Field label="Location" value={location} placeholder="Auckland" onChange={(e) => setDraft({ roles, location: e.target.value })} />
+      <div><Button variant="primary" size="sm" disabled={!draft || save.isPending} onClick={() => save.mutate()}>Save</Button></div>
+      {saved.length > 0 && (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {saved.map((r) => (
+            <li key={r} className="flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="w-full font-medium">{r}</span>
+              <a className="text-accent-text underline" target="_blank" rel="noopener noreferrer" href={`https://www.seek.co.nz/${slug(r)}-jobs${loc ? `/in-${slug(loc)}` : ""}`}>Seek ↗</a>
+              <a className="text-accent-text underline" target="_blank" rel="noopener noreferrer" href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(r)}${loc ? `&location=${encodeURIComponent(loc)}` : ""}&f_TPR=r86400`}>LinkedIn (last 24 h) ↗</a>
+              <a className="text-accent-text underline" target="_blank" rel="noopener noreferrer" href={`https://nz.indeed.com/jobs?q=${encodeURIComponent(r)}${loc ? `&l=${encodeURIComponent(loc)}` : ""}&fromage=1`}>Indeed ↗</a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
