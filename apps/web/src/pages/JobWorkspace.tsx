@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Modal } from "../components/Dialog.tsx";
 import { MailViewer } from "../components/MailViewer.tsx";
+import { TailorTab } from "../components/TailorTab.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Banner, Button, Card, ErrorState, Pill, SkeletonRows, TextArea, cx } from "../components/ui.tsx";
 import { ApiError, api, type JobDetail } from "../lib/api.ts";
@@ -11,7 +12,7 @@ import { formatShort } from "../lib/format.ts";
 
 const BAND_TONE = { strong: "accent", good: "accent", possible: "amber", low: "neutral" } as const;
 const DIM: Record<string, [string, number]> = { skills: ["Skills", 35], role: ["Role", 20], experience: ["Experience", 15], education: ["Education", 10], location: ["Location", 10], work_type: ["Employment type", 5], domain: ["Domain", 5] };
-const TABS = [["overview", "Overview"], ["fit", "Fit"], ["insights", "Insights"]] as const;
+const TABS = [["overview", "Overview"], ["fit", "Fit"], ["tailor", "Tailor CV"], ["insights", "Insights"]] as const;
 type Tab = (typeof TABS)[number][0];
 
 export function JobWorkspacePage() {
@@ -24,7 +25,7 @@ export function JobWorkspacePage() {
   const [ambiguous, setAmbiguous] = useState<{ id: number; company: string; role: string | null }[] | null>(null);
   const q = useQuery({ queryKey: ["job", id], queryFn: () => api.job(id), enabled: Number.isInteger(id) });
   const j = q.data;
-  const refresh = () => { for (const k of ["job", "jobs", "brief", "jobInsights"]) qc.invalidateQueries({ queryKey: [k] }); };
+  const refresh = () => { for (const k of ["job", "jobs", "brief", "jobInsights", "tailor"]) qc.invalidateQueries({ queryKey: [k] }); };
   const decide = useMutation({
     mutationFn: (d: "shortlist" | "save" | "dismiss" | "reopen") => api.jobDecision(id, d),
     onSuccess: (_r, d) => { refresh(); toast({ text: d === "dismiss" ? "Dismissed" : d === "shortlist" ? "Shortlisted" : d === "reopen" ? "Reopened" : "Saved" }); },
@@ -86,6 +87,7 @@ export function JobWorkspacePage() {
 
       {tab === "overview" && <Overview id={id} j={j} onMail={() => setMail(true)} refresh={refresh} />}
       {tab === "fit" && <Fit j={j} />}
+      {tab === "tailor" && <TailorTab id={id} onNeedPosting={() => setTab("overview")} />}
       {tab === "insights" && <Insights id={id} />}
 
       {mail && j.alert && <MailViewer accountId={j.alert.account_id} gmailId={j.alert.gmail_id} onClose={() => setMail(false)} />}

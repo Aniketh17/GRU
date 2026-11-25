@@ -1,7 +1,7 @@
 // Settings cards for Phase 5 (resume profiles) and Phase 7 (export).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { api } from "../lib/api.ts";
+import { api, type Allowance } from "../lib/api.ts";
 import { ResumeFileError, extractResumeText } from "../lib/resume-file.ts";
 import { Modal } from "./Dialog.tsx";
 import { useToast } from "./Toast.tsx";
@@ -148,6 +148,37 @@ export function MailToolsCard() {
         <p className="m-0 text-[12.5px] text-muted">Runs GRU’s understanding again over the last 5 days of job email (status, role, interview details, vacancies). Your own edits and undone changes are kept.</p>
       </div>
       <Button onClick={() => void run()} disabled={busy}>{busy ? "Starting…" : "Re-read now"}</Button>
+    </Card>
+  );
+}
+
+const METERS: [keyof Omit<Allowance, "total" | "free_daily">, string][] = [["voice", "Voice"], ["transcription", "Speech to text"], ["chat", "Chat"], ["tailor", "CV tailoring"], ["writing", "Drafts"]];
+
+/** Today's free AI allowance (Workers AI, 10,000 Neurons a day). GRU stops itself below the limit, so it can never cost money. */
+export function AllowanceCard() {
+  const q = useQuery({ queryKey: ["allowance"], queryFn: api.aiAllowance, staleTime: 30_000 });
+  const a = q.data;
+  return (
+    <Card className="flex flex-col gap-3 p-5" aria-labelledby="s-ai">
+      <div>
+        <h2 id="s-ai" className="m-0 text-[15px] font-semibold">Today’s free AI allowance</h2>
+        <p className="m-0 text-[12.5px] text-muted">Resets daily at 00:00 UTC (about 1 pm in New Zealand). When a share runs out, that feature switches to its simple fallback; nothing ever costs money.</p>
+      </div>
+      {a ? (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {METERS.map(([k, label]) => {
+            const m = a[k];
+            const pct = Math.min(100, Math.round((m.used / m.cap) * 100));
+            return (
+              <li key={k} className="flex items-center gap-2 text-[12.5px]">
+                <span className="w-28 text-muted">{label}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-sm bg-track"><span className={pct > 85 ? "block h-1.5 bg-amber-text" : "block h-1.5 bg-accent"} style={{ width: `${pct}%` }} /></span>
+                <span className="w-12 text-right tabular-nums">{pct}%</span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : <p className="m-0 text-[13px] text-muted">Loading…</p>}
     </Card>
   );
 }

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router";
 import { HoldButton, Modal } from "../components/Dialog.tsx";
 import { useTheme } from "../components/ThemeContext.tsx";
 import { useToast } from "../components/Toast.tsx";
-import { ExportCard, MailToolsCard, ResumeCard } from "../components/SettingsCards.tsx";
+import { AllowanceCard, ExportCard, MailToolsCard, ResumeCard } from "../components/SettingsCards.tsx";
 import { Banner, Button, Card, Field, PageHeader, Pill, cx } from "../components/ui.tsx";
 import { api, type Settings } from "../lib/api.ts";
 import { formatTime } from "../lib/format.ts";
@@ -174,6 +174,7 @@ export function SettingsPage() {
         <div><Button variant="primary" disabled={!draft || saveLoop.isPending} onClick={() => draft && saveLoop.mutate(draft)}>Save</Button></div>
       </Card>
 
+      <AllowanceCard />
       <MailToolsCard />
       <ResumeCard />
       <ExportCard />

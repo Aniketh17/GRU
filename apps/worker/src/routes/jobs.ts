@@ -88,9 +88,9 @@ resumeRoutes.delete("/:id", async (c) => {
 });
 
 // ---------------------------------------------------------------- scoring plumbing
-interface ActiveResume { id: number; text: string; facts: ResumeFacts }
+export interface ActiveResume { id: number; text: string; facts: ResumeFacts }
 
-async function activeResume(env: Env, db: Db): Promise<ActiveResume | null> {
+export async function activeResume(env: Env, db: Db): Promise<ActiveResume | null> {
   const r = await db.first<ResumeRow>("SELECT id, version, label, resume_text_enc, structured_json_enc, active, created_at FROM resume_profiles WHERE active = 1 LIMIT 1");
   if (!r) return null;
   const text = await decText(env, "resume_profiles", "resume_text_enc", r.id, r.resume_text_enc);

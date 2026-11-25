@@ -3,8 +3,8 @@
 import type { Db } from "../db/client.ts";
 
 export const AI_DAILY_NEURONS = 8000;
-/** Per-feature ceilings (sum 8,000). Each feature degrades gracefully when its share is used up. */
-export const AI_CAPS = { tts: 5600, stt: 400, llm: 2000 } as const;
+/** Per-feature ceilings (sum 8,000). Each feature degrades gracefully when its share is used up (Revamp plan, section 5). */
+export const AI_CAPS = { tts: 3800, stt: 400, llm: 1200, tailor: 1800, write: 800 } as const;
 export type AiKind = keyof typeof AI_CAPS;
 
 /** Neuron prices verified in Cloudflare's pricing page, 2026-11-15 (see DECISIONS D-055/D-059). */
@@ -35,7 +35,7 @@ export async function releaseNeurons(db: Db, kind: AiKind, neurons: number, now:
 
 export async function aiUsage(db: Db, now: number): Promise<Record<AiKind | "total", number>> {
   const rows = await db.all<{ k: string; v: string }>("SELECT k, v FROM kv WHERE k LIKE ?", `ai:%:${utcDay(now)}`);
-  const out = { tts: 0, stt: 0, llm: 0, total: 0 };
+  const out = { tts: 0, stt: 0, llm: 0, tailor: 0, write: 0, total: 0 };
   for (const r of rows) {
     const kind = r.k.split(":")[1] as AiKind;
     const v = Number(r.v) || 0;

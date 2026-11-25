@@ -60,6 +60,10 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Graduate Backend Engineer" })).toBeVisible();
   await page.getByRole("tab", { name: "Fit" }).click();
   await expect(page.getByText(/Strengths from your resume|Gaps/).first()).toBeVisible();
+  await page.getByRole("tab", { name: "Tailor CV" }).click();
+  await expect(page.getByText("Keyword coverage")).toBeVisible();
+  await expect(page.getByText(/Keywords missing or buried/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Write tailored bullets" })).toBeVisible();
   await page.getByRole("tab", { name: "Insights" }).click();
   await expect(page.getByText("Have I applied already?")).toBeVisible();
   await expect(page.getByText("No match found among your applications.")).toBeVisible();

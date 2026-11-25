@@ -18,6 +18,7 @@
     "apps/worker/src/**/*.ts",
     "apps/web/src/derive.ts",
     "apps/web/src/lib/voice-intents.ts",
+    "apps/web/src/lib/tailor.ts",
     "apps/web/src/lib/theme-core.ts",
     "test/fixtures/**/*.ts"
   ]

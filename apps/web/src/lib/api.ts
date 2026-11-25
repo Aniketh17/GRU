@@ -200,6 +200,11 @@ export interface InboxData {
   items: InboxItem[]; blocked: string[]; classes: string[];
   applications: { id: number; company: string; role: string | null; status: string }[];
 }
+export interface KitRewrite { index: number; original: string; text: string; grounded: boolean; flagged: string[] }
+export interface Kit { rewrites: KitRewrite[]; summary: string | null; summary_flagged: string[]; fingerprint: string; model: string | null; created_at: number }
+export interface TailorData { title: string; company: string | null; description: string | null; resume: { id: number; text: string } | null; kit: Kit | null; stale: boolean }
+export interface Allowance { voice: Meter; transcription: Meter; chat: Meter; tailor: Meter; writing: Meter; total: number; free_daily: number }
+interface Meter { used: number; cap: number }
 export interface JobInput {
   title: string; company?: string; location?: string; work_arrangement?: "remote" | "hybrid" | "onsite"; url?: string;
   description?: string; closing_at?: number;
@@ -296,6 +301,9 @@ export const api = {
   jobQueue: () => request<{ has_resume: boolean; threshold: number; items: Job[]; likely_applied: Job[] }>("/api/jobs/queue"),
   jobInsights: (id: number) => request<JobInsights>(`/api/jobs/${id}/insights`),
   jobDescription: (id: number, description: string) => request<{ ok: true }>(`/api/jobs/${id}/description`, "PUT", { description }),
+  tailorData: (id: number) => request<TailorData>(`/api/jobs/${id}/tailor`),
+  tailorGenerate: (id: number, d: { keywords: string[]; bullets: string[] }) => request<{ kit: Kit }>(`/api/jobs/${id}/tailor`, "POST", d),
+  aiAllowance: () => request<Allowance>("/api/ai/allowance"),
   jobNotSame: (id: number) => request<{ ok: true }>(`/api/jobs/${id}/not-same`, "POST", {}),
   inbox: () => request<InboxData>("/api/inbox"),
   inboxCount: () => request<{ count: number }>("/api/inbox/count"),
