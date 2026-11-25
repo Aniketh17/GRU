@@ -4,6 +4,7 @@ import type { AppEnv } from "../app.ts";
 import { normalizeName } from "../domain/normalize.ts";
 import { nowSec } from "../env.ts";
 import { sameCompany, titleSimilarity } from "../lib/dedupe.ts";
+import { decText } from "../lib/enc.ts";
 
 export const jobInsightRoutes = new Hono<AppEnv>();
 
@@ -22,12 +23,15 @@ jobInsightRoutes.get("/:id/insights", async (c) => {
   if (!j) return c.json({ error: "not_found" }, 404);
   const now = nowSec();
   const cn = j.company_norm;
-  const [apps, others, people] = await Promise.all([
+  const [apps, others, people, netPeople] = await Promise.all([
     cn ? db.all<{ id: number; company_norm: string; role: string | null; status: string; applied_at: number | null; source: string }>(
       "SELECT id, company_norm, role, status, applied_at, source FROM applications ORDER BY applied_at DESC LIMIT 200") : Promise.resolve([]),
     cn ? db.all<{ id: number; title: string; source: string; status: string; canonical_url: string | null }>(
       "SELECT id, title, source, status, canonical_url FROM jobs WHERE company_norm = ? AND id != ? LIMIT 40", cn, id) : Promise.resolve([]),
     cn ? db.all<{ company: string | null }>("SELECT company FROM contacts WHERE company IS NOT NULL ORDER BY last_contact_at DESC LIMIT 100") : Promise.resolve([]),
+    // People Ani is building a relationship with at this company (Network): the best route to a referral.
+    cn ? db.all<{ id: number; name_enc: string; stage: string; company_id: number }>(
+      "SELECT p.id, p.name_enc, p.stage, p.company_id FROM net_people p JOIN net_companies c ON c.id = p.company_id WHERE c.name_norm = ? LIMIT 5", cn) : Promise.resolve([]),
   ]);
   const history = apps.filter((a) => sameCompany(cn, a.company_norm));
   const sameRole = others.filter((o) => titleSimilarity(o.title, j.title) >= 0.75);
@@ -38,6 +42,7 @@ jobInsightRoutes.get("/:id/insights", async (c) => {
     company_summary: history.length ? `${history.length} application${history.length === 1 ? "" : "s"} here before; ${moved} moved past "applied".` : null,
     same_role_elsewhere: sameRole.map((o) => ({ id: o.id, source: o.source, status: o.status, url: o.canonical_url })),
     other_roles_here: others.filter((o) => !sameRole.includes(o)).slice(0, 6).map((o) => ({ id: o.id, title: o.title })),
+    network: await Promise.all(netPeople.map(async (p) => ({ id: p.id, name: (await decText(c.env, "net_people", "name_enc", p.id, p.name_enc)) ?? "Someone", stage: p.stage }))),
     known_contacts: people.filter((p) => p.company && sameCompany(cn, normalizeName(p.company))).length,
     closing: j.closing_at ? { at: j.closing_at, days_left: Math.ceil((j.closing_at - now) / 86400) } : null,
     first_seen_days: Math.max(0, Math.floor((now - j.first_seen_at) / 86400)),

@@ -54,7 +54,7 @@ export async function runDailyLoopScheduler(
     }
   }
 
-  const send = (kind: "interview" | "debrief" | "task_due" | "jobs" | "weekly", key: string) =>
+  const send = (kind: "interview" | "debrief" | "task_due" | "jobs" | "weekly" | "network", key: string) =>
     sendOnce(db, env.NTFY_TOPIC, env.APP_ORIGIN, kind, key, now, fetchFn);
 
   // 2b. Interview reminders: 24 h and 2 h before (generic text), debrief nudge the morning after
@@ -77,6 +77,8 @@ export async function runDailyLoopScheduler(
     // 2c. Tasks due, and new job matches, at most once per day after the brief time
     const due = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE done_at IS NULL AND due_at IS NOT NULL AND due_at <= ?", now);
     if ((due?.n ?? 0) > 0) await send("task_due", `task_due:${today}`);
+    const follow = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM net_people WHERE next_followup_at IS NOT NULL AND next_followup_at <= ?", now);
+    if ((follow?.n ?? 0) > 0) await send("network", `network:${today}`);
     const fresh = await db.first<{ n: number }>(
       `SELECT COUNT(*) AS n FROM jobs j JOIN job_matches m ON m.job_id = j.id
        WHERE j.status = 'new' AND j.first_seen_at >= ? AND m.score >= ?`, now - 86400, settings.shortlist_threshold,

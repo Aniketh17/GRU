@@ -6,6 +6,7 @@ import { ApplicationForm } from "../components/ApplicationForm.tsx";
 import { BriefCard } from "../components/DailyLoop.tsx";
 import { ListIcon, PlusIcon } from "../components/Icons.tsx";
 import { ThemeToggle } from "../components/ThemeContext.tsx";
+import { NetworkCard } from "../components/NetworkCard.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Button, Card, EmptyState, ErrorState, STATUS_THEME, SectionTitle, SkeletonRows, StatusChip } from "../components/ui.tsx";
 import { api, type Status } from "../lib/api.ts";
@@ -82,6 +83,7 @@ export function TodayPage() {
         <div className="flex flex-wrap items-start gap-5">
           <div className="flex min-w-0 flex-[2_1_520px] flex-col gap-5">
             <BriefCard onAdd={() => setAdding(true)} />
+            <NetworkCard />
             <Card>
               <SectionTitle aside={<Link to="/applications" className="text-[13px] font-medium text-accent-text no-underline">All applications →</Link>}>Pipeline</SectionTitle>
               {summary.isPending ? (

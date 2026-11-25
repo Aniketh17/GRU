@@ -12,7 +12,7 @@ afterEach(async () => {
 
 const EXPECTED_TABLES = [
   "applications", "checkins", "contacts", "deadlines", "emails_seen", "events", "interviews", "job_kits", "job_matches", "jobs", "kv",
-  "login_attempts", "mail_accounts", "note_tokens", "notes", "notifications_sent", "oauth_states",
+  "login_attempts", "mail_accounts", "net_companies", "net_people", "net_touches", "note_tokens", "notes", "notifications_sent", "oauth_states",
   "resume_profiles", "review_queue", "sender_rules", "sessions", "sync_runs", "tasks", "voice_log",
 ];
 

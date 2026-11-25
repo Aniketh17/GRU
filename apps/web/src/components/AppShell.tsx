@@ -15,7 +15,8 @@ const NAV = [
   { to: "/calendar", label: "Calendar", icon: CalendarIcon, end: false },
   { to: "/agenda", label: "Tasks", icon: CheckIcon, end: false },
   { to: "/notes", label: "Notes", icon: NoteIcon, end: false },
-  { to: "/people", label: "People", icon: PeopleIcon, end: false },
+  { to: "/network", label: "Network", icon: PeopleIcon, end: false },
+  { to: "/people", label: "Recruiters", icon: PeopleIcon, end: false },
   { to: "/inbox", label: "Inbox", icon: InboxIcon, end: false },
   { to: "/review", label: "Review", icon: WarningIcon, end: false },
 ] as const;

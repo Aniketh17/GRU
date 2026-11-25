@@ -192,6 +192,7 @@ export interface JobInsights {
   same_role_elsewhere: { id: number; source: string; status: string; url: string | null }[];
   other_roles_here: { id: number; title: string }[];
   known_contacts: number;
+  network: { id: number; name: string; stage: string }[];
   closing: { at: number; days_left: number } | null;
   first_seen_days: number;
 }
@@ -205,6 +206,15 @@ export interface Kit { rewrites: KitRewrite[]; summary: string | null; summary_f
 export interface TailorData { title: string; company: string | null; description: string | null; resume: { id: number; text: string } | null; kit: Kit | null; stale: boolean }
 export interface Allowance { voice: Meter; transcription: Meter; chat: Meter; tailor: Meter; writing: Meter; total: number; free_daily: number }
 interface Meter { used: number; cap: number }
+export interface NetPerson { id: number; company_id: number | null; company: string | null; name: string; role: string | null; url: string | null; how: string | null; stage: string; warmth: number; next_followup_at: number | null; last_touch_at: number | null }
+export interface NetCompany { id: number; name: string; priority: number; status: string; source: string; people: number; why: string | null }
+export interface NetOverview {
+  companies: { total: number; by_status: Record<string, number>; target: number };
+  people: { total: number; by_stage: Record<string, number> };
+  week: { outreach: number; conversations: number; thanks: number; goals: { outreach: number; conversations: number }; streak: number };
+  due: NetPerson[];
+}
+export interface NetDraft { text: string; limit: number | null; source: "template" | "ai"; note: string | null }
 export interface JobInput {
   title: string; company?: string; location?: string; work_arrangement?: "remote" | "hybrid" | "onsite"; url?: string;
   description?: string; closing_at?: number;
@@ -304,6 +314,22 @@ export const api = {
   tailorData: (id: number) => request<TailorData>(`/api/jobs/${id}/tailor`),
   tailorGenerate: (id: number, d: { keywords: string[]; bullets: string[] }) => request<{ kit: Kit }>(`/api/jobs/${id}/tailor`, "POST", d),
   aiAllowance: () => request<Allowance>("/api/ai/allowance"),
+  netOverview: () => request<NetOverview>("/api/network/overview"),
+  netCompanies: () => request<{ items: NetCompany[] }>("/api/network/companies"),
+  netStarter: () => request<{ items: string[]; note: string }>("/api/network/starter"),
+  netAddCompany: (d: { name: string; priority?: number; why?: string }) => request<{ id: number }>("/api/network/companies", "POST", d),
+  netBulk: (names: string[], source: "manual" | "starter" = "manual") => request<{ added: number }>("/api/network/companies/bulk", "POST", { names, source }),
+  netImportSeen: () => request<{ added: number }>("/api/network/companies/import-seen", "POST", {}),
+  netPatchCompany: (id: number, d: { status?: string; priority?: number; why?: string }) => request<{ ok: true }>(`/api/network/companies/${id}`, "PATCH", d),
+  netDeleteCompany: (id: number) => request<{ deleted: true }>(`/api/network/companies/${id}`, "DELETE"),
+  netPeople: (companyId?: number) => request<{ items: NetPerson[] }>(`/api/network/people${companyId ? `?company_id=${companyId}` : ""}`),
+  netAddPerson: (d: { company_id?: number | null; name: string; role?: string; url?: string; how?: string }) => request<{ id: number }>("/api/network/people", "POST", d),
+  netPerson: (id: number) => request<NetPerson & { touches: { id: number; kind: string; at: number; note: string | null }[] }>(`/api/network/people/${id}`),
+  netPatchPerson: (id: number, d: { stage?: string; warmth?: number; next_followup_at?: number | null }) => request<{ ok: true }>(`/api/network/people/${id}`, "PATCH", d),
+  netDeletePerson: (id: number) => request<{ deleted: true }>(`/api/network/people/${id}`, "DELETE"),
+  netTouch: (id: number, d: { kind: string; note?: string; followup_days?: number }) => request<{ ok: true; stage: string }>(`/api/network/people/${id}/touch`, "POST", d),
+  netDraft: (id: number, d: { kind: string; polish?: boolean }) => request<NetDraft>(`/api/network/people/${id}/draft`, "POST", d),
+  netGoals: (d: { outreach: number; conversations: number }) => request<{ outreach: number; conversations: number }>("/api/network/goals", "PUT", d),
   jobNotSame: (id: number) => request<{ ok: true }>(`/api/jobs/${id}/not-same`, "POST", {}),
   inbox: () => request<InboxData>("/api/inbox"),
   inboxCount: () => request<{ count: number }>("/api/inbox/count"),

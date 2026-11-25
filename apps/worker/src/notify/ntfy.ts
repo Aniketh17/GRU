@@ -3,7 +3,7 @@
 import type { Db } from "../db/client.ts";
 import { errorCode, log } from "../log/index.ts";
 
-export type NotificationKind = "brief" | "evening" | "reauth" | "interview" | "debrief" | "task_due" | "jobs" | "weekly";
+export type NotificationKind = "brief" | "evening" | "reauth" | "interview" | "debrief" | "task_due" | "jobs" | "weekly" | "network";
 
 export const NOTIFICATION_MESSAGES: Record<NotificationKind, { title: string; message: string; priority: number; tag: string }> = {
   brief: {
@@ -22,6 +22,7 @@ export const NOTIFICATION_MESSAGES: Record<NotificationKind, { title: string; me
   debrief: { title: "GRU", message: "GRU: add your interview debrief", priority: 3, tag: "memo" },
   task_due: { title: "GRU", message: "GRU: a task is due", priority: 3, tag: "white_check_mark" },
   weekly: { title: "GRU", message: "GRU: your weekly summary is ready", priority: 3, tag: "bar_chart" },
+  network: { title: "GRU", message: "GRU: a networking follow-up is due", priority: 3, tag: "handshake" },
   jobs: { title: "GRU", message: "GRU: new job matches are ready", priority: 3, tag: "mag" },
   reauth: {
     title: "GRU Alert",

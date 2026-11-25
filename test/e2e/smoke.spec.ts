@@ -46,12 +46,30 @@ test("every page renders with data and no browser errors", async ({ page }) => {
   await expect(page.getByText("Interviews", { exact: true })).toBeVisible();
 
   for (const [path, text] of [
-    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"],
+    ["/applications", "Apply today"], ["/applications?tab=other", "Other jobs"], ["/jobs", "Other jobs"], ["/agenda", "Agenda"], ["/calendar", "Calendar"], ["/people", "People"], ["/notes", "Notes"], ["/more", "More"], ["/settings", "Settings"], ["/review", "Review"], ["/inbox", "Inbox"], ["/network", "Network"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: text, exact: true }).first()).toBeVisible();
     await expect(page.getByText("Unexpected Application Error")).toHaveCount(0);
   }
+
+  // Network: add a company and a person, draft a curiosity-first note.
+  await page.goto("/network");
+  await page.getByRole("tab", { name: "Companies" }).click();
+  await page.getByRole("button", { name: "Add companies" }).click();
+  await page.getByLabel(/One company per line/).fill("Smoke Robotics");
+  await page.getByRole("button", { name: /^Add 1 company/ }).click();
+  await expect(page.getByText("Smoke Robotics").first()).toBeVisible();
+  await page.getByRole("tab", { name: "People" }).click();
+  await page.getByRole("button", { name: "Add person" }).click();
+  await page.getByLabel("Name", { exact: true }).fill("Priya Nair");
+  await page.getByLabel("Role").fill("Data Engineer");
+  await page.getByLabel("Company").fill("Smoke Robotics");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByText("Priya Nair").first().click();
+  await page.getByRole("button", { name: "Draft it" }).click();
+  await expect(page.getByLabel(/Draft \(edit freely\)/)).toHaveValue(/Hi Priya/);
+  await page.keyboard.press("Escape");
 
   await page.goto("/applications?tab=other");
   await expect(page.getByText("Graduate Backend Engineer").first()).toBeVisible();

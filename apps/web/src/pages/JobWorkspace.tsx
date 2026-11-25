@@ -188,6 +188,7 @@ function Insights({ id }: { id: number }) {
             <ul className="m-0 pl-5 text-[12.5px] text-ink-2">{d.company_history.map((a) => <li key={a.id}><Link to={`/applications/${a.id}?status=all`}>{a.role ?? "Role not set"}</Link> · {a.status}{a.applied_at ? ` · applied ${formatShort(a.applied_at)}` : ""}</li>)}</ul>
           </>
         )}
+        {d.network.length > 0 && <p className="m-0 text-[13px] text-ink-2">You’re building a relationship with {d.network.map((p) => p.name).join(", ")} here. <Link to="/network">Open Network</Link> and ask about the work first; a referral can follow once you’ve talked.</p>}
         {d.known_contacts > 0 && <p className="m-0 text-[13px] text-ink-2">You’ve had mail from {d.known_contacts} {d.known_contacts === 1 ? "person" : "people"} at this company. Worth asking about a referral.</p>}
       </Card>
       <Card className="flex flex-col gap-1.5 p-4">

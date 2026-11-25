@@ -9,10 +9,11 @@ export function MorePage() {
   const brief = useQuery({ queryKey: ["brief"], queryFn: api.brief });
   const inbox = useQuery({ queryKey: ["inboxCount"], queryFn: api.inboxCount });
   const items = [
+    { to: "/network", label: "Network", note: "Companies and people to learn from", icon: PeopleIcon },
     { to: "/inbox", label: "Inbox", note: inbox.data?.count ? `${inbox.data.count} to sort` : "Mail GRU couldn’t classify", icon: InboxIcon },
     { to: "/review", label: "Review", note: brief.data?.review_count ? `${brief.data.review_count} waiting` : "Emails GRU wasn’t sure about", icon: InboxIcon },
     { to: "/notes", label: "Notes", note: "Quick capture and search", icon: NoteIcon },
-    { to: "/people", label: "People", note: "Recruiters and hiring contacts", icon: PeopleIcon },
+    { to: "/people", label: "Recruiters", note: "Recruiters and hiring contacts", icon: PeopleIcon },
     { to: "/settings", label: "Settings", note: "Gmail, resume, daily loop, export, pause", icon: SettingsIcon },
   ];
   return (
