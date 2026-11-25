@@ -115,7 +115,7 @@ export function AppShell() {
       <CommandPalette open={searching} onClose={() => setSearching(false)} />
       <VoiceAssistant />
       <PullToRefresh onRefresh={() => void refresh()} busy={busy} />
-      <main id="main" className="min-w-0 flex-1 px-4 pt-safe pb-28 sm:px-6 lg:px-9 lg:pt-7 lg:pb-12">
+      <main id="main" className="min-w-0 flex-1 px-4 pt-safe pb-36 sm:px-6 lg:px-9 lg:pt-7 lg:pb-12">
         <div className="mx-auto flex max-w-[1140px] flex-col gap-5">
           <div className="-mb-2 flex items-center justify-between lg:hidden">
             <span className="text-[12px] font-bold tracking-[0.1em] text-muted">GRU</span>

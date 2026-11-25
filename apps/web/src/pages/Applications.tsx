@@ -341,7 +341,7 @@ function ApplicationDetail({ id, onClose }: { id: number; onClose: () => void })
 const TABS = [
   { key: "apply", label: "Apply today" },
   { key: "other", label: "Other jobs" },
-  { key: "tracked", label: "My applications" },
+  { key: "tracked", label: "Tracked" },
   { key: "board", label: "Board" },
 ] as const;
 
@@ -356,14 +356,14 @@ export function ApplicationsPage() {
   const ready = queue.data?.items.length ?? 0;
   return (
     <>
-      <div role="tablist" aria-label="Applications" className="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div role="tablist" aria-label="Applications" className="flex gap-1 sm:gap-1.5">
         {TABS.map((t) => (
           <Link
             key={t.key}
             role="tab"
             aria-selected={tab === t.key}
             to={t.key === "apply" ? "/applications" : `/applications?tab=${t.key}`}
-            className={cx("inline-flex h-9 flex-none items-center gap-2 rounded-full border px-4 text-[13.5px] font-medium no-underline", tab === t.key ? "border-ink bg-ink text-bg" : "border-line bg-surface text-ink-2 hover:text-ink")}
+            className={cx("inline-flex h-9 min-w-0 flex-none items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium whitespace-nowrap no-underline sm:px-4 sm:text-[13.5px]", tab === t.key ? "border-ink bg-ink text-bg" : "border-line bg-surface text-ink-2 hover:text-ink")}
           >
             {t.label}
             {t.key === "apply" && ready > 0 && <span className={cx("grid min-w-5 place-items-center rounded-full px-1.5 text-[11.5px] font-semibold tabular-nums", tab === "apply" ? "bg-bg text-ink" : "bg-accent text-accent-ink")}>{ready}</span>}

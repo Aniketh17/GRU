@@ -296,7 +296,7 @@ test("Applications opens on 'Apply today' with good matches ready to apply; the 
   await page.getByRole("tab", { name: "Other jobs" }).click();
   await expect(page.getByText("Senior Truck Driver Not A Match").first()).toBeVisible(); // the rest, with filters
   await expect(page.getByLabel("Match")).toBeVisible();
-  await page.getByRole("tab", { name: "My applications" }).click();
+  await page.getByRole("tab", { name: "Tracked" }).click();
   await expect(page.getByRole("button", { name: "Add application", exact: true })).toBeVisible();
   await expect(page.getByRole("group", { name: "Filter by status" })).toBeVisible();
 });

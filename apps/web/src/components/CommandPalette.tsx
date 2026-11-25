@@ -13,7 +13,7 @@ const PAGES: Hit[] = [
   { key: "p-today", label: "Today", hint: "Page", to: "/" },
   { key: "p-apply", label: "Apply today", hint: "Page", to: "/applications" },
   { key: "p-other", label: "Other jobs", hint: "Page", to: "/applications?tab=other" },
-  { key: "p-track", label: "My applications", hint: "Page", to: "/applications?tab=tracked" },
+  { key: "p-track", label: "Tracked applications", hint: "Page", to: "/applications?tab=tracked" },
   { key: "p-board", label: "Pipeline board", hint: "Page", to: "/applications?tab=board" },
   { key: "p-net", label: "Network", hint: "Page", to: "/network" },
   { key: "p-ins", label: "Insights", hint: "Page", to: "/insights" },

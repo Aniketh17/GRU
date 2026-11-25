@@ -44,7 +44,7 @@ export function PipelineBoard() {
   const apps = q.data ?? [];
   if (apps.length === 0) return <Card><EmptyState title="No applications yet">Add one, or mark a job as applied, and it appears here.</EmptyState></Card>;
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2" aria-label="Pipeline board">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0" aria-label="Pipeline board">
       {COLUMNS.map((col) => {
         const items = apps.filter((a) => col.statuses.includes(a.status));
         return (
@@ -59,7 +59,7 @@ export function PipelineBoard() {
               const a = apps.find((x) => x.id === id);
               if (a && !col.statuses.includes(a.status)) move.mutate({ id, status: col.drop });
             }}
-            className={cx("flex w-[220px] flex-none flex-col gap-2 rounded-xl border p-2", over === col.key ? "border-accent bg-accent-wash" : "border-line bg-sunken")}
+            className={cx("flex w-[78vw] max-w-[260px] flex-none snap-start flex-col gap-2 rounded-xl border p-2 sm:w-[220px]", over === col.key ? "border-accent bg-accent-wash" : "border-line bg-sunken")}
           >
             <h2 className="m-0 flex items-center justify-between px-1 text-[13px] font-semibold">{col.label}<span className="text-[12px] font-normal text-muted tabular-nums">{items.length}</span></h2>
             {items.map((a) => (

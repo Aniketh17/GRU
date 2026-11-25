@@ -77,7 +77,7 @@ export function TodayPage() {
             title="Let’s set up your pipeline"
             action={<Button variant="primary" onClick={() => setAdding(true)}><PlusIcon size={14} />Add your first application</Button>}
           >
-            Start with the applications you’ve already sent. When Gmail is connected (next phase), GRU will spot replies, interviews and rejections for you.
+            Start with the applications you’ve already sent. When Gmail is connected, GRU will spot replies, interviews and rejections for you.
           </EmptyState>
         </Card>
       ) : (

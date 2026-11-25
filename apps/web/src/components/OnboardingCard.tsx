@@ -31,10 +31,10 @@ export function OnboardingCard() {
   return (
     <Card>
       <SectionTitle aside={<button type="button" onClick={dismiss} className="cursor-pointer text-[12.5px] text-muted underline">Dismiss</button>}>Getting started · {steps.length - left.length} of {steps.length}</SectionTitle>
-      <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+      <ul className="m-0 flex list-none flex-col gap-2 px-5 pb-4">
         {steps.map((s) => (
-          <li key={s.text} className="flex items-start gap-2 text-[13.5px]">
-            <span aria-hidden="true" className={s.done ? "text-green" : "text-muted"}>{s.done ? "✓" : "○"}</span>
+          <li key={s.text} className="flex items-start gap-2.5 text-[13.5px] leading-snug">
+            <span aria-hidden="true" className={`w-4 flex-none text-center ${s.done ? "text-green" : "text-muted"}`}>{s.done ? "✓" : "○"}</span>
             {s.done ? <span className="text-muted line-through">{s.text}</span> : <Link to={s.to}>{s.text}</Link>}
           </li>
         ))}

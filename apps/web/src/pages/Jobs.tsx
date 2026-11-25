@@ -89,8 +89,8 @@ export function JobsPanel({ mode }: { mode: "apply" | "other" }) {
             <li key={j.id}>
               <Card className="flex flex-col gap-2.5 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <button type="button" onClick={() => nav(`/jobs/${j.id}`)} className="min-w-0 cursor-pointer text-left">
-                    <p className="m-0 truncate text-[15px] font-semibold">{j.title}</p>
+                  <button type="button" onClick={() => nav(`/jobs/${j.id}`)} className="min-w-0 flex-1 cursor-pointer text-left">
+                    <p className="m-0 line-clamp-2 text-[15px] leading-snug font-semibold">{j.title}</p>
                     <p className="m-0 truncate text-[13px] text-muted">{[j.company, j.location, j.work_arrangement].filter(Boolean).join(" · ") || "Details not set"}</p>
                   </button>
                   {j.score === null ? <Pill tone="neutral">Not scored</Pill> : (

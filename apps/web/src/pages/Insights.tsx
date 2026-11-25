@@ -8,9 +8,9 @@ function Bar({ name, value, max, note, tone = "bg-accent" }: { name: string; val
   const pct = max > 0 ? Math.max(value > 0 ? 3 : 0, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-2 text-[13px]">
-      <span className="w-28 flex-none text-ink-2">{name}</span>
-      <span className="h-3 flex-1 overflow-hidden rounded-sm bg-track"><span className={`block h-3 ${tone}`} style={{ width: `${pct}%` }} /></span>
-      <span className="w-20 flex-none text-right tabular-nums"><strong>{value}</strong>{note ? <span className="text-muted"> {note}</span> : null}</span>
+      <span className="w-24 flex-none truncate text-ink-2 sm:w-32" title={name}>{name}</span>
+      <span className="h-3 min-w-10 flex-1 overflow-hidden rounded-sm bg-track"><span className={`block h-3 ${tone}`} style={{ width: `${pct}%` }} /></span>
+      <span className="min-w-8 flex-none text-right whitespace-nowrap tabular-nums"><strong>{value}</strong>{note ? <span className="text-muted"> {note}</span> : null}</span>
     </div>
   );
 }
